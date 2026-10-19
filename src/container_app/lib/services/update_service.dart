@@ -147,7 +147,7 @@ class UpdateService {
   static Future<UpdateInfo?> check({bool force = false}) async {
     if (!force) {
       final last = await Settings.getLastUpdateCheck();
-      final cached = await Settings.getCachedUpdate();
+      final cached = await _cachedInfo();
       if (last != null && DateTime.now().difference(last) < checkInterval) {
         return cached;
       }
@@ -164,7 +164,7 @@ class UpdateService {
     if (resp.statusCode == 304) {
       // Not modified - cached result stays valid and the quota is not used.
       await Settings.setLastUpdateCheck(DateTime.now());
-      final cached = await Settings.getCachedUpdate();
+      final cached = await _cachedInfo();
       latest = cached;
       return cached;
     }
@@ -183,6 +183,17 @@ class UpdateService {
     await Settings.setCachedUpdate(info?.toJson());
     latest = info;
     return info;
+  }
+
+  /// Cached update descriptor as an UpdateInfo (null when up to date).
+  static Future<UpdateInfo?> _cachedInfo() async {
+    final cached = await Settings.getCachedUpdate();
+    if (cached == null) return null;
+    try {
+      return UpdateInfo.fromJson(cached);
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Download the release APK into the app cache and verify its SHA-256 when
@@ -268,5 +279,5 @@ class _DigestSink implements Sink<Digest> {
   @override
   void close() {}
 
-  Digest get digest => _digest ?? sha256.convert(const <int>[]).digest;
+  Digest get digest => _digest ?? sha256.convert(const <int>[]);
 }
