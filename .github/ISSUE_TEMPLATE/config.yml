@@ -1,0 +1,24 @@
+# Steer would-be issue filers to the right place.
+#
+# The recurring problem: people open issues asking for an APP to be made for
+# them — but iappyxOS generates apps on YOUR device from a plain-language
+# description. There's no app-request queue here; you ask the AI in the app.
+#
+# Feature requests and changes to iappyxOS ITSELF are welcome — those have a
+# dedicated form ("Feature request"). Bugs have their own form too. Blank
+# freeform issues are disabled so the "New issue" button lands on the
+# forms + the redirect below instead of an empty box.
+blank_issues_enabled: false
+contact_links:
+  - name: "🧩 Want an app made for you? Describe it to the AI inside iappyxOS"
+    url: https://github.com/iappyx/iappyxOS#quick-start
+    about: >-
+      iappyxOS builds apps on your own device from a plain-language description —
+      there's no app-request queue here. Open the app, tap Create, and tell the
+      AI what you want. (To request a change to iappyxOS itself, use the Feature
+      request form instead.)
+  - name: "❓ Just have a question? Check the FAQ first"
+    url: https://github.com/iappyx/iappyxOS/blob/main/FAQ.md
+    about: >-
+      Most questions — offline use, why it's called an "OS", the APK size,
+      the three generation modes — are answered in the FAQ.

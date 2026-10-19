@@ -1,0 +1,56 @@
+plugins {
+    id 'com.android.application'
+}
+android {
+    namespace 'com.iappyx.generated.placeholder'
+    compileSdk 35
+    defaultConfig {
+        applicationId "com.iappyx.generated.placeholderx.xxxxxxxx"
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName "1.0"
+        // Only include 64-bit ARM — x86 is emulator-only, 32-bit ARM is obsolete (no phones sold since ~2018)
+        ndk { abiFilters 'arm64-v8a' }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            signingConfig signingConfigs.debug
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+configurations.all {
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+}
+dependencies {
+    implementation 'androidx.core:core:1.12.0'
+    // ComponentActivity (registerForActivityResult, ActivityResultContracts).
+    implementation 'androidx.activity:activity:1.8.2'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    implementation 'com.google.mlkit:barcode-scanning:17.2.0'
+    implementation 'com.google.mlkit:text-recognition:16.0.0'
+    implementation 'com.google.mlkit:image-labeling:17.0.8'
+    implementation 'com.google.mlkit:segmentation-selfie:16.0.0-beta6'
+    implementation 'androidx.media3:media3-exoplayer:1.3.0'
+    implementation 'androidx.media3:media3-session:1.3.0'
+    implementation 'androidx.exifinterface:exifinterface:1.3.7'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.github.mwiede:jsch:0.2.21'
+    implementation 'eu.agno3.jcifs:jcifs-ng:2.1.10'
+    implementation 'no.nordicsemi.android:ble:2.11.0'
+    implementation 'com.google.firebase:firebase-messaging:24.0.0'
+    // Android Auto connection-state observer for trigger.auto(). App library only —
+    // we observe projection/native connection state, no car-app rendering.
+    implementation 'androidx.car.app:app:1.4.0'
+    // LifecycleService — host for the CarConnection LiveData observer.
+    implementation 'androidx.lifecycle:lifecycle-service:2.7.0'
+    // Play Services geofencing (efficient OS-managed geofence monitoring for trigger.geofence)
+    implementation 'com.google.android.gms:play-services-location:21.3.0'
+}

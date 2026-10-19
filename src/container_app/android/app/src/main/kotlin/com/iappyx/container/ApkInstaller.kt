@@ -1,0 +1,177 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 iappyx
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+// Installs generated APKs via the Android PackageInstaller session API.
+
+package com.iappyx.container
+
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageInstaller
+import android.os.Build
+import android.util.Log
+import kotlinx.coroutines.suspendCancellableCoroutine
+import java.io.File
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+
+/**
+ * iappyxOS APK Installer
+ *
+ * Installs APKs using Android's PackageInstaller API.
+ * No root required. Shows the standard Android install dialog.
+ *
+ * This is the same API used by:
+ * - Google Play Store
+ * - Firefox (web app shortcuts)
+ * - Any app that installs other APKs legitimately
+ */
+class ApkInstaller(private val context: Context) {
+
+    companion object {
+        private const val TAG = "iappyxOS"
+        private const val ACTION_INSTALL_RESULT = "com.iappyx.os.INSTALL_RESULT"
+    }
+
+    /**
+     * Install an APK. Shows the system install dialog.
+     * Suspends until the user taps Install or Cancel.
+     *
+     * Requires: android.permission.REQUEST_INSTALL_PACKAGES
+     * The user must also enable "Install unknown apps" for the container app.
+     */
+    suspend fun install(apkFile: File) = suspendCancellableCoroutine { cont ->
+        val packageInstaller = context.packageManager.packageInstaller
+
+        val params = PackageInstaller.SessionParams(
+            PackageInstaller.SessionParams.MODE_FULL_INSTALL
+        ).apply {
+            setAppLabel("iappyxOS Generated App")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_REQUIRED)
+            }
+        }
+
+        val sessionId = packageInstaller.createSession(params)
+        val session = packageInstaller.openSession(sessionId)
+
+        // Write APK bytes to session
+        try {
+            apkFile.inputStream().use { input ->
+                session.openWrite("package", 0, apkFile.length()).use { output ->
+                    input.copyTo(output)
+                    session.fsync(output)
+                }
+            }
+        } catch (e: Exception) {
+            session.close()
+            throw e
+        }
+
+        // State tracking: flip to false when the receiver is unregistered, so re-entry
+        // and cancellation can't double-unregister (IllegalArgumentException crash) or
+        // drop a final-status broadcast that arrives while we were briefly unregistered.
+        var registered = false
+        lateinit var receiver: BroadcastReceiver
+        val unregisterSafely: () -> Unit = {
+            if (registered) {
+                try { context.unregisterReceiver(receiver) } catch (_: Exception) {}
+                registered = false
+            }
+        }
+
+        receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context, intent: Intent) {
+                val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, -1)
+                val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
+
+                when (status) {
+                    PackageInstaller.STATUS_SUCCESS -> {
+                        // Terminal — unregister and resume.
+                        unregisterSafely()
+                        Log.i(TAG, "Install success")
+                        cont.resume(Unit)
+                    }
+
+                    PackageInstaller.STATUS_PENDING_USER_ACTION -> {
+                        // NOT terminal. Keep receiver registered so the follow-up
+                        // STATUS_SUCCESS/STATUS_FAILURE broadcast still lands here.
+                        val confirmIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            intent.getParcelableExtra(Intent.EXTRA_INTENT)
+                        }
+                        if (confirmIntent != null) {
+                            confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(confirmIntent)
+                        }
+                    }
+
+                    else -> {
+                        // Terminal failure — unregister and resume with exception.
+                        unregisterSafely()
+                        Log.e(TAG, "Install failed (status $status): $message")
+                        cont.resumeWithException(
+                            InstallException("Install failed: $message (status $status)")
+                        )
+                    }
+                }
+            }
+        }
+
+        val intent = Intent(ACTION_INSTALL_RESULT).apply {
+            setPackage(context.packageName)
+        }
+
+        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        else
+            PendingIntent.FLAG_UPDATE_CURRENT
+
+        val pendingIntent = PendingIntent.getBroadcast(context, sessionId, intent, flags)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(
+                receiver,
+                IntentFilter(ACTION_INSTALL_RESULT),
+                Context.RECEIVER_NOT_EXPORTED
+            )
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            context.registerReceiver(receiver, IntentFilter(ACTION_INSTALL_RESULT))
+        }
+        registered = true
+
+        session.commit(pendingIntent.intentSender)
+        session.close()
+
+        cont.invokeOnCancellation { unregisterSafely() }
+    }
+
+    class InstallException(message: String) : Exception(message)
+}
