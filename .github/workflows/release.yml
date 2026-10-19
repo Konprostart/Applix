@@ -113,11 +113,19 @@ jobs:
           cp src/shell_apk_web/app/build/outputs/apk/release/app-release.apk "dist/Applix-$VERSION-shell-web.apk"
           ls -l dist
 
+      - name: Upload release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: dist/*.apk
+          if-no-files-found: error
+
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION="$(tr -d '[:space:]' < VERSION | cut -d+ -f1)"
+          TAG="${GITHUB_REF#refs/tags/}"
           python3 tools/changelog.py --extract "$VERSION" > /tmp/release-notes.md
           {
             echo "Applix $VERSION"
@@ -125,7 +133,7 @@ jobs:
             cat /tmp/release-notes.md
           } > /tmp/release-body.md
           cat /tmp/release-body.md
-          gh release create "${GITHUB_REF#refs/tags/v}" dist/*.apk \
+          gh release create "$TAG" dist/*.apk \
             --title "Applix $VERSION" \
             --notes-file /tmp/release-body.md \
             --verify-tag
