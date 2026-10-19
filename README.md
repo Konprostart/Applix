@@ -29,7 +29,7 @@ Derived from [iappyxOS](https://github.com/iappyx/iappyxOS) (MIT licensed). See 
 
 - **AI-generated App** — describe your app in plain language, let an AI generate the code, preview it, and build
 - **Website as App** — turn any website into a lightweight standalone app (1MB, no bridges, sandboxed)
-- **Demo Apps** — 57 pre-built apps to test native bridges (camera, GPS, NFC, BLE, SSH, network shares, and more)
+- **Demo Apps** — 59 pre-built apps to test native bridges (camera, GPS, NFC, BLE, SSH, network shares, and more)
 
 Every generated app is a real signed APK that appears in your Android launcher. You can share it, uninstall it, or update it — just like any app. Generated apps pass Google Play Protect scanning.
 

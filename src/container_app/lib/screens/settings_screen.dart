@@ -34,6 +34,7 @@ import '../services/app_storage.dart';
 import '../services/generator.dart';
 import '../models/ai_provider.dart';
 import 'create_screen.dart' show ProviderSetupPage;
+import 'flows/create_helpers.dart' as helpers;
 
 class SettingsScreen extends StatefulWidget {
   final VoidCallback? onAppsImported;
@@ -480,7 +481,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _card(children: [
                 _row('Version', '$kAppVersion (build $kAppBuildNumber)'),
                 const Divider(height: 1, color: Color(0xFF0D0D1A)),
-                _row('Demo Templates', '23'),
+                _row('Demo Templates', '${helpers.demoTemplates.where((t) => t.$1.isNotEmpty).length}'),
                 const Divider(height: 1, color: Color(0xFF0D0D1A)),
                 _row('Platform', 'Android (on-device)'),
               ]),

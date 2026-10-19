@@ -10,6 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.1] - 2026-10-19
+
+### Changed
+- **Applix launcher icon** — the launcher icon, the adaptive icon and the in-app logo now use the
+  Applix mark everywhere. All PNG variants (legacy, round, adaptive foreground) are generated from
+  `docs/brand/applix-logo.svg` with `python3 tools/gen_icons.py --apply`.
+- **Splash screen** — the launch window is brand dark now, so the app no longer flashes white
+  before the first frame.
+- Demo template count in Settings and in the docs matches the real number (59).
+
+### Fixed
+- The round launcher icon (`@mipmap/ic_launcher_round`) was only defined for Android 8.0+ - the
+  PNG variants are now generated for every density, so older devices get it too.
+- The built-in icon renderer used a wrong coordinate mapping and vertical instead of diagonal
+  gradients, so generated icons did not match the SVG brand mark.
+
 ## [0.1.0] - 2026-10-19
 
 First public release of Applix.
@@ -43,5 +59,6 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Konprostart/Applix/releases/tag/v0.1.1
 [0.1.0]: https://github.com/Konprostart/Applix/releases/tag/v0.1.0

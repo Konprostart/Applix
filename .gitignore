@@ -39,3 +39,7 @@ build-tools/
 src/container_app/.flutter-plugins
 src/container_app/.flutter-plugins-dependencies
 src/container_app/.packages
+
+# Python
+__pycache__/
+*.pyc

@@ -22,7 +22,7 @@ Only for AI generation (sending prompts to the AI). Everything else — building
 
 - **AI-generated App** — Describe what you want in plain language. An AI generates the HTML/JavaScript code, you preview it, then build. The app can use native features like camera, GPS, sensors, and more.
 - **Website as App** — Enter a URL, and Applix wraps it into a lightweight standalone app (~1MB). The website opens full-screen with its own launcher icon, separate from your browser. No native bridges — just a clean, sandboxed WebView.
-- **Demo App** — 60+ pre-built apps that showcase what's possible. Useful for testing native features (camera, NFC, BLE, sensors, networking, etc.) and as starting points for your own ideas.
+- **Demo App** — 59 pre-built apps that showcase what's possible. Useful for testing native features (camera, NFC, BLE, sensors, networking, etc.) and as starting points for your own ideas.
 
 ### What's the difference between "Full" and "Linked" prompt in Manual mode?
 - **Full** copies the entire system prompt (~45 KB) plus your app description. Works with any AI. Use this when your AI has no browser or doesn't accept URLs.
