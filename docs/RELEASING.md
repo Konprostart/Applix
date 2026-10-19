@@ -13,7 +13,8 @@ it lives only in GitHub Actions secrets.
 
 ```bash
 keytool -genkeypair -v \
-  -keystore applix-release.jks \
+  -keystore applix-release.p12 \
+  -storetype PKCS12 \
   -alias applix \
   -keyalg RSA -keysize 2048 -validity 10000 \
   -storepass 'YOUR_PASSWORD' \
@@ -22,7 +23,8 @@ keytool -genkeypair -v \
 
 Use **one password** for the keystore and the key — modern `keytool` creates a PKCS12 keystore,
 where the key password must equal the store password. If you really need two different
-passwords, add `-storetype JKS -keypass 'YOUR_KEY_PASSWORD'`.
+passwords, use `-storetype JKS -keypass 'YOUR_KEY_PASSWORD'` and set `storeType=JKS` in
+`key.properties`.
 
 **2. Keep a backup.** This key is the app's identity: if you lose it, you can never ship an
 update for an already installed Applix. Store it outside the repo (password manager, offline
@@ -31,19 +33,19 @@ drive) — not in git, not in cloud sync.
 **3. Add the four GitHub secrets** (repository → Settings → Secrets and variables → Actions):
 
 ```bash
-gh secret set APPLIX_KEYSTORE_BASE64   < base64.applix-release.jks
+gh secret set APPLIX_KEYSTORE_BASE64   < base64.applix-release.p12
 gh secret set APPLIX_KEYSTORE_PASSWORD < <(printf '%s' 'YOUR_PASSWORD')
 gh secret set APPLIX_KEY_ALIAS         < <(printf '%s' 'applix')
 gh secret set APPLIX_KEY_PASSWORD      < <(printf '%s' 'YOUR_PASSWORD')
 ```
 
-where `base64.applix-release.jks` is the base64 encoding of the keystore file:
+where `base64.applix-release.p12` is the base64 encoding of the keystore file:
 
 ```bash
-base64 -w0 applix-release.jks > base64.applix-release.jks
+base64 -w0 applix-release.p12 > base64.applix-release.p12
 ```
 
-macOS: `base64 < applix-release.jks | tr -d '\n' > base64.applix-release.jks`
+macOS: `base64 < applix-release.p12 | tr -d '\n' > base64.applix-release.p12`
 
 Without these secrets the release workflow fails on purpose — a release is never published with
 a debug signature.

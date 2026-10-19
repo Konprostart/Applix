@@ -186,7 +186,7 @@ cd src/container_app && flutter pub get && flutter build apk --release
 The release APK is signed with a private keystore (not in this repo). To set up your own:
 
 ```bash
-keytool -genkey -v -keystore applix-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias applix
+keytool -genkey -v -keystore applix-release.p12 -storetype PKCS12 -keyalg RSA -keysize 2048 -validity 10000 -alias applix
 ```
 
 Create `src/container_app/key.properties`:
@@ -194,7 +194,8 @@ Create `src/container_app/key.properties`:
 storePassword=YOUR_PASSWORD
 keyPassword=YOUR_PASSWORD
 keyAlias=applix
-storeFile=../../applix-release.jks
+storeType=PKCS12
+storeFile=../../applix-release.p12
 ```
 
 Both files are gitignored. Never commit your keystore or passwords.

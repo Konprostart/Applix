@@ -32,6 +32,8 @@ android {
                 keyPassword keyProps['keyPassword']
                 storeFile file(keyProps['storeFile'])
                 storePassword keyProps['storePassword']
+                // Explicit type - the keystore format must not depend on the file name.
+                storeType (keyProps['storeType'] ?: 'PKCS12')
             }
         }
     }

@@ -65,9 +65,9 @@ jobs:
             echo "::error::Missing release signing secrets: APPLIX_KEYSTORE_BASE64, APPLIX_KEYSTORE_PASSWORD, APPLIX_KEY_ALIAS, APPLIX_KEY_PASSWORD"
             exit 1
           fi
-          KEYSTORE_PATH="$GITHUB_WORKSPACE/src/container_app/android/app/applix-release.jks"
+          KEYSTORE_PATH="$GITHUB_WORKSPACE/src/container_app/android/app/applix-release.p12"
           echo "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_PATH"
-          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=%s\n' \
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreType=PKCS12\nstoreFile=%s\n' \
             "$KEYSTORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" "$KEYSTORE_PATH" \
             > "$GITHUB_WORKSPACE/src/container_app/key.properties"
           ls -l "$KEYSTORE_PATH" "$GITHUB_WORKSPACE/src/container_app/key.properties"

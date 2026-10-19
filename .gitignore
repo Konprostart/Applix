@@ -7,6 +7,7 @@
 # Secrets — local signing + SDK paths
 *.jks
 *.keystore
+*.p12
 **/key.properties
 **/local.properties
 
