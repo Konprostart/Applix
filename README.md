@@ -223,6 +223,15 @@ The version of the project lives in the `VERSION` file at the repo root (`0.1.0+
 templates and `lib/version.dart`; CI fails if anything drifts. The changelog lives in
 [CHANGELOG.md](CHANGELOG.md) and is validated by CI on every push.
 
+## Updates
+
+Applix checks GitHub Releases for a newer version - silently once a day, and on demand via
+**Settings → About → Check for updates**. When a newer release exists, My Apps shows a banner
+and you can download and install it right from the app (Android still asks you to confirm the
+installation). The download is verified against the SHA-256 checksum published with the release,
+and because every release is signed with the same key, your apps and settings are untouched by
+an update.
+
 ## FAQ
 
 See [FAQ.md](FAQ.md) for answers to common questions — including the hard ones like "isn't this just a WebView wrapper?" and "why is it called OS?"

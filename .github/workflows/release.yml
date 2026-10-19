@@ -111,13 +111,15 @@ jobs:
           cp src/container_app/build/app/outputs/flutter-apk/app-release.apk "dist/Applix-$VERSION-container.apk"
           cp src/shell_apk/app/build/outputs/apk/release/app-release.apk "dist/Applix-$VERSION-shell-full.apk"
           cp src/shell_apk_web/app/build/outputs/apk/release/app-release.apk "dist/Applix-$VERSION-shell-web.apk"
-          ls -l dist
+          cd dist
+          for f in *.apk; do sha256sum "$f" > "$f.sha256"; done
+          ls -l
 
       - name: Upload release assets
         uses: actions/upload-artifact@v4
         with:
           name: release-assets
-          path: dist/*.apk
+          path: dist/*
           if-no-files-found: error
 
       - name: Publish GitHub release

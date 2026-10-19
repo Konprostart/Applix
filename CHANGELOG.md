@@ -10,6 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.3] - 2026-10-19
+
+### Added
+- **In-app updates** - the app checks GitHub Releases for a newer version (silently once a day,
+  or on demand via Settings → About → Check for updates) and shows a banner on My Apps when one
+  is available. The update can be downloaded and installed straight from the app.
+- Update downloads are verified against the SHA-256 checksum published with every release, and
+  every release now ships a `.sha256` file next to each APK.
+- Release checks use ETags and are throttled to once a day, so they never burn through the
+  GitHub API rate limit.
+
+### Notes
+- Android always asks for confirmation before installing, and an update keeps your generated
+  apps and settings because every release is signed with the same key.
+
 ## [0.1.2] - 2026-10-19
 
 ### Added
@@ -70,7 +85,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/Konprostart/Applix/releases/tag/v0.1.3
 [0.1.2]: https://github.com/Konprostart/Applix/releases/tag/v0.1.2
 [0.1.1]: https://github.com/Konprostart/Applix/releases/tag/v0.1.1
 [0.1.0]: https://github.com/Konprostart/Applix/releases/tag/v0.1.0

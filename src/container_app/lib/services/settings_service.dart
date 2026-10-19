@@ -213,6 +213,54 @@ class Settings {
     await prefs.setString('last_seen_prompt_hash', hash);
   }
 
+  // ── Update checks ──
+
+  /// When the last GitHub release check ran (null = never).
+  static Future<DateTime?> getLastUpdateCheck() async {
+    final prefs = await getPrefs();
+    final raw = prefs.getString('last_update_check');
+    if (raw == null || raw.isEmpty) return null;
+    return DateTime.tryParse(raw);
+  }
+
+  static Future<void> setLastUpdateCheck(DateTime when) async {
+    final prefs = await getPrefs();
+    await prefs.setString('last_update_check', when.toIso8601String());
+  }
+
+  /// ETag of the last release payload - a 304 response costs no API quota.
+  static Future<String> getUpdateEtag() async {
+    final prefs = await getPrefs();
+    return prefs.getString('update_etag') ?? '';
+  }
+
+  static Future<void> setUpdateEtag(String etag) async {
+    final prefs = await getPrefs();
+    await prefs.setString('update_etag', etag);
+  }
+
+  /// Cached update descriptor (null when the app is up to date).
+  static Future<Map<String, dynamic>?> getCachedUpdate() async {
+    final prefs = await getPrefs();
+    final raw = prefs.getString('cached_update');
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      return decoded is Map<String, dynamic> ? decoded : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> setCachedUpdate(Map<String, dynamic>? update) async {
+    final prefs = await getPrefs();
+    if (update == null) {
+      await prefs.remove('cached_update');
+    } else {
+      await prefs.setString('cached_update', jsonEncode(update));
+    }
+  }
+
   // ── Package prefix ──
   static const int maxPrefixLength = 20;
 

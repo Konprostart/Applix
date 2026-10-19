@@ -198,6 +198,9 @@ Yes. You need Android SDK, Flutter 3.x, and Java 17+. Run `./build.sh` from the 
 ### Where do I get the latest version?
 From the [releases page](https://github.com/Konprostart/Applix/releases/latest). Every `v*` tag publishes the signed container APK plus the full and web shell templates. The version in Settings → About is generated from the `VERSION` file at the repo root, and the changelog is in [CHANGELOG.md](CHANGELOG.md).
 
+### How do I update Applix?
+The app checks for a new version by itself (once a day) and shows a banner on My Apps when one is available. You can also check manually: Settings → About → Check for updates. The update downloads in the background, is verified against the SHA-256 checksum published with the release, and then Android shows its usual install confirmation. Updates are signed with the same key as the current install, so your generated apps and all your settings stay exactly as they are.
+
 ---
 
 ## The hard questions

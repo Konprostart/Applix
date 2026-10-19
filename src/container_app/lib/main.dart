@@ -30,6 +30,7 @@ import 'screens/settings_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'services/app_storage.dart';
 import 'services/settings_service.dart';
+import 'services/update_service.dart';
 
 void main() => runApp(const IappyxOSApp());
 
@@ -81,6 +82,17 @@ class _AppRootState extends State<AppRoot> {
   void initState() {
     super.initState();
     _checkOnboarding();
+    _checkForUpdates();
+  }
+
+  /// Silent background check for a newer Applix release (throttled to once a
+  /// day inside UpdateService). Failures are ignored on purpose.
+  Future<void> _checkForUpdates() async {
+    try {
+      await UpdateService.check();
+    } catch (_) {
+      // No network, rate limit or GitHub outage - the app works fine without it.
+    }
   }
 
   Future<void> _checkOnboarding() async {

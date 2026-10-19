@@ -29,6 +29,7 @@ import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import '../version.dart';
 import '../services/settings_service.dart';
+import '../widgets/update_prompt.dart';
 import '../services/prompt_builder.dart';
 import '../services/app_storage.dart';
 import '../services/generator.dart';
@@ -484,6 +485,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _row('Demo Templates', '${helpers.demoTemplates.where((t) => t.$1.isNotEmpty).length}'),
                 const Divider(height: 1, color: Color(0xFF0D0D1A)),
                 _row('Platform', 'Android (on-device)'),
+                const Divider(height: 1, color: Color(0xFF0D0D1A)),
+                _actionRow('Check for updates', Icons.system_update_alt, () {
+                  UpdatePrompt.checkForUpdates(context);
+                }),
               ]),
 
               const SizedBox(height: 40),

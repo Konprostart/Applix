@@ -37,6 +37,8 @@ import 'qr_transfer_screen.dart';
 import '../services/error_helper.dart';
 import '../services/github_service.dart';
 import '../services/settings_service.dart';
+import '../services/update_service.dart';
+import '../widgets/update_prompt.dart';
 
 class MyAppsScreen extends StatefulWidget {
   final void Function(AppData app)? onEditApp;
@@ -53,11 +55,26 @@ class MyAppsScreenState extends State<MyAppsScreen> {
   bool _loading = true;
   String? _rebuildingId;
   final List<String> _log = [];
+  UpdateInfo? _updateInfo;
+  bool _updateDismissed = false;
 
   @override
   void initState() {
     super.initState();
     refresh();
+    _loadUpdateInfo();
+  }
+
+  /// A newer release found earlier (startup check or a previous session).
+  Future<void> _loadUpdateInfo() async {
+    final cached = await Settings.getCachedUpdate();
+    if (cached == null) return;
+    final info = UpdateInfo.fromJson(cached);
+    if (!mounted) return;
+    setState(() {
+      _updateInfo = info;
+      _updateDismissed = false;
+    });
   }
 
   Future<void> refresh() async {
@@ -541,6 +558,11 @@ class MyAppsScreenState extends State<MyAppsScreen> {
                               tooltip: 'Create New App',
                             ),
                         ]),
+                        if (_updateInfo != null && !_updateDismissed)
+                          UpdateBanner(
+                            info: _updateInfo!,
+                            onDismiss: () => setState(() => _updateDismissed = true),
+                          ),
                         const SizedBox(height: 24),
                         if (_log.isNotEmpty) ...[
                           Stack(children: [
