@@ -30,7 +30,12 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 class PreviewScreen extends StatefulWidget {
   final String htmlContent;
-  const PreviewScreen({super.key, required this.htmlContent});
+  final List<String> initialWarnings;
+  const PreviewScreen({
+    super.key,
+    required this.htmlContent,
+    this.initialWarnings = const [],
+  });
   @override
   State<PreviewScreen> createState() => _PreviewScreenState();
 }
@@ -651,6 +656,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
   @override
   void initState() {
     super.initState();
+    for (final warning in widget.initialWarnings) {
+      _console.add(_ConsoleLine('warn', warning));
+    }
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..addJavaScriptChannel('ConsoleChannel', onMessageReceived: _onConsoleMessage)

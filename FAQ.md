@@ -48,6 +48,9 @@ Yes. Go to My Apps, tap Edit on any app, make changes (description, HTML, icon),
 ### What does "Preview" do?
 Preview shows your app in a test WebView with a live JavaScript console. Most native features are simulated (storage, vibration, sensors, alarms, TTS, audio playback), so you can test your app's logic without building an APK. Features that need real hardware (camera, GPS, NFC, contacts) show a clear message instead. Use the "Copy" button in the console to grab errors and feed them back to the AI for fixing.
 
+### What if the AI uses a bridge method that doesn't exist?
+Applix validates every direct `iappyx.*` / `applix.*` call against `SPEC.md`. In the API flow, if unknown calls are found, Applix sends one automatic repair request and re-checks the result. In the manual flow (and after importing HTML) you get a warning with line numbers and a "Copy errors" button so you can paste them back into the AI chat. The build dialog lets you build anyway — validation is a safety net, not a hard block.
+
 ### What happens if the AI-generated code doesn't work?
 Use Preview to check for errors. The console shows JavaScript errors, warnings, and logs. Copy the errors (the "Copy" button filters out preview-only messages), paste them back into the AI conversation, and ask it to fix them. With the API flow, you can do this directly in the app's conversation view.
 

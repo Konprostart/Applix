@@ -50,6 +50,9 @@ jobs:
           flutter-version: 3.27.4
           channel: stable
 
+      - name: Verify bridge index is up to date
+        run: python3 tools/gen_bridge_index.py --check
+
       - name: Run container unit tests
         run: |
           cd src/container_app

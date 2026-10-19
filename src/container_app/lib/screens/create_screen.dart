@@ -32,6 +32,7 @@ import '../services/bundle_storage.dart';
 import '../services/prompt_builder.dart';
 import '../services/app_storage.dart';
 import '../services/ai_service.dart';
+import '../services/bridge_linter.dart';
 import '../services/settings_service.dart';
 import '../widgets/build_log.dart';
 import '../models/icon_config.dart';
@@ -98,6 +99,7 @@ class CreateScreenState extends State<CreateScreen> {
   final _followUpController = TextEditingController();
   String? _selectedHtml; // HTML selected via "Use This"
   final _formScrollController = ScrollController();
+  List<BridgeIssue> _bridgeIssues = [];
 
   @override
   void dispose() {
@@ -132,6 +134,7 @@ class CreateScreenState extends State<CreateScreen> {
     _loadBundleFiles();
     _aiGenerating = false;
     _selectedHtml = null;
+    _bridgeIssues = [];
     _followUpController.clear();
 
     if (app.iconConfig.isNotEmpty) {
@@ -276,6 +279,7 @@ class CreateScreenState extends State<CreateScreen> {
       _genMethod = 'api';
       _aiGenerating = true; _genStartTime = DateTime.now();
       _conversation = [ChatMessage(role: 'user', content: 'App name: $name\nDescription: $desc')];
+      _bridgeIssues = [];
     });
 
     try {
@@ -286,12 +290,16 @@ class CreateScreenState extends State<CreateScreen> {
         messages: _conversation,
       );
       if (!mounted || thisGenId != _genId) return;
-      final cleaned = _stripMarkdownFences(response);
-      setState(() {
-        _conversation.add(ChatMessage(role: 'assistant', content: cleaned));
-        _aiGenerating = false;
-      });
-      if (cleaned.trim().startsWith('<')) _useThisHtml(cleaned);
+      var cleaned = _stripMarkdownFences(response);
+      _conversation.add(ChatMessage(role: 'assistant', content: cleaned));
+      setState(() => _aiGenerating = false);
+      if (cleaned.trim().startsWith('<')) {
+        cleaned = await _repairBridgeIssues(cleaned, thisGenId);
+        if (!mounted || thisGenId != _genId) return;
+        _useThisHtml(cleaned);
+      } else {
+        setState(() => _bridgeIssues = []);
+      }
     } catch (e) {
       if (!mounted || thisGenId != _genId) return;
       setState(() => _aiGenerating = false);
@@ -319,12 +327,16 @@ class CreateScreenState extends State<CreateScreen> {
         messages: _conversation,
       );
       if (!mounted || thisGenId != _genId) return;
-      final cleaned = _stripMarkdownFences(response);
-      setState(() {
-        _conversation.add(ChatMessage(role: 'assistant', content: cleaned));
-        _aiGenerating = false;
-      });
-      if (cleaned.trim().startsWith('<')) _useThisHtml(cleaned);
+      var cleaned = _stripMarkdownFences(response);
+      _conversation.add(ChatMessage(role: 'assistant', content: cleaned));
+      setState(() => _aiGenerating = false);
+      if (cleaned.trim().startsWith('<')) {
+        cleaned = await _repairBridgeIssues(cleaned, thisGenId);
+        if (!mounted || thisGenId != _genId) return;
+        _useThisHtml(cleaned);
+      } else {
+        setState(() => _bridgeIssues = []);
+      }
     } catch (e) {
       if (!mounted || thisGenId != _genId) return;
       setState(() => _aiGenerating = false);
@@ -368,6 +380,7 @@ class CreateScreenState extends State<CreateScreen> {
       _htmlController.text = html;
       _htmlExpanded = false;
     });
+    _refreshBridgeIssues(html);
     _snack('HTML loaded. Preview or build below.');
     Future.delayed(const Duration(milliseconds: 300), () {
       if (_formScrollController.hasClients) {
@@ -378,6 +391,145 @@ class CreateScreenState extends State<CreateScreen> {
         );
       }
     });
+  }
+
+  Future<List<BridgeIssue>> _lintBridge(String html) async {
+    try {
+      final linter = await BridgeLinter.load();
+      return linter.lint(html);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> _refreshBridgeIssues(String html) async {
+    final issues = await _lintBridge(html);
+    if (mounted) setState(() => _bridgeIssues = issues);
+  }
+
+  /// One automatic repair pass when the AI uses undocumented bridge calls.
+  Future<String> _repairBridgeIssues(String html, int genId) async {
+    BridgeLinter linter;
+    try {
+      linter = await BridgeLinter.load();
+    } catch (_) {
+      return html;
+    }
+    final issues = linter.lint(html);
+    if (issues.isEmpty) {
+      if (mounted && genId == _genId) setState(() => _bridgeIssues = []);
+      return html;
+    }
+    if (!mounted || genId != _genId) return html;
+    setState(() {
+      _bridgeIssues = issues;
+      _aiGenerating = true;
+      _genStartTime = DateTime.now();
+    });
+    final provider = _activeProvider;
+    if (provider == null || !provider.isConfigured) {
+      setState(() => _aiGenerating = false);
+      return html;
+    }
+    try {
+      if (_conversation.isEmpty) {
+        _conversation.add(ChatMessage(role: 'assistant', content: html));
+      }
+      _conversation.add(ChatMessage(
+        role: 'user',
+        content: BridgeLinter.buildRepairMessage(issues),
+      ));
+      final systemPrompt = await PromptBuilder.getSystemPrompt();
+      final response = await AiService.generate(
+        provider: provider,
+        systemPrompt: systemPrompt,
+        messages: _conversation,
+      );
+      final repaired = _stripMarkdownFences(response);
+      final isHtml = repaired.trim().startsWith('<');
+      final remaining = isHtml ? linter.lint(repaired) : issues;
+      if (!mounted || genId != _genId) return html;
+      if (isHtml) {
+        _conversation.add(ChatMessage(role: 'assistant', content: repaired));
+      }
+      setState(() {
+        _bridgeIssues = remaining;
+        _aiGenerating = false;
+      });
+      return isHtml ? repaired : html;
+    } catch (_) {
+      if (mounted && genId == _genId) {
+        setState(() => _aiGenerating = false);
+      }
+      return html;
+    }
+  }
+
+  Future<void> _fixBridgeIssues() async {
+    final html = _htmlController.text.trim();
+    if (html.isEmpty || _bridgeIssues.isEmpty || _aiGenerating) return;
+    final thisGenId = ++_genId;
+    final fixed = await _repairBridgeIssues(html, thisGenId);
+    if (!mounted || thisGenId != _genId) return;
+    if (fixed != html && fixed.trim().startsWith('<')) _useThisHtml(fixed);
+  }
+
+  Widget _bridgeWarningCard() {
+    if (_bridgeIssues.isEmpty) return const SizedBox.shrink();
+    final shown = _bridgeIssues.take(5).toList();
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A1A1A),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFFF6B6B)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xFFFF6B6B)),
+          const SizedBox(width: 6),
+          Expanded(child: Text(
+            '${_bridgeIssues.length} unknown bridge call${_bridgeIssues.length == 1 ? '' : 's'}',
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFFF6B6B)),
+          )),
+          GestureDetector(
+            onTap: () => setState(() => _bridgeIssues = []),
+            child: const Icon(Icons.close, size: 14, color: Colors.white38),
+          ),
+        ]),
+        const SizedBox(height: 6),
+        ...shown.map((issue) => Padding(
+          padding: const EdgeInsets.only(bottom: 2),
+          child: Text(
+            'Line ${issue.line}: ${issue.call}',
+            style: const TextStyle(fontSize: 10, fontFamily: 'monospace', color: Colors.white54),
+            maxLines: 1, overflow: TextOverflow.ellipsis,
+          ),
+        )),
+        if (_bridgeIssues.length > shown.length)
+          Text('+ ${_bridgeIssues.length - shown.length} more',
+              style: const TextStyle(fontSize: 10, color: Colors.white30)),
+        const SizedBox(height: 6),
+        Row(children: [
+          TextButton.icon(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: BridgeLinter.formatIssues(_bridgeIssues)));
+              _snack('Bridge errors copied.');
+            },
+            icon: const Icon(Icons.copy, size: 14),
+            label: const Text('Copy errors', style: TextStyle(fontSize: 11)),
+          ),
+          if (_activeProvider != null && _activeProvider!.isConfigured && !_aiGenerating)
+            TextButton.icon(
+              onPressed: () { _fixBridgeIssues(); },
+              icon: const Icon(Icons.auto_fix_high, size: 14),
+              label: const Text('Fix with AI', style: TextStyle(fontSize: 11)),
+            ),
+        ]),
+      ]),
+    );
   }
 
   static const _channel = MethodChannel('com.konprostart.applix/generator');
@@ -425,6 +577,27 @@ class CreateScreenState extends State<CreateScreen> {
     if (label.isEmpty || html.isEmpty) { _snack('Fill in name and paste HTML.'); return; }
     if (label.length > 37 || label.codeUnits.length > 37) { _snack('Name too long (max 37 characters).'); return; }
     if (!html.startsWith('<')) { _snack('HTML must start with < (e.g., <!DOCTYPE html>).'); return; }
+    final issues = await _lintBridge(html);
+    if (issues.isNotEmpty) {
+      if (!mounted) return;
+      setState(() => _bridgeIssues = issues);
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A2E),
+          title: const Text('Unknown bridge calls'),
+          content: Text('${issues.length} bridge call${issues.length == 1 ? ' is' : 's are'} not documented and may fail at runtime.\n\nBuild anyway?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Build anyway', style: TextStyle(color: Color(0xFFFF8A65))),
+            ),
+          ],
+        ),
+      );
+      if (proceed != true || !mounted) return;
+    }
     await _doBuild(label, html, 'ai', description: _descController.text.trim(), prompt: _generatedPrompt);
   }
 
@@ -1024,14 +1197,19 @@ class CreateScreenState extends State<CreateScreen> {
                 style: TextStyle(fontSize: 11, color: Colors.white38)),
             const SizedBox(height: 8),
             TextField(controller: _htmlController, style: const TextStyle(fontSize: 11, fontFamily: 'monospace', color: Colors.white),
-              maxLines: 8, decoration: const InputDecoration(hintText: 'Paste HTML here...', hintStyle: TextStyle(fontFamily: 'monospace'))),
+              maxLines: 8, onChanged: (_) { if (_bridgeIssues.isNotEmpty) setState(() => _bridgeIssues = []); },
+              decoration: const InputDecoration(hintText: 'Paste HTML here...', hintStyle: TextStyle(fontFamily: 'monospace'))),
             const SizedBox(height: 10),
             Row(children: [
               Expanded(child: OutlinedButton.icon(
                 onPressed: () async {
                   final d = await Clipboard.getData(Clipboard.kTextPlain);
                   if (!mounted) return;
-                  if (d?.text != null) { _htmlController.text = _stripMarkdownFences(d!.text!); setState(() {}); }
+                  if (d?.text != null) {
+                    _htmlController.text = _stripMarkdownFences(d!.text!);
+                    setState(() {});
+                    _refreshBridgeIssues(_htmlController.text.trim());
+                  }
                 },
                 icon: const Icon(Icons.paste, size: 16), label: const Text('Paste'),
                 style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF4FC3F7), side: const BorderSide(color: Color(0xFF4FC3F7)),
@@ -1042,7 +1220,11 @@ class CreateScreenState extends State<CreateScreen> {
                 onPressed: () async {
                   final r = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['html', 'htm', 'txt']);
                   if (!mounted) return;
-                  if (r != null && r.files.single.path != null) { _htmlController.text = _stripMarkdownFences(await File(r.files.single.path!).readAsString()); if (mounted) setState(() {}); }
+                  if (r != null && r.files.single.path != null) {
+                    _htmlController.text = _stripMarkdownFences(await File(r.files.single.path!).readAsString());
+                    if (mounted) setState(() {});
+                    _refreshBridgeIssues(_htmlController.text.trim());
+                  }
                 },
                 icon: const Icon(Icons.file_open, size: 16), label: const Text('File'),
                 style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF4FC3F7), side: const BorderSide(color: Color(0xFF4FC3F7)),
@@ -1114,8 +1296,16 @@ class CreateScreenState extends State<CreateScreen> {
             const Text('Preview runs the app in a test environment. Save & Build creates an installable APK on your device.',
                 style: TextStyle(fontSize: 11, color: Colors.white38)),
             const SizedBox(height: 8),
-            h.buildActionButton(label: 'Preview', icon: Icons.visibility, onPressed: _htmlController.text.trim().isEmpty ? null : () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => PreviewScreen(htmlContent: _htmlController.text.trim())));
+            _bridgeWarningCard(),
+            h.buildActionButton(label: 'Preview', icon: Icons.visibility, onPressed: _htmlController.text.trim().isEmpty ? null : () async {
+              final html = _htmlController.text.trim();
+              final issues = await _lintBridge(html);
+              if (!mounted) return;
+              setState(() => _bridgeIssues = issues);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => PreviewScreen(
+                htmlContent: html,
+                initialWarnings: issues.map((issue) => issue.consoleLine).toList(),
+              )));
             }),
             const SizedBox(height: 10),
             h.buildActionButton(label: 'Save & Build APK', icon: Icons.build, onPressed: _isBuilding ? null : _buildAiApp, secondary: true),

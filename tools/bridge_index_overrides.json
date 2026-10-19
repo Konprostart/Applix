@@ -1,0 +1,7 @@
+{
+  "_comment": "Calls exposed by the shell JS bridge (and used by demos) but missing from SPEC.md. Keep this list minimal.",
+  "modules": {
+    "camera": ["sharePhoto", "shareText"]
+  },
+  "topLevel": []
+}

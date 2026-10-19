@@ -1,0 +1,366 @@
+{
+  "modules": {
+    "alarm": [
+      "cancel",
+      "cancelById",
+      "getScheduled",
+      "getScheduledById",
+      "set",
+      "setRepeating",
+      "setWithId"
+    ],
+    "audio": [
+      "abandonFocus",
+      "addToQueue",
+      "clearQueue",
+      "disableEqualizer",
+      "getCurrentPosition",
+      "getDuration",
+      "getEqualizerBands",
+      "getEqualizerPresets",
+      "isPlaying",
+      "isRecording",
+      "onComplete",
+      "onMetadata",
+      "pause",
+      "play",
+      "playSound",
+      "requestFocus",
+      "resume",
+      "seekTo",
+      "setEqualizerBand",
+      "setEqualizerPreset",
+      "setLooping",
+      "setMediaSession",
+      "setSpeed",
+      "setStreamVolume",
+      "setSystemVolume",
+      "setVolume",
+      "skipToNext",
+      "skipToPrevious",
+      "speechToText",
+      "startRecording",
+      "startVisualizer",
+      "stop",
+      "stopRecording",
+      "stopSounds",
+      "stopVisualizer"
+    ],
+    "biometric": [
+      "authenticate"
+    ],
+    "ble": [
+      "connect",
+      "disconnect",
+      "getConnectedDevices",
+      "isEnabled",
+      "read",
+      "startScan",
+      "stopScan",
+      "subscribe",
+      "unsubscribe",
+      "write"
+    ],
+    "bluetooth": [
+      "connect",
+      "disconnect",
+      "isConnected",
+      "onClose",
+      "onData",
+      "scan",
+      "send",
+      "sendHex",
+      "stopScan"
+    ],
+    "calendar": [
+      "addEvent",
+      "getEvents"
+    ],
+    "camera": [
+      "classify",
+      "getExif",
+      "removeBackground",
+      "scanFrameQR",
+      "scanFrameText",
+      "scanQR",
+      "scanText",
+      "sharePhoto",
+      "shareText",
+      "takePhoto",
+      "takeVideo"
+    ],
+    "clipboard": [
+      "read",
+      "write"
+    ],
+    "contacts": [
+      "getContacts"
+    ],
+    "device": [
+      "getAppName",
+      "getConnectivity",
+      "getDeviceInfo",
+      "getPackageName",
+      "getThemeColors",
+      "isDarkMode",
+      "isDndActive",
+      "onClipboardChange",
+      "ping",
+      "print",
+      "readFromDownloads",
+      "setDndMode",
+      "setShareCallback",
+      "setShortcuts",
+      "setTorch",
+      "setWallpaper",
+      "setWallpaperTarget",
+      "viewPdf"
+    ],
+    "download": [
+      "cancel",
+      "enqueue"
+    ],
+    "httpClient": [
+      "clearCookies",
+      "getCookies",
+      "request",
+      "requestFile",
+      "setCookie",
+      "uploadFile",
+      "uploadMultipart"
+    ],
+    "httpServer": [
+      "getCertificateFingerprint",
+      "getCertificatePem",
+      "getLocalIpAddress",
+      "onRequest",
+      "respond",
+      "respondFile",
+      "start",
+      "stop"
+    ],
+    "intent": [
+      "hasOverlayPermission",
+      "isAppInstalled",
+      "launchApp",
+      "listInstalledApps",
+      "openUrl",
+      "requestOverlayPermission"
+    ],
+    "location": [
+      "addGeofence",
+      "getLocation",
+      "hasBackgroundLocation",
+      "openBackgroundSettings",
+      "removeAllGeofences",
+      "removeGeofence",
+      "startTracking",
+      "startTrackingWithOptions",
+      "stopTracking",
+      "stopWatching",
+      "watchPosition",
+      "watchPositionWithError"
+    ],
+    "media": [
+      "getAudio",
+      "getImages",
+      "getMetadata",
+      "getVideos",
+      "loadImage",
+      "loadThumbnail",
+      "pickImage",
+      "playAudio",
+      "saveToGallery"
+    ],
+    "nfc": [
+      "isAvailable",
+      "startReading",
+      "stopReading",
+      "writeText"
+    ],
+    "notification": [
+      "cancel",
+      "cancelAll",
+      "cancelScheduled",
+      "schedule",
+      "send",
+      "sendWithActions",
+      "sendWithId",
+      "setBadge"
+    ],
+    "nsd": [
+      "register",
+      "resolve",
+      "startDiscovery",
+      "stopDiscovery",
+      "unregister"
+    ],
+    "push": [
+      "getToken",
+      "isAvailable",
+      "onMessage",
+      "onTokenRefresh"
+    ],
+    "screen": [
+      "isScreenOn",
+      "keepOn",
+      "setBrightness",
+      "wakeLock"
+    ],
+    "sensor": [
+      "startAccelerometer",
+      "startCompass",
+      "startGyroscope",
+      "startLight",
+      "startMagnetometer",
+      "startPressure",
+      "startProximity",
+      "startStepCounter",
+      "stop"
+    ],
+    "smb": [
+      "connect",
+      "copy",
+      "delete",
+      "disconnect",
+      "download",
+      "exists",
+      "getFileInfo",
+      "isConnected",
+      "listDir",
+      "listShares",
+      "mkdir",
+      "rename",
+      "upload"
+    ],
+    "sms": [
+      "send"
+    ],
+    "sqlite": [
+      "exec",
+      "open",
+      "query"
+    ],
+    "ssh": [
+      "connect",
+      "disconnect",
+      "download",
+      "exec",
+      "forwardLocal",
+      "forwardRemote",
+      "isConnected",
+      "listDir",
+      "onClose",
+      "onData",
+      "removeForward",
+      "removeRemoteForward",
+      "resize",
+      "send",
+      "shell",
+      "upload"
+    ],
+    "storage": [
+      "clear",
+      "copyFileToDownloads",
+      "deleteFile",
+      "extractAsset",
+      "getFileInfo",
+      "listAssets",
+      "listFiles",
+      "loadFile",
+      "moveFile",
+      "pickFile",
+      "readAsset",
+      "readFileBase64",
+      "saveFile",
+      "saveToDownloads",
+      "shareFile"
+    ],
+    "tasks": [
+      "cancel",
+      "cancelAll",
+      "getScheduled",
+      "schedule"
+    ],
+    "tcp": [
+      "close",
+      "isConnected",
+      "onClose",
+      "onData",
+      "open",
+      "openTrustPin",
+      "send",
+      "sendFile",
+      "sendHex"
+    ],
+    "trigger": [
+      "airplane",
+      "auto",
+      "battery",
+      "bluetooth",
+      "boot",
+      "cancel",
+      "cancelAll",
+      "charger",
+      "geofence",
+      "headphones",
+      "isPersistentActive",
+      "list",
+      "locale",
+      "ringer",
+      "screen",
+      "timezone",
+      "wifi"
+    ],
+    "tts": [
+      "setLanguage",
+      "setPitch",
+      "setRate",
+      "speak",
+      "speakWithCallback",
+      "stop"
+    ],
+    "udp": [
+      "close",
+      "joinMulticast",
+      "leaveMulticast",
+      "onReceive",
+      "open",
+      "send",
+      "sendHex"
+    ],
+    "vibration": [
+      "click",
+      "heavyClick",
+      "pattern",
+      "tick",
+      "vibrate"
+    ],
+    "widget": [
+      "clear",
+      "onAction",
+      "update"
+    ],
+    "wifiDirect": [
+      "connect",
+      "createGroup",
+      "disconnect",
+      "discoverPeers",
+      "getConnectionInfo",
+      "onConnectionChanged",
+      "removeGroup",
+      "stopDiscovery"
+    ]
+  },
+  "source": "SPEC.md",
+  "topLevel": [
+    "capabilities",
+    "load",
+    "onTextSelected",
+    "remove",
+    "save",
+    "sharePhoto",
+    "shareText"
+  ],
+  "version": 1
+}
