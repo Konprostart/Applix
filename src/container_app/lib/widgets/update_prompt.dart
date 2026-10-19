@@ -144,7 +144,6 @@ class UpdatePrompt {
       });
     }
   }
-}
 
   /// Explains a failed install and offers the manual fallback.
   static Future<void> _showInstallFailure(
