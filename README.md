@@ -203,6 +203,10 @@ See [FAQ.md](FAQ.md) for answers to common questions — including the hard ones
 
 MIT — see [LICENSE](LICENSE). Original work Copyright (c) 2026 iappyx (iappyxOS), used under the MIT License.
 
+## Brand assets
+
+Editable logo (SVG) and PNG previews live in [`docs/brand/`](docs/brand/). `python3 tools/gen_icons.py --apply` regenerates the Android launcher mipmaps from the same mark.
+
 ## Attribution
 
 Applix is an independent derivative of **iappyxOS** by iappyx, used under the MIT License. Original project: https://github.com/iappyx/iappyxOS. See [NOTICE.md](NOTICE.md).
