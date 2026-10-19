@@ -10,6 +10,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.6] - 2026-10-19
+
+### Fixed
+- **The app could crash while an in-app update was running.** The install was driven by the
+  Activity's coroutine scope, which Android cancels as soon as the Activity is destroyed - and
+  the Activity IS destroyed while the system replaces the app with the new version. The
+  cancelled continuation was then resumed by the install status broadcast, and the resulting
+  uncaught `IllegalStateException` inside the broadcast receiver killed the app right when the
+  system install dialog was supposed to appear. The install now:
+  - runs in a process-lifetime scope and uses the application context for the pending intent,
+    the receiver and the install dialog, so it survives the Activity being destroyed,
+  - resumes the continuation at most once and only while it is still active,
+  - catches every failure inside the status receiver - an exception in a broadcast receiver
+    always takes the whole app down,
+  - reports a clean error if the system install dialog cannot be shown,
+  - catches failures of the install session commit and of the receiver registration.
+- The `FLAG_MUTABLE` flag on the install callback is now documented as mandatory: the package
+  installer fills the status into that pending intent, and an immutable one would never report
+  the result.
+
 ## [0.1.5] - 2026-10-19
 
 ### Fixed
@@ -139,7 +159,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/Konprostart/Applix/releases/tag/v0.1.6
 [0.1.5]: https://github.com/Konprostart/Applix/releases/tag/v0.1.5
 [0.1.4]: https://github.com/Konprostart/Applix/releases/tag/v0.1.4
 [0.1.3]: https://github.com/Konprostart/Applix/releases/tag/v0.1.3

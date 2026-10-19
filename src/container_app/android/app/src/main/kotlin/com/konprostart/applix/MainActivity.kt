@@ -46,6 +46,16 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val CHANNEL = "com.konprostart.applix/generator"
+
+        /**
+         * Process-lifetime scope for APK installs.
+         *
+         * The Activity scope is cancelled in onDestroy - and the Activity IS
+         * destroyed while an update installs (the system replaces the package).
+         * Cancelling the install there left the continuation in a broken state
+         * and the next status broadcast crashed the app.
+         */
+        private val installScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     }
 
     private var speechResult: MethodChannel.Result? = null
@@ -98,7 +108,7 @@ class MainActivity : FlutterActivity() {
                     val packageName = call.argument<String>("packageName")
                     val iconConfig = call.argument<String>("iconConfig")
                     if (label.isBlank()) { result.error("INVALID", "label required", null); return@setMethodCallHandler }
-                    scope.launch {
+                    installScope.launch {
                         try {
                             val info = generator.generateAndInstall(
                                 label, templateId, packageName, iconConfig,
@@ -123,7 +133,7 @@ class MainActivity : FlutterActivity() {
                     val bundleFiles = call.argument<Map<String, String>>("bundleFiles") ?: emptyMap()
                     if (label.isBlank()) { result.error("INVALID", "label required", null); return@setMethodCallHandler }
                     if (html.isBlank()) { result.error("INVALID", "html required", null); return@setMethodCallHandler }
-                    scope.launch {
+                    installScope.launch {
                         try {
                             val info = generator.injectAndInstall(
                                 label, html, packageName, iconConfig, firebaseConfig, webOnly,
@@ -379,7 +389,7 @@ class MainActivity : FlutterActivity() {
                         result.error("INVALID", "path required", null)
                         return@setMethodCallHandler
                     }
-                    scope.launch(Dispatchers.IO) {
+                    installScope.launch {
                         try {
                             val installer = ApkInstaller(this@MainActivity)
                             if (sha256.isBlank()) {
@@ -480,7 +490,7 @@ class MainActivity : FlutterActivity() {
                 "p2pInstallApk" -> {
                     val path = call.argument<String>("path") ?: ""
                     if (path.isBlank()) { result.error("INVALID", "path required", null); return@setMethodCallHandler }
-                    scope.launch(Dispatchers.IO) {
+                    installScope.launch {
                         try {
                             val installer = ApkInstaller(this@MainActivity)
                             installer.install(File(path))

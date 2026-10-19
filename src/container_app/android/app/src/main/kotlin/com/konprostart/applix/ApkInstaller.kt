@@ -78,7 +78,11 @@ class ApkInstaller(private val context: Context) {
 
     private suspend fun installInternal(apkFile: File, expectedSha256: String?): Unit =
         suspendCancellableCoroutine { cont ->
-        val packageInstaller = context.packageManager.packageInstaller
+        // The application context outlives the Activity - the install must keep
+        // working (and keep its receiver) when the Activity is destroyed, which is
+        // exactly what happens when the system replaces the app with a new version.
+        val appContext = context.applicationContext
+        val packageInstaller = appContext.packageManager.packageInstaller
 
         val params = PackageInstaller.SessionParams(
             PackageInstaller.SessionParams.MODE_FULL_INSTALL
@@ -93,7 +97,7 @@ class ApkInstaller(private val context: Context) {
         // system refuses the install with a generic error.
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-                !context.packageManager.canRequestPackageInstalls()
+                !appContext.packageManager.canRequestPackageInstalls()
             ) {
                 cont.resumeWithException(
                     InstallException("ALLOW_INSTALL_UNKNOWN: allow Applix to install apps")
@@ -157,75 +161,126 @@ class ApkInstaller(private val context: Context) {
         lateinit var receiver: BroadcastReceiver
         val unregisterSafely: () -> Unit = {
             if (registered) {
-                try { context.unregisterReceiver(receiver) } catch (_: Exception) {}
+                try { appContext.unregisterReceiver(receiver) } catch (_: Exception) {}
                 registered = false
             }
         }
 
+        // The continuation can be resumed at most once. A second resume (or a resume
+        // after the coroutine was cancelled) throws inside the broadcast receiver and
+        // takes the whole app down - this flag makes that impossible.
+        val finished = java.util.concurrent.atomic.AtomicBoolean(false)
+
         receiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context, intent: Intent) {
-                val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, -1)
-                val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
+                try {
+                    val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, -1)
+                    val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
 
-                when (status) {
-                    PackageInstaller.STATUS_SUCCESS -> {
-                        // Terminal — unregister and resume.
-                        unregisterSafely()
-                        Log.i(TAG, "Install success")
-                        cont.resume(Unit)
-                    }
-
-                    PackageInstaller.STATUS_PENDING_USER_ACTION -> {
-                        // NOT terminal. Keep receiver registered so the follow-up
-                        // STATUS_SUCCESS/STATUS_FAILURE broadcast still lands here.
-                        val confirmIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
-                        } else {
-                            @Suppress("DEPRECATION")
-                            intent.getParcelableExtra(Intent.EXTRA_INTENT)
+                    when (status) {
+                        PackageInstaller.STATUS_SUCCESS -> {
+                            // Terminal - unregister and resume.
+                            if (finished.compareAndSet(false, true)) {
+                                unregisterSafely()
+                                Log.i(TAG, "Install success")
+                                if (cont.isActive) cont.resume(Unit)
+                            }
                         }
-                        if (confirmIntent != null) {
-                            confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            context.startActivity(confirmIntent)
+
+                        PackageInstaller.STATUS_PENDING_USER_ACTION -> {
+                            // NOT terminal. Keep receiver registered so the follow-up
+                            // STATUS_SUCCESS/STATUS_FAILURE broadcast still lands here.
+                            val confirmIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
+                            } else {
+                                @Suppress("DEPRECATION")
+                                intent.getParcelableExtra(Intent.EXTRA_INTENT)
+                            }
+                            if (confirmIntent != null) {
+                                try {
+                                    confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    appContext.startActivity(confirmIntent)
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Could not show the install dialog: ${e.message}")
+                                    if (finished.compareAndSet(false, true)) {
+                                        unregisterSafely()
+                                        if (cont.isActive) {
+                                            cont.resumeWithException(
+                                                InstallException("The system install dialog could not be shown")
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        else -> {
+                            // Terminal failure - unregister and resume with exception.
+                            if (finished.compareAndSet(false, true)) {
+                                unregisterSafely()
+                                Log.e(TAG, "Install failed (status $status): $message")
+                                if (cont.isActive) {
+                                    cont.resumeWithException(
+                                        InstallException("Install failed: $message (status $status)")
+                                    )
+                                }
+                            }
                         }
                     }
-
-                    else -> {
-                        // Terminal failure — unregister and resume with exception.
+                } catch (t: Throwable) {
+                    // An uncaught exception inside a BroadcastReceiver kills the app.
+                    Log.e(TAG, "Install receiver error: ${t.message}")
+                    if (finished.compareAndSet(false, true)) {
                         unregisterSafely()
-                        Log.e(TAG, "Install failed (status $status): $message")
-                        cont.resumeWithException(
-                            InstallException("Install failed: $message (status $status)")
-                        )
+                        if (cont.isActive) {
+                            cont.resumeWithException(InstallException("Install failed: ${t.message}"))
+                        }
                     }
                 }
             }
         }
 
         val intent = Intent(ACTION_INSTALL_RESULT).apply {
-            setPackage(context.packageName)
+            setPackage(appContext.packageName)
         }
 
+        // FLAG_MUTABLE is REQUIRED on Android 12+: the package installer fills the
+        // status extras into this PendingIntent. Do not "fix" this to IMMUTABLE -
+        // the install would never report its result.
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         else
             PendingIntent.FLAG_UPDATE_CURRENT
 
-        val pendingIntent = PendingIntent.getBroadcast(context, sessionId, intent, flags)
+        val pendingIntent = PendingIntent.getBroadcast(appContext, sessionId, intent, flags)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(
-                receiver,
-                IntentFilter(ACTION_INSTALL_RESULT),
-                Context.RECEIVER_NOT_EXPORTED
-            )
-        } else {
-            @Suppress("UnspecifiedRegisterReceiverFlag")
-            context.registerReceiver(receiver, IntentFilter(ACTION_INSTALL_RESULT))
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                appContext.registerReceiver(
+                    receiver,
+                    IntentFilter(ACTION_INSTALL_RESULT),
+                    Context.RECEIVER_NOT_EXPORTED
+                )
+            } else {
+                @Suppress("UnspecifiedRegisterReceiverFlag")
+                appContext.registerReceiver(receiver, IntentFilter(ACTION_INSTALL_RESULT))
+            }
+            registered = true
+        } catch (e: Exception) {
+            try { session.close() } catch (_: Exception) {}
+            cont.resumeWithException(InstallException("Could not watch the install: ${e.message}"))
+            return@suspendCancellableCoroutine
         }
-        registered = true
 
-        session.commit(pendingIntent.intentSender)
+        try {
+            session.commit(pendingIntent.intentSender)
+        } catch (e: Exception) {
+            unregisterSafely()
+            try { session.close() } catch (_: Exception) {}
+            Log.e(TAG, "Commit failed: ${e.message}")
+            cont.resumeWithException(InstallException("Could not start the install: ${e.message}"))
+            return@suspendCancellableCoroutine
+        }
         session.close()
 
         cont.invokeOnCancellation { unregisterSafely() }
