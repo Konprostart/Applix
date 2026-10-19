@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.2] - 2026-10-19
+
+### Added
+- **[Applix Showcase](https://github.com/Konprostart/Applix-showcase)** - a public repository of
+  community apps that can be browsed and built from inside the app (Create → Showcase). It
+  launches with four example apps: Todo List, Compass, Alarm Test and Bundle Explorer.
+- Apps can be submitted straight from the app: My Apps → menu → Submit to Showcase opens a
+  pull request against the showcase repository, and CI regenerates the app index on merge.
+- Showcase repository tooling: `tools/build_index.py` builds and validates the index, and a
+  GitHub Actions workflow keeps it in sync.
+
 ## [0.1.1] - 2026-10-19
 
 ### Changed
@@ -59,6 +70,7 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/Konprostart/Applix/releases/tag/v0.1.2
 [0.1.1]: https://github.com/Konprostart/Applix/releases/tag/v0.1.1
 [0.1.0]: https://github.com/Konprostart/Applix/releases/tag/v0.1.0

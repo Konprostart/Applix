@@ -112,6 +112,16 @@ Share your generated apps with others — multiple ways, no account needed:
 
 Recipients with Applix installed can rebuild shared apps with their own icon and name.
 
+## Showcase
+
+[Applix Showcase](https://github.com/Konprostart/Applix-showcase) is a public collection of apps
+built with Applix. Browse them in the app: **Create → Showcase**, pick an app, and it installs
+like any other app - your own icon, your own name.
+
+Submitting your own app takes one tap: **My Apps → menu → Submit to Showcase**, enter a GitHub
+token, and Applix opens a pull request for you. The index is rebuilt automatically when the
+pull request is merged, so a new app shows up in the app without anyone touching a file.
+
 ## Native bridges
 
 Generated apps access device hardware through a JavaScript bridge (`window.iappyx`):
