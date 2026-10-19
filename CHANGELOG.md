@@ -1,0 +1,47 @@
+# Changelog
+
+All notable changes to Applix are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+- Nothing yet.
+
+## [0.1.0] - 2026-10-19
+
+First public release of Applix.
+
+### Added
+- **Applix container app** — an Android app that turns a description into a real, installed APK
+  with its own launcher icon. Building, signing and installing happen entirely on-device.
+- **Three creation modes** — AI-generated app, website-as-app wrapper, and manual prompt flow.
+- **Native bridge API** — 35 modules (audio, camera, device, location, NFC, sensors, storage,
+  bluetooth, SSH, SMB, HTTP client/server, and more) with 281 documented methods, exposed to
+  generated apps as `window.iappyx` (with `window.applix` as an alias).
+- **AI providers** — Anthropic, OpenRouter, OpenAI, plus any OpenAI-compatible endpoint
+  (Ollama, LM Studio, vLLM, ...) with a configurable base URL and an optional API key.
+- **Bridge linter** — detects bridge calls that are not documented in the spec, shows them
+  before the build, and offers a one-pass AI auto-repair.
+- **Preview** — runs the generated app in a sandboxed test environment with a live console,
+  before anything is built.
+- **Icon editor** — pick an icon, or generate one from the app name.
+- **Demo apps** — 57 ready-made apps that exercise the native bridges.
+- **Full and web shell templates** — the container ships both a full bridge-enabled shell and a
+  lightweight web-only shell for website wrappers.
+- **Release pipeline** — versioning driven by the `VERSION` file, a `CHANGELOG.md` that CI
+  validates, and automatic GitHub Releases with the container and shell APKs on every `v*` tag.
+
+### Changed
+- Project renamed to Applix (`com.konprostart.applix`); `window.applix` kept as an alias for
+  `window.iappyx` so existing generated apps keep working.
+- Built and published from a public GitHub repository with CI checks on every push.
+
+### Security
+- The container APK is signed with a dedicated release key in CI; the key never leaves the
+  GitHub Actions secrets and is never committed to the repository.
+
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Konprostart/Applix/releases/tag/v0.1.0

@@ -1,0 +1,131 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag matches VERSION and is on main
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          FILE_VERSION="$(tr -d '[:space:]' < VERSION)"
+          VERSION_ONLY="${FILE_VERSION%%+*}"
+          if [ "$TAG" != "$VERSION_ONLY" ]; then
+            echo "::error::Tag v$TAG does not match VERSION ($FILE_VERSION)"
+            exit 1
+          fi
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tag commit is not on main - refusing to release"
+            exit 1
+          fi
+          echo "Releasing v$TAG (build ${FILE_VERSION##*+})"
+
+      - name: Verify CHANGELOG documents this release
+        run: python3 tools/changelog.py --check --version "${GITHUB_REF#refs/tags/v}"
+
+      - name: Verify version metadata is in sync
+        run: python3 tools/sync_version.py --check
+
+      - name: Verify bridge index is up to date
+        run: python3 tools/gen_bridge_index.py --check
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK platform/build-tools
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "platforms;android-34" "build-tools;35.0.0" "build-tools;34.0.0" >/dev/null
+
+      - name: Restore release signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.APPLIX_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.APPLIX_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.APPLIX_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.APPLIX_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::Missing release signing secrets: APPLIX_KEYSTORE_BASE64, APPLIX_KEYSTORE_PASSWORD, APPLIX_KEY_ALIAS, APPLIX_KEY_PASSWORD"
+            exit 1
+          fi
+          KEYSTORE_PATH="$GITHUB_WORKSPACE/src/container_app/android/app/applix-release.jks"
+          echo "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_PATH"
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=%s\n' \
+            "$KEYSTORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" "$KEYSTORE_PATH" \
+            > "$GITHUB_WORKSPACE/src/container_app/key.properties"
+          ls -l "$KEYSTORE_PATH" "$GITHUB_WORKSPACE/src/container_app/key.properties"
+
+      - name: Build shell templates
+        run: |
+          cd src/shell_apk
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          cd ../shell_apk_web
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Install shell templates into container assets
+        run: |
+          cp src/shell_apk/app/build/outputs/apk/release/app-release.apk src/container_app/assets/shell_template.apk
+          cp src/shell_apk_web/app/build/outputs/apk/release/app-release.apk src/container_app/assets/shell_template_web.apk
+          ls -l src/container_app/assets/*.apk
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.27.4
+          channel: stable
+
+      - name: Run container unit tests
+        run: |
+          cd src/container_app
+          flutter test
+
+      - name: Build container app (Flutter, release signed)
+        run: |
+          cd src/container_app
+          flutter pub get
+          flutter build apk --release
+
+      - name: Collect release assets
+        run: |
+          VERSION="$(tr -d '[:space:]' < VERSION | cut -d+ -f1)"
+          mkdir -p dist
+          cp src/container_app/build/app/outputs/flutter-apk/app-release.apk "dist/Applix-$VERSION-container.apk"
+          cp src/shell_apk/app/build/outputs/apk/release/app-release.apk "dist/Applix-$VERSION-shell-full.apk"
+          cp src/shell_apk_web/app/build/outputs/apk/release/app-release.apk "dist/Applix-$VERSION-shell-web.apk"
+          ls -l dist
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="$(tr -d '[:space:]' < VERSION | cut -d+ -f1)"
+          python3 tools/changelog.py --extract "$VERSION" > /tmp/release-notes.md
+          {
+            echo "Applix $VERSION"
+            echo
+            cat /tmp/release-notes.md
+          } > /tmp/release-body.md
+          cat /tmp/release-body.md
+          gh release create "${GITHUB_REF#refs/tags/v}" dist/*.apk \
+            --title "Applix $VERSION" \
+            --notes-file /tmp/release-body.md \
+            --verify-tag

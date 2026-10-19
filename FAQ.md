@@ -195,6 +195,9 @@ Yes. Applix is open source under the MIT license.
 ### Can I build Applix from source?
 Yes. You need Android SDK, Flutter 3.x, and Java 17+. Run `./build.sh` from the project root — it builds the shell template, the container app, and installs it on a connected device.
 
+### Where do I get the latest version?
+From the [releases page](https://github.com/Konprostart/Applix/releases/latest). Every `v*` tag publishes the signed container APK plus the full and web shell templates. The version in Settings → About is generated from the `VERSION` file at the repo root, and the changelog is in [CHANGELOG.md](CHANGELOG.md).
+
 ---
 
 ## The hard questions

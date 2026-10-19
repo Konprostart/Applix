@@ -27,6 +27,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
+import '../version.dart';
 import '../services/settings_service.dart';
 import '../services/prompt_builder.dart';
 import '../services/app_storage.dart';
@@ -477,7 +478,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // About
               _sectionTitle('About'),
               _card(children: [
-                _row('Version', '0.1.0'),
+                _row('Version', '$kAppVersion (build $kAppBuildNumber)'),
                 const Divider(height: 1, color: Color(0xFF0D0D1A)),
                 _row('Demo Templates', '23'),
                 const Divider(height: 1, color: Color(0xFF0D0D1A)),

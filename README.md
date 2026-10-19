@@ -1,5 +1,7 @@
 # Applix
 
+[![Release](https://img.shields.io/github/v/release/Konprostart/Applix.svg)](https://github.com/Konprostart/Applix/releases/latest)
+
 **Generate real Android apps on your device — no server, no app store, no code.**
 
 Describe what you want to your favorite AI, and Applix turns it into a real installed APK with its own launcher icon. Building, signing, and installing all happen on-device. No cloud. No subscription. No coding required.
@@ -196,6 +198,19 @@ storeFile=../../applix-release.jks
 ```
 
 Both files are gitignored. Never commit your keystore or passwords.
+
+Official releases are signed in CI with a key stored in GitHub Actions secrets. See
+[docs/RELEASING.md](docs/RELEASING.md) for the release procedure and the required secrets.
+
+## Releases
+
+Pre-built APKs are published on every `v*` tag: the signed container app plus the full and web
+shell templates. Latest release: https://github.com/Konprostart/Applix/releases/latest
+
+The version of the project lives in the `VERSION` file at the repo root (`0.1.0+1` = version
+`0.1.0`, build `1`). `python3 tools/sync_version.py` propagates it to `pubspec.yaml`, both shell
+templates and `lib/version.dart`; CI fails if anything drifts. The changelog lives in
+[CHANGELOG.md](CHANGELOG.md) and is validated by CI on every push.
 
 ## FAQ
 

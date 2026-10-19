@@ -15,6 +15,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify version metadata is in sync
+        run: python3 tools/sync_version.py --check
+
+      - name: Verify CHANGELOG documents the current version
+        run: python3 tools/changelog.py --check
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
