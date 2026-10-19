@@ -64,7 +64,20 @@ class ApkInstaller(private val context: Context) {
      * Requires: android.permission.REQUEST_INSTALL_PACKAGES
      * The user must also enable "Install unknown apps" for the container app.
      */
-    suspend fun install(apkFile: File) = suspendCancellableCoroutine { cont ->
+    suspend fun install(apkFile: File): Unit = installInternal(apkFile, null)
+
+    /**
+     * Install an APK after verifying its SHA-256 against [expectedSha256].
+     *
+     * The verification happens on the file that is about to be installed, so a
+     * file that was truncated, swapped or purged between the download and the
+     * install can never reach the package installer.
+     */
+    suspend fun installVerified(apkFile: File, expectedSha256: String): Unit =
+        installInternal(apkFile, expectedSha256)
+
+    private suspend fun installInternal(apkFile: File, expectedSha256: String?): Unit =
+        suspendCancellableCoroutine { cont ->
         val packageInstaller = context.packageManager.packageInstaller
 
         val params = PackageInstaller.SessionParams(
@@ -76,14 +89,59 @@ class ApkInstaller(private val context: Context) {
             }
         }
 
+        // The app needs the "install unknown apps" permission - without it the
+        // system refuses the install with a generic error.
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                !context.packageManager.canRequestPackageInstalls()
+            ) {
+                cont.resumeWithException(
+                    InstallException("ALLOW_INSTALL_UNKNOWN: allow Applix to install apps")
+                )
+                return@suspendCancellableCoroutine
+            }
+        } catch (ignored: Exception) {
+        }
+
+        // Validate the file before anything is staged.
+        if (!apkFile.exists() || apkFile.length() <= 0L) {
+            cont.resumeWithException(InstallException("The APK file is missing or empty"))
+            return@suspendCancellableCoroutine
+        }
+        if (!expectedSha256.isNullOrBlank()) {
+            val actual = sha256(apkFile)
+            if (!actual.equals(expectedSha256.trim(), ignoreCase = true)) {
+                cont.resumeWithException(
+                    InstallException("Checksum mismatch - the APK changed before it could be installed")
+                )
+                return@suspendCancellableCoroutine
+            }
+        }
+
         val sessionId = packageInstaller.createSession(params)
         val session = packageInstaller.openSession(sessionId)
 
-        // Write APK bytes to session
+        // Write APK bytes to session.
+        // The written byte count is verified against the file size BEFORE the
+        // session is committed: a short write would otherwise be committed as
+        // a truncated package and the system would report it as invalid.
+        val expectedLength = apkFile.length()
         try {
+            var written = 0L
             apkFile.inputStream().use { input ->
-                session.openWrite("package", 0, apkFile.length()).use { output ->
-                    input.copyTo(output)
+                session.openWrite("package", 0, expectedLength).use { output ->
+                    val buffer = ByteArray(64 * 1024)
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read <= 0) break
+                        output.write(buffer, 0, read)
+                        written += read
+                    }
+                    if (written != expectedLength) {
+                        throw java.io.IOException(
+                            "Only $written of $expectedLength bytes reached the install session"
+                        )
+                    }
                     session.fsync(output)
                 }
             }
@@ -171,6 +229,20 @@ class ApkInstaller(private val context: Context) {
         session.close()
 
         cont.invokeOnCancellation { unregisterSafely() }
+    }
+
+    /** SHA-256 of a file, hex encoded. */
+    private fun sha256(file: File): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(64 * 1024)
+            while (true) {
+                val read = input.read(buffer)
+                if (read <= 0) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
     class InstallException(message: String) : Exception(message)

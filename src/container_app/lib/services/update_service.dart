@@ -9,11 +9,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/services.dart' show MethodChannel;
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 import '../version.dart';
-import 'p2p_service.dart';
 import 'settings_service.dart';
 
 /// A newer release that is available on GitHub.
@@ -23,6 +23,7 @@ class UpdateInfo {
   final String assetName; // e.g. "Applix-0.1.3-container.apk"
   final String downloadUrl;
   final int size; // bytes, 0 when unknown
+  final String sha256; // published checksum, empty when the release has none
 
   const UpdateInfo({
     required this.tag,
@@ -30,7 +31,17 @@ class UpdateInfo {
     required this.assetName,
     required this.downloadUrl,
     this.size = 0,
+    this.sha256 = '',
   });
+
+  UpdateInfo copyWith({String? sha256}) => UpdateInfo(
+        tag: tag,
+        version: version,
+        assetName: assetName,
+        downloadUrl: downloadUrl,
+        size: size,
+        sha256: sha256 ?? this.sha256,
+      );
 
   Map<String, dynamic> toJson() => {
         'tag': tag,
@@ -38,6 +49,7 @@ class UpdateInfo {
         'assetName': assetName,
         'downloadUrl': downloadUrl,
         'size': size,
+        'sha256': sha256,
       };
 
   factory UpdateInfo.fromJson(Map<String, dynamic> json) => UpdateInfo(
@@ -46,6 +58,7 @@ class UpdateInfo {
         assetName: json['assetName'] as String? ?? '',
         downloadUrl: json['downloadUrl'] as String? ?? '',
         size: (json['size'] as num?)?.toInt() ?? 0,
+        sha256: json['sha256'] as String? ?? '',
       );
 }
 
@@ -53,6 +66,7 @@ class UpdateService {
   static const repo = 'Konprostart/Applix';
   static const api = 'https://api.github.com';
   static const checkInterval = Duration(hours: 24);
+  static const _ch = MethodChannel('com.konprostart.applix/update');
 
   /// Newest release found by the last successful check (null when up to date).
   static UpdateInfo? latest;
@@ -179,7 +193,13 @@ class UpdateService {
 
     final release = jsonDecode(resp.body);
     if (release is! Map<String, dynamic>) return null;
-    final info = updateFromRelease(release);
+    var info = updateFromRelease(release);
+    if (info != null) {
+      // Grab the published checksum once - it is verified before the install
+      // and handed to the native installer as well.
+      final sum = await fetchChecksum(info);
+      if (sum != null) info = info.copyWith(sha256: sum);
+    }
     await Settings.setCachedUpdate(info?.toJson());
     latest = info;
     return info;
@@ -202,8 +222,12 @@ class UpdateService {
     UpdateInfo info, {
     void Function(int received, int total)? onProgress,
   }) async {
-    final dir = await getTemporaryDirectory();
-    final target = File('${dir.path}/${info.assetName}');
+    // The app's private files directory - not the cache directory, which the
+    // system is free to purge at any time (that is what broke the install).
+    final dir = await getApplicationSupportDirectory();
+    final updates = Directory('${dir.path}/updates');
+    if (!await updates.exists()) await updates.create(recursive: true);
+    final target = File('${updates.path}/${info.assetName}');
     if (await target.exists()) await target.delete();
 
     final client = http.Client();
@@ -223,12 +247,18 @@ class UpdateService {
       }
       await sink.flush();
       await sink.close();
+      // A truncated download must never reach the installer.
+      final expected = response.contentLength;
+      if (expected != null && expected > 0 && received != expected) {
+        await target.delete();
+        throw Exception('Download was incomplete ($received of $expected bytes)');
+      }
     } finally {
       client.close();
     }
 
-    final expected = await fetchChecksum(info);
-    if (expected != null) {
+    final expected = info.sha256.isNotEmpty ? info.sha256 : await fetchChecksum(info);
+    if (expected != null && expected.isNotEmpty) {
       final actual = await sha256File(target);
       if (actual.toLowerCase() != expected.toLowerCase()) {
         await target.delete();
@@ -262,9 +292,24 @@ class UpdateService {
     return sink.digest.toString();
   }
 
+  /// Opens this app's system settings page (for the "install unknown apps"
+  /// permission the system asks for).
+  static Future<void> openAppSettings() async {
+    try {
+      await _ch.invokeMethod('openAppSettings');
+    } catch (_) {
+    }
+  }
+
   /// Hand the downloaded APK to the Android package installer.
-  static Future<void> install(File apk) async {
-    await P2PService.installApk(apk.path);
+  ///
+  /// The native side re-checks the checksum of the very file it installs and
+  /// refuses to commit a session that did not receive every byte.
+  static Future<void> install(File apk, {String expectedSha256 = ''}) async {
+    await _ch.invokeMethod('installUpdateApk', {
+      'path': apk.path,
+      'sha256': expectedSha256,
+    });
   }
 }
 

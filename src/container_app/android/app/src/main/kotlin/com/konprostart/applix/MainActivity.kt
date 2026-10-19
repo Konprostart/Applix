@@ -87,6 +87,7 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         setupP2PChannel(flutterEngine)
+        setupUpdateChannel(flutterEngine)
         val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
 
         channel.setMethodCallHandler { call, result ->
@@ -360,6 +361,54 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    /**
+     * Installs a downloaded update APK.
+     *
+     * The whole install (file hashing + writing ~40 MB into the package
+     * installer session) runs on the IO dispatcher - doing it on the main
+     * thread blocks the UI and can trip the ANR watchdog.
+     */
+    private fun setupUpdateChannel(flutterEngine: FlutterEngine) {
+        val updateChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.konprostart.applix/update")
+        updateChannel.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "installUpdateApk" -> {
+                    val path = call.argument<String>("path") ?: ""
+                    val sha256 = call.argument<String>("sha256") ?: ""
+                    if (path.isBlank()) {
+                        result.error("INVALID", "path required", null)
+                        return@setMethodCallHandler
+                    }
+                    scope.launch(Dispatchers.IO) {
+                        try {
+                            val installer = ApkInstaller(this@MainActivity)
+                            if (sha256.isBlank()) {
+                                installer.install(File(path))
+                            } else {
+                                installer.installVerified(File(path), sha256)
+                            }
+                            runOnUiThread { result.success(null) }
+                        } catch (e: Exception) {
+                            runOnUiThread { result.error("FAILED", e.message, null) }
+                        }
+                    }
+                }
+                "openAppSettings" -> {
+                    try {
+                        val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        intent.setData(android.net.Uri.fromParts("package", packageName, null))
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        result.success(null)
+                    } catch (e: Exception) {
+                        result.error("FAILED", e.message, null)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+    }
+
     private fun setupP2PChannel(flutterEngine: FlutterEngine) {
         val p2pChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.konprostart.applix/p2p")
         p2pChannel.setMethodCallHandler { call, result ->
@@ -431,12 +480,14 @@ class MainActivity : FlutterActivity() {
                 "p2pInstallApk" -> {
                     val path = call.argument<String>("path") ?: ""
                     if (path.isBlank()) { result.error("INVALID", "path required", null); return@setMethodCallHandler }
-                    scope.launch {
+                    scope.launch(Dispatchers.IO) {
                         try {
                             val installer = ApkInstaller(this@MainActivity)
                             installer.install(File(path))
-                            result.success(null)
-                        } catch (e: Exception) { result.error("FAILED", e.message, null) }
+                            runOnUiThread { result.success(null) }
+                        } catch (e: Exception) {
+                            runOnUiThread { result.error("FAILED", e.message, null) }
+                        }
                     }
                 }
                 else -> result.notImplemented()

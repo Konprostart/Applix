@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../services/generator.dart';
 import '../services/update_service.dart';
 import '../version.dart';
 
@@ -124,30 +125,67 @@ class UpdatePrompt {
         content: const Text('Installing update...'),
         backgroundColor: const Color(0xFF1A1A2E),
       ));
-      await UpdateService.install(apk);
+      await UpdateService.install(apk, expectedSha256: info.sha256);
       // Android restarts the app after the package is replaced.
     } catch (e) {
       final ctx = dialogContext;
       if (ctx != null && ctx.mounted) {
         Navigator.of(ctx).pop();
       }
-      messenger.showSnackBar(SnackBar(
-        content: Text('Update failed: $e'),
-        backgroundColor: const Color(0xFF1A1A2E),
-        duration: const Duration(seconds: 6),
-      ));
+      if (!context.mounted) return;
+      // The downloaded APK is kept on disk so the user can retry, and the
+      // release page is offered as a manual fallback.
+      await _showInstallFailure(context, info, '$e');
     } finally {
       // Give the closing dialog animation time before the notifiers go away.
       Future.delayed(const Duration(milliseconds: 600), () {
         progress.dispose();
         status.dispose();
       });
-      if (apk != null) {
-        try {
-          await apk.delete();
-        } catch (_) {}
-      }
     }
+  }
+}
+
+  /// Explains a failed install and offers the manual fallback.
+  static Future<void> _showInstallFailure(
+      BuildContext context, UpdateInfo info, String error) async {
+    final needsPermission = error.contains('ALLOW_INSTALL_UNKNOWN');
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Update failed',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        content: Text(
+          needsPermission
+              ? 'Android needs your permission before Applix can install the update.\n\n'
+                  'Open the app settings, allow "Install unknown apps" for Applix, then try again.'
+              : 'The system refused the package.\n\n$error\n\n'
+                  'You can download the same APK in the browser and install it manually - '
+                  'the file is the same one that was just downloaded.',
+          style: const TextStyle(fontSize: 13, color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close', style: TextStyle(color: Colors.white38)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              if (needsPermission) {
+                UpdateService.openAppSettings();
+              } else {
+                Generator.openUrl(info.downloadUrl);
+              }
+            },
+            child: Text(needsPermission ? 'Open settings' : 'Open in browser',
+                style: const TextStyle(color: Color(0xFF4FC3F7))),
+          ),
+        ],
+      ),
+    );
   }
 }
 

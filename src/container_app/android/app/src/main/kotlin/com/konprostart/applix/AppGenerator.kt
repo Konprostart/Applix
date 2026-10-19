@@ -159,9 +159,11 @@ class AppGenerator(private val context: Context) {
             throw Exception("SIGNATURE_CONFLICT:$packageName")
         }
 
+        // The install copies the whole APK into the package installer session -
+        // that must not happen on the main thread (ANR on large APKs).
+        withContext(Dispatchers.Main) { onProgress("\uD83D\uDCF2 Launching installer...") }
+        withContext(Dispatchers.IO) { installer.install(outputApk) }
         withContext(Dispatchers.Main) {
-            onProgress("\uD83D\uDCF2 Launching installer...")
-            installer.install(outputApk)
             onProgress("\u2705 Done! Check your launcher for \"$appLabel\"")
         }
 

@@ -79,6 +79,7 @@ void main() {
         assetName: 'Applix-0.1.3-container.apk',
         downloadUrl: 'https://x/container.apk',
         size: 42,
+        sha256: 'abc123',
       );
       final back = UpdateInfo.fromJson(info.toJson());
       expect(back.tag, info.tag);
@@ -86,6 +87,20 @@ void main() {
       expect(back.assetName, info.assetName);
       expect(back.downloadUrl, info.downloadUrl);
       expect(back.size, info.size);
+      expect(back.sha256, 'abc123');
+    });
+
+    test('copyWith replaces the checksum only', () {
+      const info = UpdateInfo(
+        tag: 'v0.1.3',
+        version: '0.1.3',
+        assetName: 'Applix-0.1.3-container.apk',
+        downloadUrl: 'https://x/container.apk',
+      );
+      final withHash = info.copyWith(sha256: 'deadbeef');
+      expect(withHash.sha256, 'deadbeef');
+      expect(withHash.assetName, info.assetName);
+      expect(withHash.version, info.version);
     });
   });
 }

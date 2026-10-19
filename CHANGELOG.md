@@ -10,6 +10,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.5] - 2026-10-19
+
+### Fixed
+- **In-app update could fail with "package is invalid"** - the update APK was downloaded into
+  the cache directory (which Android may purge at any moment) and the install session was
+  committed without checking that every byte had reached it. The update now:
+  - downloads into the app's private files directory and is never deleted before the install,
+  - verifies the number of received bytes against the expected size and refuses a truncated
+    download,
+  - re-verifies the SHA-256 of the very file that is about to be installed (natively, right
+    before the install) and aborts on a mismatch,
+  - counts the bytes written into the package installer session and aborts instead of
+    committing an incomplete package,
+  - installs on the IO dispatcher - copying ~40 MB into the install session on the main
+    thread blocked the UI.
+- The update install has its own channel instead of reusing the WiFi Direct channel, and it
+  checks the "install unknown apps" permission up front.
+- When an install fails, the app explains why and offers a way out: opening the app settings
+  (for the missing permission) or the release page (for a manual install). The downloaded file
+  is kept so the install can be retried.
+- Building and installing a generated app no longer copies the APK into the install session on
+  the main thread either.
+
 ## [0.1.4] - 2026-10-19
 
 ### Added
@@ -116,7 +139,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/Konprostart/Applix/releases/tag/v0.1.5
 [0.1.4]: https://github.com/Konprostart/Applix/releases/tag/v0.1.4
 [0.1.3]: https://github.com/Konprostart/Applix/releases/tag/v0.1.3
 [0.1.2]: https://github.com/Konprostart/Applix/releases/tag/v0.1.2
