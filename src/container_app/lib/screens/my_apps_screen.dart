@@ -354,7 +354,7 @@ class MyAppsScreenState extends State<MyAppsScreen> {
     }
 
     // Auto-detect bridges
-    final bridgeMatches = RegExp(r'iappyx\.(\w+)\.\w+').allMatches(app.html);
+    final bridgeMatches = RegExp(r'(?:iappyx|applix)\.(\w+)\.\w+').allMatches(app.html);
     final bridges = bridgeMatches.map((m) => m.group(1)!).toSet();
     if (app.html.contains('iappyx.save(') || app.html.contains('iappyx.load(') || app.html.contains('iappyx.remove(')) bridges.add('storage');
     final bridgeList = bridges.toList()..sort();
