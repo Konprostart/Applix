@@ -115,8 +115,9 @@ class UpdatePrompt {
             ? '$mb / ${(total / 1048576).toStringAsFixed(1)} MB'
             : '$mb MB';
       });
-      if (dialogContext != null && dialogContext.mounted) {
-        Navigator.of(dialogContext!).pop();
+      final ctx = dialogContext;
+      if (ctx != null && ctx.mounted) {
+        Navigator.of(ctx).pop();
       }
       status.value = 'Installing...';
       messenger.showSnackBar(SnackBar(
@@ -126,8 +127,9 @@ class UpdatePrompt {
       await UpdateService.install(apk);
       // Android restarts the app after the package is replaced.
     } catch (e) {
-      if (dialogContext != null && dialogContext.mounted) {
-        Navigator.of(dialogContext!).pop();
+      final ctx = dialogContext;
+      if (ctx != null && ctx.mounted) {
+        Navigator.of(ctx).pop();
       }
       messenger.showSnackBar(SnackBar(
         content: Text('Update failed: $e'),
