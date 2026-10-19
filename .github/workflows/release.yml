@@ -135,7 +135,7 @@ jobs:
             cat /tmp/release-notes.md
           } > /tmp/release-body.md
           cat /tmp/release-body.md
-          gh release create "$TAG" dist/*.apk \
+          gh release create "$TAG" dist/* \
             --title "Applix $VERSION" \
             --notes-file /tmp/release-body.md \
             --verify-tag
