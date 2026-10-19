@@ -19,7 +19,7 @@ class AiModel {
 class AiProvider {
   final String id;
   final String name;
-  final String baseUrl;
+  String baseUrl;
   String apiKey;
   String selectedModel;
   List<AiModel> models;
