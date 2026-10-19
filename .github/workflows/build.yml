@@ -1,0 +1,72 @@
+name: build-checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Container + Shell APK builds
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK platform/build-tools
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "platforms;android-34" "build-tools;35.0.0" "build-tools;34.0.0" >/dev/null
+
+      - name: Build shell template (full Java shell)
+        run: |
+          cd src/shell_apk
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Build web shell template
+        run: |
+          cd src/shell_apk_web
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.27.4
+          channel: stable
+
+      - name: Build container app (Flutter)
+        run: |
+          cd src/container_app
+          flutter pub get
+          flutter build apk --release
+
+      - name: Upload full shell APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: shell-template-apk
+          path: src/shell_apk/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+
+      - name: Upload web shell APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: shell-template-web-apk
+          path: src/shell_apk_web/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+
+      - name: Upload container APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-apk
+          path: src/container_app/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
