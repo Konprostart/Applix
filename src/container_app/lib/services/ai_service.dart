@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/ai_provider.dart';
+import 'openai_compatible.dart';
 
 class AiService {
   /// Generate a response from the AI provider.
@@ -17,6 +18,8 @@ class AiService {
         return _callAnthropic(provider, systemPrompt, messages);
       } else if (provider.id == 'openrouter') {
         return _callOpenRouter(provider, systemPrompt, messages);
+      } else if (provider.id == 'openai_compatible') {
+        return _callOpenAICompatible(provider, systemPrompt, messages);
       }
       throw Exception('Unknown provider: ${provider.id}');
     });
@@ -127,6 +130,22 @@ class AiService {
     return models;
   }
 
+  /// Fetch models from an OpenAI-compatible server (key optional).
+  static Future<List<AiModel>> fetchOpenAICompatibleModels(String baseUrl, String apiKey) async {
+    final headers = <String, String>{};
+    if (apiKey.isNotEmpty) headers['Authorization'] = 'Bearer $apiKey';
+
+    final response = await http.get(
+      OpenAICompatible.modelsEndpoint(baseUrl),
+      headers: headers,
+    ).timeout(const Duration(seconds: 15));
+
+    if (response.statusCode != 200) {
+      throw Exception(OpenAICompatible.parseApiError(response.statusCode, response.body));
+    }
+    return OpenAICompatible.parseModels(response.body);
+  }
+
   // ── Anthropic ──
 
   static Future<String> _callAnthropic(AiProvider provider, String systemPrompt, List<ChatMessage> messages) async {
@@ -203,5 +222,36 @@ class AiService {
     final choices = data['choices'] as List?;
     if (choices == null || choices.isEmpty) throw Exception('Empty response from API');
     return choices[0]['message']['content'] as String;
+  }
+
+  // ── OpenAI-compatible (Ollama, LM Studio, vLLM, ...) ──
+
+  static Future<String> _callOpenAICompatible(AiProvider provider, String systemPrompt, List<ChatMessage> messages) async {
+    final allMessages = [
+      {'role': 'system', 'content': systemPrompt},
+      ...messages.map((m) => {'role': m.role, 'content': m.content}),
+    ];
+
+    final body = jsonEncode({
+      'model': provider.selectedModel,
+      'max_tokens': 16000,
+      'messages': allMessages,
+    });
+
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    if (provider.apiKey.isNotEmpty) {
+      headers['Authorization'] = 'Bearer ${provider.apiKey}';
+    }
+
+    final response = await http.post(
+      OpenAICompatible.chatEndpoint(provider.baseUrl),
+      headers: headers,
+      body: body,
+    ).timeout(const Duration(seconds: 300));
+
+    if (response.statusCode != 200) {
+      throw Exception(OpenAICompatible.parseApiError(response.statusCode, response.body));
+    }
+    return OpenAICompatible.parseCompletion(response.body);
   }
 }

@@ -27,7 +27,11 @@ class AiProvider {
   AiProvider({required this.id, required this.name, required this.baseUrl, this.apiKey = '', this.selectedModel = '', List<AiModel>? models})
       : models = models ?? [];
 
-  bool get isConfigured => apiKey.isNotEmpty;
+  bool get requiresApiKey => id != 'openai_compatible';
+
+  bool get isConfigured => requiresApiKey
+      ? apiKey.isNotEmpty
+      : baseUrl.isNotEmpty && selectedModel.isNotEmpty;
 
   Map<String, dynamic> toJson() => {
     'id': id, 'name': name, 'baseUrl': baseUrl,
@@ -54,6 +58,11 @@ class AiProvider {
   static AiProvider openRouter() => AiProvider(
     id: 'openrouter', name: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1/chat/completions',
     selectedModel: 'anthropic/claude-sonnet-4',
+  );
+
+  static AiProvider openAICompatible() => AiProvider(
+    id: 'openai_compatible', name: 'Custom (OpenAI-compatible)', baseUrl: '',
+    models: const [],
   );
 }
 

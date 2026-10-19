@@ -9,7 +9,7 @@ Applix is an Android app that lets you create, build, and install real Android a
 Anyone who wants a quick app for something — a personal tool, a calculator for a specific task, a simple game, a dashboard, a checklist. You don't need to know how to code. If you can describe what you want, you can build it.
 
 ### Is it free?
-Applix itself is free. If you use the AI-powered app generation, you'll need your own API key from an AI provider (Anthropic or OpenRouter). You can also use the manual flow — copy the prompt to any AI chat (free or paid) and paste the result back.
+Applix itself is free. If you use the AI-powered app generation, you'll need your own API key from an AI provider (Anthropic or OpenRouter) — or a local OpenAI-compatible server, which may not need a key. You can also use the manual flow — copy the prompt to any AI chat (free or paid) and paste the result back.
 
 ### Does it need an internet connection?
 Only for AI generation (sending prompts to the AI). Everything else — building, signing, installing, running generated apps — works completely offline.
@@ -34,10 +34,13 @@ Both variants carry the same date-stamped version tag and the same anti-hallucin
 Applix generates a detailed prompt that includes your app description plus documentation for all available native features. You send this prompt to an AI, and it returns complete HTML/JavaScript code. There are two ways:
 
 - **AI Manual (recommended)** — The app generates a prompt. Copy it, paste it into any AI chat (Claude, ChatGPT, Gemini, etc.), copy the HTML response back, and paste it in. This gives you the most control — you can use any AI, have a back-and-forth conversation to refine the result, and iterate until it's right.
-- **AI API (automatic)** — Connect your own API key (Anthropic or OpenRouter) in Settings. Then tap "Generate" and the app talks to the AI directly.
+- **AI API (automatic)** — Connect your own API key (Anthropic or OpenRouter) or an OpenAI-compatible local server in Settings. Then tap "Generate" and the app talks to the AI directly.
 
 ### What AI provider should I use?
 Any large language model works. For best results with native features, use Claude (Anthropic) or GPT-4. The system prompt is detailed enough that most modern AI models produce working apps. If you want the cheapest option, use OpenRouter — it gives you access to many models including free ones.
+
+### Can I use a local AI server?
+Yes. Settings → Custom accepts any OpenAI-compatible endpoint (Ollama, LM Studio, vLLM). Enter the server address reachable from your phone, e.g. `http://192.168.1.20:11434/v1`, tap refresh, and pick a model. The API key is optional. Your phone and the server must be on the same network and the server must listen on the LAN interface (not just `localhost`), with the port allowed through the firewall. If the model list can't be fetched, type the Model ID manually.
 
 ### Can I edit an app after building it?
 Yes. Go to My Apps, tap Edit on any app, make changes (description, HTML, icon), and rebuild. The new version replaces the old one — no need to uninstall first.

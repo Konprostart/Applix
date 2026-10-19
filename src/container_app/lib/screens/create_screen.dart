@@ -1452,6 +1452,8 @@ class ProviderSetupPage extends StatefulWidget {
 
 class ProviderSetupPageState extends State<ProviderSetupPage> {
   late final TextEditingController _keyController;
+  late final TextEditingController _baseUrlController;
+  late final TextEditingController _modelIdController;
   final _searchController = TextEditingController();
   late AiProvider _provider;
   List<AiModel> _models = [];
@@ -1468,21 +1470,34 @@ class ProviderSetupPageState extends State<ProviderSetupPage> {
       models: List.from(widget.provider.models),
     );
     _keyController = TextEditingController(text: _provider.apiKey);
+    _baseUrlController = TextEditingController(text: _provider.baseUrl);
+    _modelIdController = TextEditingController(text: _provider.selectedModel);
     _models = List.from(_provider.models);
-    // Auto-fetch OpenRouter models (public endpoint)
+    // Auto-fetch OpenRouter (public) and custom servers with a URL.
     if (_provider.id == 'openrouter' && _models.isEmpty) _fetchModels();
+    if (_provider.id == 'openai_compatible' && _provider.baseUrl.isNotEmpty) _fetchModels();
   }
 
   @override
   void dispose() {
     _keyController.dispose();
+    _baseUrlController.dispose();
+    _modelIdController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
   Future<void> _fetchModels() async {
-    // OpenRouter models are public; Anthropic requires a key
-    if (_provider.id != 'openrouter' && _keyController.text.trim().isEmpty) return;
+    final isCustom = _provider.id == 'openai_compatible';
+    // OpenRouter models are public; custom servers only need a URL.
+    if (isCustom) {
+      if (_baseUrlController.text.trim().isEmpty) {
+        setState(() => _error = 'Enter the Base URL first');
+        return;
+      }
+    } else if (_provider.id != 'openrouter' && _keyController.text.trim().isEmpty) {
+      return;
+    }
     final apiKey = _keyController.text.trim();
     setState(() { _loading = true; _error = null; });
     try {
@@ -1490,6 +1505,9 @@ class ProviderSetupPageState extends State<ProviderSetupPage> {
         _models = await AiService.fetchAnthropicModels(apiKey);
       } else if (_provider.id == 'openrouter') {
         _models = await AiService.fetchOpenRouterModels(apiKey);
+      } else if (isCustom) {
+        _provider.baseUrl = _baseUrlController.text.trim();
+        _models = await AiService.fetchOpenAICompatibleModels(_provider.baseUrl, apiKey);
       }
       setState(() => _loading = false);
     } catch (e) {
@@ -1498,7 +1516,9 @@ class ProviderSetupPageState extends State<ProviderSetupPage> {
   }
 
   Future<void> _autoSave() async {
+    _provider.baseUrl = _baseUrlController.text.trim();
     _provider.apiKey = _keyController.text.trim();
+    _provider.selectedModel = _modelIdController.text.trim();
     await Settings.updateProvider(_provider);
     await Settings.setActiveProvider(_provider);
   }
@@ -1522,7 +1542,29 @@ class ProviderSetupPageState extends State<ProviderSetupPage> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('API Key', style: TextStyle(fontSize: 13, color: Colors.white54)),
+          if (_provider.id == 'openai_compatible') ...[
+            const Text('Base URL', style: TextStyle(fontSize: 13, color: Colors.white54)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _baseUrlController,
+              style: const TextStyle(color: Colors.white, fontSize: 13, fontFamily: 'monospace'),
+              keyboardType: TextInputType.url,
+              autocorrect: false,
+              decoration: InputDecoration(
+                hintText: 'http://192.168.1.20:11434/v1',
+                filled: true, fillColor: const Color(0xFF1A1A2E),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+              onEditingComplete: () { _autoSave(); _fetchModels(); },
+            ),
+            const SizedBox(height: 6),
+            const Text('Server root or /v1 endpoint. Works with Ollama, LM Studio and vLLM.',
+                style: TextStyle(fontSize: 10, color: Colors.white30)),
+            const SizedBox(height: 20),
+          ],
+          Text(_provider.id == 'openai_compatible' ? 'API Key (optional)' : 'API Key',
+              style: const TextStyle(fontSize: 13, color: Colors.white54)),
           const SizedBox(height: 8),
           Row(children: [
             Expanded(child: TextField(
@@ -1530,7 +1572,11 @@ class ProviderSetupPageState extends State<ProviderSetupPage> {
               style: const TextStyle(color: Colors.white, fontSize: 13, fontFamily: 'monospace'),
               obscureText: true,
               decoration: InputDecoration(
-                hintText: _provider.id == 'anthropic' ? 'sk-ant-...' : 'sk-or-...',
+                hintText: _provider.id == 'anthropic'
+                    ? 'sk-ant-...'
+                    : _provider.id == 'openai_compatible'
+                        ? 'Leave empty if not required'
+                        : 'sk-or-...',
                 filled: true, fillColor: const Color(0xFF1A1A2E),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1560,6 +1606,23 @@ class ProviderSetupPageState extends State<ProviderSetupPage> {
           const Text('Model', style: TextStyle(fontSize: 13, color: Colors.white54)),
           const SizedBox(height: 8),
 
+          if (_provider.id == 'openai_compatible') ...[
+            TextField(
+              controller: _modelIdController,
+              style: const TextStyle(color: Colors.white, fontSize: 13, fontFamily: 'monospace'),
+              autocorrect: false,
+              decoration: InputDecoration(
+                hintText: 'Model ID, e.g. llama3.2',
+                filled: true, fillColor: const Color(0xFF1A1A2E),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+              onChanged: (v) => _provider.selectedModel = v.trim(),
+              onEditingComplete: () { _autoSave(); },
+            ),
+            const SizedBox(height: 8),
+          ],
+
           if (_models.length > 10)
             TextField(
               controller: _searchController,
@@ -1582,15 +1645,24 @@ class ProviderSetupPageState extends State<ProviderSetupPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(color: const Color(0xFF1A1A2E), borderRadius: BorderRadius.circular(10)),
-                child: const Text('Enter API key and tap refresh to load models',
-                    style: TextStyle(fontSize: 12, color: Colors.white38), textAlign: TextAlign.center),
+                child: Text(
+                    _provider.id == 'openai_compatible'
+                        ? 'Tap to load models, or enter a Model ID above'
+                        : 'Enter API key and tap refresh to load models',
+                    style: const TextStyle(fontSize: 12, color: Colors.white38), textAlign: TextAlign.center),
               ),
             )
           else
             ...(_models.where((m) => _searchQuery.isEmpty || m.name.toLowerCase().contains(_searchQuery) || m.id.toLowerCase().contains(_searchQuery)).map((m) {
               final selected = _provider.selectedModel == m.id;
               return GestureDetector(
-                onTap: () { setState(() => _provider.selectedModel = m.id); _autoSave(); },
+                onTap: () {
+                  setState(() {
+                    _provider.selectedModel = m.id;
+                    _modelIdController.text = m.id;
+                  });
+                  _autoSave();
+                },
                 child: Container(
                   width: double.infinity,
                   margin: const EdgeInsets.only(bottom: 6),

@@ -259,8 +259,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 6),
                     Row(children: [
                       _providerButton('anthropic', 'Anthropic', Icons.auto_awesome),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       _providerButton('openrouter', 'OpenRouter', Icons.shuffle),
+                      const SizedBox(width: 6),
+                      _providerButton('openai_compatible', 'Custom', Icons.terminal),
                     ]),
                     const SizedBox(height: 14),
                     _actionRow('Configure API key & model', Icons.settings, () async {
@@ -497,11 +499,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Expanded(child: GestureDetector(
       onTap: () async {
         if (_activeProvider?.id == id) return; // already selected
-        final provider = id == 'anthropic' ? AiProvider.anthropic() : AiProvider.openRouter();
-        // Restore previously saved key if switching back
+        final provider = id == 'anthropic'
+            ? AiProvider.anthropic()
+            : id == 'openrouter'
+                ? AiProvider.openRouter()
+                : AiProvider.openAICompatible();
+        // Restore the previously saved provider (key optional for custom).
         final saved = await Settings.getProvider(id);
-        if (saved != null && saved.apiKey.isNotEmpty) {
+        if (saved != null && saved.isConfigured) {
           provider.apiKey = saved.apiKey;
+          provider.baseUrl = saved.baseUrl;
           provider.selectedModel = saved.selectedModel;
           provider.models = saved.models;
         }
@@ -516,9 +523,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           border: Border.all(color: selected ? const Color(0xFF4FC3F7) : Colors.white12),
         ),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(icon, size: 16, color: selected ? const Color(0xFF4FC3F7) : Colors.white38),
-          const SizedBox(width: 8),
-          Text(name, style: TextStyle(fontSize: 13, color: selected ? Colors.white : Colors.white54)),
+          Icon(icon, size: 14, color: selected ? const Color(0xFF4FC3F7) : Colors.white38),
+          const SizedBox(width: 6),
+          Flexible(child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12, color: selected ? Colors.white : Colors.white54))),
         ]),
       ),
     ));

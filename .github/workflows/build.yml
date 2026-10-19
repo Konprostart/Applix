@@ -50,6 +50,11 @@ jobs:
           flutter-version: 3.27.4
           channel: stable
 
+      - name: Run container unit tests
+        run: |
+          cd src/container_app
+          flutter test
+
       - name: Build container app (Flutter)
         run: |
           cd src/container_app
