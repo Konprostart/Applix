@@ -115,7 +115,7 @@
         android:usesCleartextTraffic="true"
         android:label="APPLIX_PLACEHOLDER_LABEL_XXXXXXXXXXXX"
         android:icon="@mipmap/ic_launcher"
-        android:theme="@android:style/Theme.NoTitleBar"
+        android:theme="@style/ApplixShellTheme"
         android:hardwareAccelerated="true">
 
         <activity

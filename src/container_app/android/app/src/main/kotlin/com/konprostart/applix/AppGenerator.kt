@@ -46,6 +46,64 @@ class AppGenerator(private val context: Context) {
     private val workDir get() = File(context.filesDir, "applix_work")
     @Volatile private var building = false
 
+    @Volatile private var uiKitCss: String? = null
+
+    /**
+     * The built-in design system (assets/applix-ui.css), read from the Flutter
+     * asset bundle. Injected as the first stylesheet of every generated app so
+     * even a plain AI output looks like a modern native app. Apps can opt out
+     * with <meta name="applix-ui" content="off">.
+     */
+    private fun uiKit(): String {
+        uiKitCss?.let { return it }
+        val css = try {
+            context.assets.open("flutter_assets/assets/applix-ui.css").use { it.readBytes().toString(Charsets.UTF_8) }
+        } catch (e: Exception) {
+            Log.w(TAG, "UI kit not available: ${e.message}")
+            ""
+        }
+        uiKitCss = css
+        return css
+    }
+
+    private fun withUiKit(html: String): String {
+        val lower = html.lowercase()
+        if (lower.contains("applix-ui") && (lower.contains("content=\"off\"") || lower.contains("content='off'"))) {
+            return html
+        }
+        val css = uiKit()
+        if (css.isEmpty()) return html
+        if (html.contains("id=\"applix-ui-kit\"")) return html
+        val block = "<style id=\"applix-ui-kit\">\n$css\n</style>"
+        return when {
+            html.contains("<head>") -> html.replaceFirst("<head>", "<head>\n$block")
+            html.contains("<head ") -> {
+                val idx = html.indexOf(">")
+                html.substring(0, idx + 1) + "\n" + block + html.substring(idx + 1)
+            }
+            html.contains("<html>") -> html.replaceFirst("<html>", "<html>\n<head>\n$block\n</head>")
+            else -> "$block\n$html"
+        }
+    }
+
+    /**
+     * Per-app theme the shell applies to the system bars. The builder decides
+     * the colors: a light app gets light bars with dark icons, everything else
+     * gets the dark surface with light icons.
+     */
+    private fun appThemeJson(html: String, iconConfig: String?): String {
+        val lower = html.lowercase()
+        val edgeToEdge = lower.contains("applix-edge-to-edge") &&
+            (lower.contains("content=\"true\"") || lower.contains("content='true'"))
+        val lightTheme = lower.contains("applix-theme") &&
+            (lower.contains("content=\"light\"") || lower.contains("content='light'"))
+        val statusBar = if (lightTheme) "#f2f4f8" else "#12122a"
+        val navBar = if (lightTheme) "#f2f4f8" else "#12122a"
+        // true -> the bar is light, so the icons on it must be dark
+        val lightIcons = lightTheme
+        return """{"statusBar":"$statusBar","statusBarLightIcons":$lightIcons,"navBar":"$navBar","navBarLightIcons":$lightIcons,"edgeToEdge":$edgeToEdge}"""
+    }
+
     fun cleanWorkDir() {
         val dir = workDir
         if (!dir.exists()) return
@@ -78,7 +136,7 @@ class AppGenerator(private val context: Context) {
             val templateApk = extractTemplateApk()
 
             withContext(Dispatchers.Main) { onProgress("\u270D\uFE0F Generating app content...") }
-            val assets = getPresetApp(templateId, appLabel)
+            val assets = getPresetApp(templateId, appLabel, iconConfig)
 
             withContext(Dispatchers.Main) { onProgress("\uD83C\uDFA8 Generating icon...") }
             val icons = IconGenerator.generateAllFromConfig(iconConfig, appLabel)
@@ -137,7 +195,9 @@ class AppGenerator(private val context: Context) {
 
             val cleanHtml = htmlContent.replace("<!-- Built with Applix — https://github.com/Konprostart/Applix -->\n", "")
             val taggedHtml = "<!-- Built with Applix — https://github.com/Konprostart/Applix -->\n$cleanHtml"
-            val assets = mutableMapOf("index.html" to taggedHtml.toByteArray(Charsets.UTF_8))
+            val themed = withUiKit(taggedHtml)
+            val assets = mutableMapOf("index.html" to themed.toByteArray(Charsets.UTF_8))
+            assets["app-theme.json"] = appThemeJson(taggedHtml, iconConfig).toByteArray(Charsets.UTF_8)
             if (!firebaseConfig.isNullOrBlank()) {
                 assets["firebase_config.json"] = firebaseConfig.toByteArray(Charsets.UTF_8)
             }
@@ -204,7 +264,7 @@ class AppGenerator(private val context: Context) {
         return dest
     }
 
-    private fun getPresetApp(templateId: String, label: String): Map<String, ByteArray> {
+    private fun getPresetApp(templateId: String, label: String, iconConfig: String? = null): Map<String, ByteArray> {
         val html = when (templateId) {
             "todo"      -> todoApp(label)
             "notes"     -> notesApp(label)
@@ -269,7 +329,9 @@ class AppGenerator(private val context: Context) {
         }
         val cleanHtml = html.replace("<!-- Built with Applix — https://github.com/Konprostart/Applix -->\n", "")
         val taggedHtml = "<!-- Built with Applix — https://github.com/Konprostart/Applix -->\n$cleanHtml"
-        val assets = mutableMapOf("index.html" to taggedHtml.toByteArray(Charsets.UTF_8))
+        val themed = withUiKit(taggedHtml)
+        val assets = mutableMapOf("index.html" to themed.toByteArray(Charsets.UTF_8))
+        assets["app-theme.json"] = appThemeJson(taggedHtml, iconConfig).toByteArray(Charsets.UTF_8)
         // Bundle Explorer gets a sample JSON file so it works out of the box
         if (templateId == "bundledemo") {
             assets["data/sample.json"] = """{"message":"Hello from a bundled file!","items":["Amsterdam","Leeuwarden","Snits","Dokkum","Harlingen"],"version":1}""".toByteArray(Charsets.UTF_8)

@@ -89,6 +89,20 @@ Widget buildModeCard({
 /// Demo template data
 /// Demo template data — (id, emoji, name, description)
 /// Section headers use empty id with '---' prefix in name
+/// Starter apps - real HTML files shipped with Applix (assets/starters/).
+/// They are polished starting points a beginner can build and customise.
+const starterTemplates = [
+  ('',           '\u2500', '── Starter apps',    'Beautiful starting points - build and customise'),
+  ('starter:todo',       '\u2705', 'Todo List',     'Tasks with checkboxes'),
+  ('starter:notes',      '\uD83D\uDCDD', 'Notes',       'Create, edit and delete notes'),
+  ('starter:calculator', '\uD83E\uDDEE', 'Calculator',  'Basic calculator'),
+  ('starter:counter',    '\uD83D\uDD22', 'Counter',     'Tap counter with laps'),
+  ('starter:timer',      '\u23F1\uFE0F', 'Stopwatch',   'Stopwatch with lap times'),
+  ('starter:compass',    '\uD83E\uDDED', 'Compass',     'Heading, direction, bearing'),
+  ('starter:device',     '\uD83D\uDCF1', 'Device Info', 'Battery, model, vibration'),
+  ('starter:alarmtest',  '\u23F0', 'Alarm',              'Alarm that fires when closed'),
+];
+
 const demoTemplates = [
   // ── Apps ──
   ('',           '\u2500', '── Apps',           ''),

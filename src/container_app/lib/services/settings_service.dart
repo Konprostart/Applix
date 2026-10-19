@@ -313,6 +313,12 @@ class Settings {
     await prefs.setString('css_style_preset', preset);
   }
 
+  /// Human readable name of a style preset.
+  static String getStyleLabel(String preset) {
+    if (preset == 'default') return 'Applix UI Kit (recommended)';
+    return (styleLabels[preset] as String?) ?? 'Applix UI Kit (recommended)';
+  }
+
   static String getCssForPreset(String preset) {
     switch (preset) {
       case 'material':

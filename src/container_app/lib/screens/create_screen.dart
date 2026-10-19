@@ -33,6 +33,7 @@ import '../services/prompt_builder.dart';
 import '../services/app_storage.dart';
 import '../services/ai_service.dart';
 import '../services/bridge_linter.dart';
+import '../services/ui_auditor.dart';
 import '../services/settings_service.dart';
 import '../widgets/build_log.dart';
 import '../models/icon_config.dart';
@@ -296,6 +297,8 @@ class CreateScreenState extends State<CreateScreen> {
       if (cleaned.trim().startsWith('<')) {
         cleaned = await _repairBridgeIssues(cleaned, thisGenId);
         if (!mounted || thisGenId != _genId) return;
+        cleaned = await _polishUi(cleaned, thisGenId);
+        if (!mounted || thisGenId != _genId) return;
         _useThisHtml(cleaned);
       } else {
         setState(() => _bridgeIssues = []);
@@ -332,6 +335,8 @@ class CreateScreenState extends State<CreateScreen> {
       setState(() => _aiGenerating = false);
       if (cleaned.trim().startsWith('<')) {
         cleaned = await _repairBridgeIssues(cleaned, thisGenId);
+        if (!mounted || thisGenId != _genId) return;
+        cleaned = await _polishUi(cleaned, thisGenId);
         if (!mounted || thisGenId != _genId) return;
         _useThisHtml(cleaned);
       } else {
@@ -462,6 +467,43 @@ class CreateScreenState extends State<CreateScreen> {
         setState(() => _aiGenerating = false);
       }
       return html;
+    }
+  }
+
+  /// One automatic polish pass: fixes the things that make a generated app
+  /// look like a web page (missing UI Kit classes, no touch targets, no theme
+  /// color, content under the status bar, ...).
+  Future<String> _polishUi(String html, int genId) async {
+    final issues = UiAuditor.audit(html);
+    if (issues.isEmpty) return html;
+    if (!mounted || genId != _genId) return html;
+    final provider = _activeProvider;
+    if (provider == null || !provider.isConfigured) return html;
+    setState(() {
+      _aiGenerating = true;
+      _genStartTime = DateTime.now();
+    });
+    try {
+      final messages = <ChatMessage>[
+        ChatMessage(role: 'user', content: 'Current app code:\n```html\n$html\n```'),
+        ChatMessage(role: 'user', content: UiAuditor.buildPolishMessage(issues)),
+      ];
+      final systemPrompt = await PromptBuilder.getSystemPrompt();
+      final response = await AiService.generate(
+        provider: provider,
+        systemPrompt: systemPrompt,
+        messages: messages,
+      );
+      final polished = _stripMarkdownFences(response);
+      if (!polished.trim().startsWith('<')) return html;
+      if (mounted && genId == _genId) {
+        _conversation.add(ChatMessage(role: 'assistant', content: polished));
+      }
+      return polished;
+    } catch (_) {
+      return html;
+    } finally {
+      if (mounted && genId == _genId) setState(() => _aiGenerating = false);
     }
   }
 
@@ -603,7 +645,7 @@ class CreateScreenState extends State<CreateScreen> {
 
   Future<void> _buildDemo() async {
     if (_selectedDemoId == null) return;
-    final t = h.demoTemplates.where((t) => t.$1 == _selectedDemoId).firstOrNull;
+    final t = [...h.starterTemplates, ...h.demoTemplates].where((t) => t.$1 == _selectedDemoId).firstOrNull;
     if (t == null) { _snack('Demo template not found.'); return; }
     final label = _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : t.$3;
     if (label.length > 37 || label.codeUnits.length > 37) { _snack('Name too long (max 37 characters).'); return; }
@@ -613,6 +655,20 @@ class CreateScreenState extends State<CreateScreen> {
     if (_existingPackageName != null && _existingPackageName!.isNotEmpty) {
       final ok = await Generator.handleSignatureConflict(packageName: _existingPackageName!, context: context);
       if (!ok) return;
+    }
+    if (t.$1.startsWith('starter:')) {
+      // Starter apps are real HTML files shipped with Applix - they get the
+      // UI kit injected at build time just like an AI generated app.
+      final starterId = t.$1.substring('starter:'.length);
+      String html;
+      try {
+        html = await rootBundle.loadString('assets/starters/$starterId.html');
+      } catch (e) {
+        _snack('Starter app could not be loaded.');
+        return;
+      }
+      await _doBuild(label, html, 'ai', description: t.$4);
+      return;
     }
     setState(() { _isBuilding = true; _showBuildLog = true; _log.clear(); });
     try {
@@ -1427,7 +1483,7 @@ class CreateScreenState extends State<CreateScreen> {
     return GestureDetector(
       onTap: () => setState(() {
         _selectedDemoId = t.$1;
-        if (_nameController.text.isEmpty || h.demoTemplates.any((x) => x.$3 == _nameController.text)) _nameController.text = t.$3;
+        if (_nameController.text.isEmpty || [...h.starterTemplates, ...h.demoTemplates].any((x) => x.$3 == _nameController.text)) _nameController.text = t.$3;
         _iconConfig = IconConfig(bgColor: IconConfig.colorForString(t.$2), elements: [IconElement(content: t.$2)]);
       }),
       child: AnimatedContainer(
@@ -1460,7 +1516,7 @@ class CreateScreenState extends State<CreateScreen> {
           // Clear selection if the selected demo is no longer visible under the filter.
           // Avoids the "Build X" action referring to a hidden card.
           if (_selectedDemoId != null && _demoFilter.isNotEmpty) {
-            final stillVisible = h.demoTemplates.any((t) =>
+            final stillVisible = [...h.starterTemplates, ...h.demoTemplates].any((t) =>
               t.$1 == _selectedDemoId && (
                 t.$1.toLowerCase().contains(_demoFilter) ||
                 t.$3.toLowerCase().contains(_demoFilter) ||
@@ -1494,7 +1550,7 @@ class CreateScreenState extends State<CreateScreen> {
     final q = _demoFilter;
     if (q.isEmpty) {
       // Full grid with section headers (original layout)
-      final items = h.demoTemplates;
+      final items = [...h.starterTemplates, ...h.demoTemplates];
       int i = 0;
       while (i < items.length) {
         final t = items[i];
@@ -1528,7 +1584,7 @@ class CreateScreenState extends State<CreateScreen> {
       }
     } else {
       // Filtered: flat pair grid, no section headers, match on id/name/description
-      final matches = h.demoTemplates.where((t) =>
+      final matches = [...h.starterTemplates, ...h.demoTemplates].where((t) =>
         t.$1.isNotEmpty && (
           t.$1.toLowerCase().contains(q) ||
           t.$3.toLowerCase().contains(q) ||
@@ -1560,7 +1616,7 @@ class CreateScreenState extends State<CreateScreen> {
     if (_selectedDemoId != null) {
       widgets.add(const SizedBox(height: 12));
       widgets.add(h.buildActionButton(
-        label: 'Build ${h.demoTemplates.where((t) => t.$1 == _selectedDemoId).firstOrNull?.$3 ?? 'Demo'}',
+        label: 'Build ${[...h.starterTemplates, ...h.demoTemplates].where((t) => t.$1 == _selectedDemoId).firstOrNull?.$3 ?? 'App'}',
         onPressed: _isBuilding ? null : _buildDemo, icon: Icons.rocket_launch));
     }
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: widgets);

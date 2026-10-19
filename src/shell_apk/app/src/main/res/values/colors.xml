@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Launch / splash background for every generated app. -->
+    <color name="applix_launch_bg">#0D0D1A</color>
+    <color name="applix_launch_bg_light">#F2F4F8</color>
+</resources>

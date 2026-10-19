@@ -10,6 +10,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.4] - 2026-10-19
+
+### Added
+- **Applix UI Kit** - a complete design system (tokens, typography, spacing, elevation, motion
+  and ready-made components for app bars, cards, list rows, buttons, FABs, inputs, chips,
+  switches, empty states, skeletons, toasts, bottom sheets and stats) that is injected into every
+  generated app as the first stylesheet. Even an average AI result now looks like a native app.
+- **UI Kit section in the spec** - the AI is told to build every screen from the `.ax-*`
+  components instead of inventing its own CSS.
+- **New `ui` bridge module** - `iappyx.ui.*` gives generated apps native chrome:
+  status/navigation bar colors, edge-to-edge and immersive mode, screen insets, orientation
+  lock, native toasts, native alert/confirm dialogs, haptic feedback, the Android share sheet,
+  app settings, keep-screen-on and screen info.
+- **8 starter apps** - polished HTML starting points (Todo, Notes, Calculator, Counter,
+  Stopwatch, Compass, Device Info, Alarm) that a beginner can build and customise in one tap.
+- **Design contract** - every generation request now carries a concrete design contract
+  (style, components, spacing, type scale, required states).
+- **Visual QA with automatic polish** - after generation, the app is audited for the things
+  that make a result look like a web page (missing UI Kit classes, small touch targets, no
+  theme color, wrong font stack, content under the status bar, no empty/loading state) and one
+  automatic AI pass fixes them.
+- **Automatic app icons** - a fresh app now gets a monogram on a generated gradient instead of a
+  flat colour.
+
+### Changed
+- **Native app shell** - the overscroll glow and pinch-zoom are gone, apps open with a native
+  splash screen showing their own icon, and the system bars follow the app theme instead of
+  always being dark.
+- The starter template in the spec now uses the UI Kit and the correct viewport
+  (`viewport-fit=cover`).
+
 ## [0.1.3] - 2026-10-19
 
 ### Added
@@ -85,7 +116,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/Konprostart/Applix/releases/tag/v0.1.4
 [0.1.3]: https://github.com/Konprostart/Applix/releases/tag/v0.1.3
 [0.1.2]: https://github.com/Konprostart/Applix/releases/tag/v0.1.2
 [0.1.1]: https://github.com/Konprostart/Applix/releases/tag/v0.1.1

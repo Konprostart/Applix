@@ -1,7 +1,7 @@
 name: applix
 description: Applix — AI-powered app generator.
 publish_to: 'none'
-version: 0.1.3+4
+version: 0.1.4+5
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -32,3 +32,5 @@ flutter:
     - assets/system_prompt.md
     - assets/bridge_index.json
     - assets/ic_launcher.png
+    - assets/applix-ui.css
+    - assets/starters/

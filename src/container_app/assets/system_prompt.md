@@ -110,7 +110,8 @@ Never swallow errors silently. Always show the user what went wrong.
 - Use `min-height: 100vh` on body, not `height: 100vh` (content can exceed viewport)
 
 ## Mobile defaults (always include in CSS)
-These are WebView defaults that look unpolished — suppress them in every app:
+The UI Kit already handles most of this — but keep these base rules in every app, they suppress
+WebView defaults that look unpolished:
 ```css
 *{-webkit-tap-highlight-color:transparent;box-sizing:border-box;}
 *:focus{outline:none;}
@@ -121,6 +122,50 @@ body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
 input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text;}
 ```
 Without these: tapping shows a blue flash, buttons get focus rings, long-press shows the browser context menu, text gets accidentally selected while swiping.
+
+## UI Kit — the built-in design system (USE IT, do not write your own CSS from scratch)
+
+Every generated app ships with a small design system that is injected as the **first**
+stylesheet (`applix-ui.css`). It gives you tokens, components and the Android look for free.
+Build the app from these classes instead of inventing your own CSS.
+
+**Design tokens** (CSS variables on `:root`):
+`--ax-bg` `--ax-surface` `--ax-surface-2` `--ax-elevated` `--ax-border` `--ax-text`
+`--ax-text-dim` `--ax-text-faint` `--ax-primary` `--ax-primary-press` `--ax-on-primary`
+`--ax-danger` `--ax-success` `--ax-warning` · `--ax-1` … `--ax-12` (spacing) ·
+`--ax-radius-sm` `--ax-radius` `--ax-radius-lg` `--ax-radius-pill` ·
+`--ax-shadow-1` `--ax-shadow-2` `--ax-shadow-3` · `--ax-fast` `--ax-base` `--ax-slow` `--ax-ease` ·
+`--ax-safe-top` `--ax-safe-bottom` `--ax-safe-left` `--ax-safe-right` (real device insets)
+
+**Components** (add the class to your own elements):
+- Layout: `.ax-page` (centered column, max 720px) · `.ax-section-title` · `.ax-divider` ·
+  `.ax-row-flex` · `.ax-spacer` · `.ax-muted` · `.ax-center` · `.ax-hide`
+- Chrome: `.ax-appbar` + `.ax-appbar__title` + `.ax-appbar__sub`
+- Surfaces: `.ax-card` (`.ax-card--flat`, `.ax-card--tap`) · `.ax-list` + `.ax-row`
+  (`.ax-row--tap`) + `.ax-row__icon` `.ax-row__body` `.ax-row__title` `.ax-row__sub` `.ax-row__value`
+- Actions: `.ax-btn` (`.ax-btn--secondary` `.ax-btn--ghost` `.ax-btn--danger` `.ax-btn--block`
+  `.ax-btn--small`) · `.ax-fab` · `.ax-chip` (`.ax-chip--active`) · `.ax-switch`
+- Inputs: `.ax-input` · `.ax-field` + `.ax-field__label`
+- Feedback: `.ax-empty` + `.ax-empty__icon` + `.ax-empty__title` · `.ax-skeleton` · `.ax-toast`
+- Overlays: `.ax-sheet` + `.ax-sheet-backdrop` + `.ax-sheet__handle`
+- Data: `.ax-stat` + `.ax-stat__value` + `.ax-stat__label`
+
+**Rules**
+- Use these classes for the whole layout. Add custom CSS only for what they do not cover.
+- The stylesheet is injected first, so your own CSS always wins. Re-declare a token in your
+  `:root` to change it (e.g. `html{--ax-primary:#ffb86b}`).
+- Touch targets are 48px by default with `.ax-btn` and `.ax-row` — do not shrink them.
+- The app is expected to look like a native Android app, not a web page: no horizontal
+  scrolling, no tiny text, no desktop layout, real empty states, visible touch feedback.
+- Opt out completely with `<meta name="applix-ui" content="off">` (rarely needed).
+
+```html
+<div class="ax-appbar"><div class="ax-appbar__title">My App</div></div>
+<div class="ax-page">
+  <div class="ax-card ax-card--tap">…</div>
+  <button class="ax-btn ax-btn--block">Add item</button>
+</div>
+```
 
 ## Bridge reference
 
@@ -314,6 +359,23 @@ Sound effects (multiple simultaneous, fire-and-forget, overlay on main):
 
 ### Screen
 `iappyx.screen.keepOn(bool)` | `.setBrightness(0-1)` | `.wakeLock(bool)` | `.isScreenOn()` → bool
+
+### UI (native chrome, dialogs, haptics)
+`iappyx.ui.setStatusBar(color, lightIcons)` — set the status bar color (`"#rrggbb"`) and whether its icons should be light
+`iappyx.ui.setNavigationBar(color, lightIcons)` — set the navigation bar color
+`iappyx.ui.setEdgeToEdge(true)` — draw the app behind the system bars (pad with `--ax-safe-top` / `--ax-safe-bottom`)
+`iappyx.ui.setImmersive(true)` — hide the system bars completely
+`iappyx.ui.getInsets()` → `{top,bottom,left,right,density}` (sync) — system bar insets in CSS pixels
+`iappyx.ui.setOrientation('portrait'|'landscape'|'sensor')` — lock the screen orientation
+`iappyx.ui.toast(msg)` — native Android toast
+`iappyx.ui.alert(title, msg)` — native information dialog
+`iappyx.ui.confirm(title, msg, cbId)` — native yes/no dialog; the callback receives `true` or `false`
+`iappyx.ui.haptic('light'|'medium'|'heavy'|'success'|'error'|'selection')` — native haptic feedback
+`iappyx.ui.shareText(text, title)` — open the Android share sheet with text
+`iappyx.ui.shareUrl(url, title)` — open the Android share sheet with a link
+`iappyx.ui.openSettings()` — open this app's system settings page
+`iappyx.ui.setKeepScreenOn(true)` — keep the screen awake while the app is open
+`iappyx.ui.getScreenInfo()` → `{width,height,density,refreshRate}` (sync) — screen geometry
 
 ### Alarm (fires even when app is closed)
 `iappyx.alarm.set(timestampMs,'window.onAlarm')` | `.setWithId(id,timestampMs,'window.onAlarmFn')`
@@ -598,14 +660,15 @@ Also avoid `window.onMessage`, `window.onData`, `window.onError` as callback nam
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
 <title>APP_NAME</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,sans-serif;background:#0d0d1a;color:#eaeaea;min-height:100vh}
+body{font-family:system-ui,Roboto,sans-serif;background:var(--ax-bg,#0d0d1a);color:var(--ax-text,#eaeaea);min-height:100vh}
 </style>
 </head><body>
-<div id="app"></div>
+<div class="ax-appbar"><div class="ax-appbar__title">APP_NAME</div></div>
+<div class="ax-page"><div id="app"></div></div>
 <script>
 function _initBridge(){if(typeof iappyx==='undefined'){setTimeout(_initBridge,50);return;}onReady();}
 window.addEventListener('load',function(){setTimeout(_initBridge,200)});

@@ -329,6 +329,23 @@
       "send",
       "sendHex"
     ],
+    "ui": [
+      "alert",
+      "confirm",
+      "getInsets",
+      "getScreenInfo",
+      "haptic",
+      "openSettings",
+      "setEdgeToEdge",
+      "setImmersive",
+      "setKeepScreenOn",
+      "setNavigationBar",
+      "setOrientation",
+      "setStatusBar",
+      "shareText",
+      "shareUrl",
+      "toast"
+    ],
     "vibration": [
       "click",
       "heavyClick",

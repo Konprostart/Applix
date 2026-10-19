@@ -122,6 +122,21 @@ Submitting your own app takes one tap: **My Apps → menu → Submit to Showcase
 token, and Applix opens a pull request for you. The index is rebuilt automatically when the
 pull request is merged, so a new app shows up in the app without anyone touching a file.
 
+## Beautiful by default
+
+Every app Applix builds gets the **Applix UI Kit** - a small design system (tokens, type
+scale, spacing, elevation, motion and ready-made components for app bars, cards, list rows,
+buttons, FABs, inputs, empty states, skeletons, toasts and bottom sheets) that is injected as
+the first stylesheet. The AI is told to build from those components, and a visual check after
+generation automatically fixes what still looks like a web page.
+
+On the device the app behaves like a native one: a splash screen with its own icon, system
+bars that follow the app theme, no overscroll glow, no pinch-zoom, and a new `iappyx.ui.*`
+bridge for native toasts, dialogs, haptics, the share sheet and the system bars.
+
+Eight polished **starter apps** (Todo, Notes, Calculator, Counter, Stopwatch, Compass, Device
+Info, Alarm) are included - build one, then describe what to change.
+
 ## Native bridges
 
 Generated apps access device hardware through a JavaScript bridge (`window.iappyx`):

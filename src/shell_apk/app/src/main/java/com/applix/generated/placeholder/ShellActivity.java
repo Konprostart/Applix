@@ -71,6 +71,7 @@ import android.speech.tts.TextToSpeech;
 import android.telephony.SmsManager;
 import android.util.Base64;
 import android.util.Log;
+import android.view.View;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
@@ -321,14 +322,22 @@ public class ShellActivity extends ComponentActivity {
 
         setContentView(root);
 
+        applyAppTheme();
+
+        webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         WebSettings s = webView.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
+        // Native apps do not pinch-zoom and never show the web overscroll glow.
+        s.setSupportZoom(false);
+        s.setBuiltInZoomControls(false);
+        s.setDisplayZoomControls(false);
         applyDefensiveFileAccessFlags(s); // setAllow*FileURLs deprecated, defaults are already false on API 30+
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setAllowFileAccess(true); // needed for file:///android_asset/ loading
 
         webView.addJavascriptInterface(new StorageBridge(),      "iappyxStorage");
+        webView.addJavascriptInterface(new UiBridge(this),        "iappyxUi");
         webView.addJavascriptInterface(new DeviceBridge(),       "iappyxDevice");
         webView.addJavascriptInterface(new CameraBridge(),       "iappyxCamera");
         webView.addJavascriptInterface(new LocationBridge(),     "iappyxLocation");
@@ -509,11 +518,22 @@ public class ShellActivity extends ComponentActivity {
                     "widget:iappyxWidget," +
                     "trigger:iappyxTrigger," +
                     "intent:iappyxIntent," +
+                    "ui:iappyxUi," +
                     "capabilities:function(){return JSON.parse(iappyxCapabilities.get())}," +
                     "onTextSelected:function(fn){document.addEventListener('selectionchange',function(){" +
                     "var s=window.getSelection();if(s&&s.toString().trim().length>0){fn({text:s.toString().trim()})}" +
                     "})}" +
                     "};window.applix=window.iappyx;", null);
+                // Publish the real system bar insets so the UI kit can pad
+                // around notches and gesture bars.
+                v.evaluateJavascript(
+                    "(function(){try{var r=document.documentElement;" +
+                    "if(window.iappyxUi){var i=JSON.parse(iappyxUi.getInsets());" +
+                    "r.style.setProperty('--ax-safe-top',i.top+'px');" +
+                    "r.style.setProperty('--ax-safe-bottom',i.bottom+'px');" +
+                    "r.style.setProperty('--ax-safe-left',i.left+'px');" +
+                    "r.style.setProperty('--ax-safe-right',i.right+'px');}" +
+                    "}catch(e){}})();", null);
                 // Check if launched by alarm (cold start)
                 Intent launchIntent = getIntent();
                 if (launchIntent != null && launchIntent.getBooleanExtra("alarm_fired", false)) {
@@ -807,6 +827,35 @@ public class ShellActivity extends ComponentActivity {
             }
         }
         return sb.toString();
+    }
+
+    /**
+     * Applies the per-app theme written by the builder (assets/app/app-theme.json):
+     * status/navigation bar colors and the optional edge-to-edge layout.
+     */
+    private void applyAppTheme() {
+        try {
+            org.json.JSONObject theme = null;
+            try (java.io.InputStream is = getAssets().open("app/app-theme.json")) {
+                java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+                byte[] buf = new byte[4096];
+                int n;
+                while ((n = is.read(buf)) > 0) bos.write(buf, 0, n);
+                theme = new org.json.JSONObject(bos.toString("UTF-8"));
+            } catch (Exception ignored) {
+            }
+            String statusColor = theme != null ? theme.optString("statusBar", "#12122a") : "#12122a";
+            boolean statusLight = theme == null || theme.optBoolean("statusBarLightIcons", true);
+            String navColor = theme != null ? theme.optString("navBar", "#12122a") : "#12122a";
+            boolean navLight = theme == null || theme.optBoolean("navBarLightIcons", true);
+            boolean edgeToEdge = theme != null && theme.optBoolean("edgeToEdge", false);
+            UiBridge bridge = new UiBridge(this);
+            bridge.setStatusBar(statusColor, statusLight);
+            bridge.setNavigationBar(navColor, navLight);
+            if (edgeToEdge) bridge.setEdgeToEdge(true);
+        } catch (Exception e) {
+            android.util.Log.w("Applix", "app theme not applied: " + e.getMessage());
+        }
     }
 
     void deliverResult(String cbId, String json) {

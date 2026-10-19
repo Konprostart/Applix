@@ -1,0 +1,645 @@
+/* ==========================================================================
+   Applix UI Kit - a small design system injected into every generated app.
+   Injected as the FIRST stylesheet, so an app's own CSS always wins.
+   Everything is namespaced with .ax- to avoid clashing with app styles.
+   ========================================================================== */
+
+:root {
+  /* Color tokens - overridden by the shell with the device theme */
+  --ax-bg: #0d0d1a;
+  --ax-surface: #1a1a2e;
+  --ax-surface-2: #20203a;
+  --ax-elevated: #24243f;
+  --ax-border: rgba(255, 255, 255, 0.08);
+  --ax-border-strong: rgba(255, 255, 255, 0.16);
+  --ax-text: #eaeaea;
+  --ax-text-dim: rgba(255, 255, 255, 0.62);
+  --ax-text-faint: rgba(255, 255, 255, 0.38);
+  --ax-primary: #4fc3f7;
+  --ax-primary-press: #2b9fd6;
+  --ax-on-primary: #06121c;
+  --ax-danger: #ff6b6b;
+  --ax-success: #5cd6a0;
+  --ax-warning: #ffb86b;
+
+  /* Spacing scale (4px base) */
+  --ax-1: 4px;
+  --ax-2: 8px;
+  --ax-3: 12px;
+  --ax-4: 16px;
+  --ax-5: 20px;
+  --ax-6: 24px;
+  --ax-8: 32px;
+  --ax-10: 40px;
+  --ax-12: 48px;
+
+  /* Radius */
+  --ax-radius-sm: 8px;
+  --ax-radius: 12px;
+  --ax-radius-lg: 16px;
+  --ax-radius-pill: 999px;
+
+  /* Elevation */
+  --ax-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --ax-shadow-2: 0 2px 6px rgba(0, 0, 0, 0.35);
+  --ax-shadow-3: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+  /* Motion */
+  --ax-fast: 120ms;
+  --ax-base: 180ms;
+  --ax-slow: 280ms;
+  --ax-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Safe areas - the shell writes the real device values at runtime.
+     Without edge-to-edge they stay 0 and the layout is unaffected. */
+  --ax-safe-top: 0px;
+  --ax-safe-bottom: 0px;
+  --ax-safe-left: 0px;
+  --ax-safe-right: 0px;
+
+  /* System bars */
+  --ax-status-bar-height: 24px;
+  --ax-nav-bar-height: 48px;
+}
+
+/* Light theme - only applied when the app opts in with
+   <meta name="applix-theme" content="light"> */
+html[data-applix-theme="light"] {
+  --ax-bg: #f6f7fb;
+  --ax-surface: #ffffff;
+  --ax-surface-2: #f0f2f8;
+  --ax-elevated: #ffffff;
+  --ax-border: rgba(15, 23, 42, 0.10);
+  --ax-border-strong: rgba(15, 23, 42, 0.20);
+  --ax-text: #10131c;
+  --ax-text-dim: rgba(16, 19, 28, 0.66);
+  --ax-text-faint: rgba(16, 19, 28, 0.42);
+  --ax-shadow-1: 0 1px 2px rgba(15, 23, 42, 0.10);
+  --ax-shadow-2: 0 2px 8px rgba(15, 23, 42, 0.12);
+  --ax-shadow-3: 0 12px 32px rgba(15, 23, 42, 0.18);
+}
+
+/* ---------------------------------------------------------------- baseline */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: system-ui, Roboto, "Noto Sans", "Segoe UI", sans-serif;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: contain;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button,
+[role="button"],
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+/* Scrollbars: invisible on touch, thin on desktop */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--ax-radius-pill);
+}
+
+/* ------------------------------------------------------------- app bar */
+
+.ax-appbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--ax-3);
+  padding: var(--ax-3) var(--ax-4);
+  padding-top: calc(var(--ax-3) + var(--ax-safe-top));
+  background: var(--ax-surface);
+  border-bottom: 1px solid var(--ax-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.ax-appbar__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 1.15rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ax-appbar__sub {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--ax-text-faint);
+}
+
+/* ---------------------------------------------------------------- layout */
+
+.ax-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--ax-4);
+  padding-bottom: calc(var(--ax-8) + var(--ax-safe-bottom));
+}
+
+.ax-section-title {
+  margin: var(--ax-6) 0 var(--ax-2);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ax-text-faint);
+}
+
+.ax-divider {
+  height: 1px;
+  margin: var(--ax-3) 0;
+  background: var(--ax-border);
+}
+
+/* ----------------------------------------------------------------- cards */
+
+.ax-card {
+  background: var(--ax-surface);
+  border: 1px solid var(--ax-border);
+  border-radius: var(--ax-radius-lg);
+  box-shadow: var(--ax-shadow-1);
+  padding: var(--ax-4);
+}
+
+.ax-card--flat {
+  box-shadow: none;
+}
+
+.ax-card--tap {
+  transition: transform var(--ax-fast) var(--ax-ease),
+    background var(--ax-fast) var(--ax-ease);
+}
+
+.ax-card--tap:active {
+  transform: scale(0.985);
+  background: var(--ax-surface-2);
+}
+
+/* ------------------------------------------------------------- list rows */
+
+.ax-list {
+  background: var(--ax-surface);
+  border: 1px solid var(--ax-border);
+  border-radius: var(--ax-radius-lg);
+  overflow: hidden;
+}
+
+.ax-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ax-3);
+  min-height: 52px;
+  padding: var(--ax-3) var(--ax-4);
+  border-bottom: 1px solid var(--ax-border);
+  transition: background var(--ax-fast) var(--ax-ease);
+}
+
+.ax-row:last-child {
+  border-bottom: none;
+}
+
+.ax-row--tap:active {
+  background: var(--ax-surface-2);
+}
+
+.ax-row__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border-radius: var(--ax-radius);
+  background: rgba(79, 195, 247, 0.14);
+  font-size: 1.25rem;
+}
+
+.ax-row__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ax-row__title {
+  font-size: 0.95rem;
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ax-row__sub {
+  font-size: 0.8rem;
+  color: var(--ax-text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ax-row__value {
+  font-size: 0.85rem;
+  color: var(--ax-text-faint);
+}
+
+/* --------------------------------------------------------------- buttons */
+
+.ax-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ax-2);
+  min-height: 48px;
+  padding: 0 var(--ax-5);
+  border: none;
+  border-radius: var(--ax-radius-pill);
+  background: var(--ax-primary);
+  color: var(--ax-on-primary);
+  font-size: 0.95rem;
+  font-weight: 650;
+  cursor: pointer;
+  user-select: none;
+  transition: transform var(--ax-fast) var(--ax-ease),
+    opacity var(--ax-fast) var(--ax-ease), background var(--ax-fast) var(--ax-ease);
+}
+
+.ax-btn:active {
+  transform: scale(0.97);
+  opacity: 0.88;
+}
+
+.ax-btn[disabled],
+.ax-btn[aria-disabled="true"] {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.ax-btn--secondary {
+  background: var(--ax-surface-2);
+  color: var(--ax-text);
+  border: 1px solid var(--ax-border-strong);
+}
+
+.ax-btn--ghost {
+  background: transparent;
+  color: var(--ax-primary);
+}
+
+.ax-btn--danger {
+  background: var(--ax-danger);
+  color: #2a0a0a;
+}
+
+.ax-btn--block {
+  display: flex;
+  width: 100%;
+}
+
+.ax-btn--small {
+  min-height: 36px;
+  padding: 0 var(--ax-4);
+  font-size: 0.85rem;
+}
+
+.ax-fab {
+  position: fixed;
+  right: var(--ax-5);
+  bottom: calc(var(--ax-5) + var(--ax-safe-bottom));
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: var(--ax-radius-pill);
+  background: var(--ax-primary);
+  color: var(--ax-on-primary);
+  font-size: 1.6rem;
+  box-shadow: var(--ax-shadow-3);
+  cursor: pointer;
+  transition: transform var(--ax-base) var(--ax-ease);
+}
+
+.ax-fab:active {
+  transform: scale(0.92);
+}
+
+/* ---------------------------------------------------------------- inputs */
+
+.ax-input {
+  width: 100%;
+  min-height: 48px;
+  padding: var(--ax-3) var(--ax-4);
+  border: 1px solid var(--ax-border-strong);
+  border-radius: var(--ax-radius);
+  background: var(--ax-surface-2);
+  color: var(--ax-text);
+  font-size: 1rem;
+  outline: none;
+  transition: border-color var(--ax-fast) var(--ax-ease),
+    box-shadow var(--ax-fast) var(--ax-ease);
+}
+
+.ax-input::placeholder {
+  color: var(--ax-text-faint);
+}
+
+.ax-input:focus {
+  border-color: var(--ax-primary);
+  box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.16);
+}
+
+.ax-field {
+  margin-bottom: var(--ax-4);
+}
+
+.ax-field__label {
+  display: block;
+  margin-bottom: var(--ax-2);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ax-text-dim);
+}
+
+/* ----------------------------------------------------------------- chips */
+
+.ax-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ax-1);
+  min-height: 32px;
+  padding: 0 var(--ax-3);
+  border-radius: var(--ax-radius-pill);
+  background: var(--ax-surface-2);
+  border: 1px solid var(--ax-border);
+  font-size: 0.8rem;
+  color: var(--ax-text-dim);
+}
+
+.ax-chip--active {
+  background: rgba(79, 195, 247, 0.16);
+  border-color: rgba(79, 195, 247, 0.45);
+  color: var(--ax-primary);
+}
+
+/* --------------------------------------------------------------- switch */
+
+.ax-switch {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  flex: 0 0 48px;
+  border-radius: var(--ax-radius-pill);
+  background: var(--ax-border-strong);
+  border: none;
+  cursor: pointer;
+  transition: background var(--ax-base) var(--ax-ease);
+}
+
+.ax-switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--ax-shadow-1);
+  transition: transform var(--ax-base) var(--ax-ease);
+}
+
+.ax-switch[aria-checked="true"] {
+  background: var(--ax-primary);
+}
+
+.ax-switch[aria-checked="true"]::after {
+  transform: translateX(20px);
+}
+
+/* ------------------------------------------------------------ empty state */
+
+.ax-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ax-2);
+  padding: var(--ax-12) var(--ax-4);
+  text-align: center;
+  color: var(--ax-text-faint);
+}
+
+.ax-empty__icon {
+  font-size: 2.6rem;
+  opacity: 0.8;
+}
+
+.ax-empty__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ax-text-dim);
+}
+
+/* -------------------------------------------------------------- skeleton */
+
+.ax-skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--ax-radius-sm);
+  background: var(--ax-surface-2);
+}
+
+.ax-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.06),
+    transparent
+  );
+  animation: ax-shimmer 1.4s infinite;
+}
+
+@keyframes ax-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ---------------------------------------------------------------- toast */
+
+.ax-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--ax-10) + var(--ax-safe-bottom));
+  z-index: 60;
+  transform: translateX(-50%);
+  max-width: 88%;
+  padding: var(--ax-3) var(--ax-5);
+  border-radius: var(--ax-radius-pill);
+  background: rgba(20, 20, 35, 0.94);
+  border: 1px solid var(--ax-border);
+  color: #fff;
+  font-size: 0.9rem;
+  box-shadow: var(--ax-shadow-3);
+  animation: ax-toast-in var(--ax-base) var(--ax-ease);
+}
+
+@keyframes ax-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+}
+
+/* ------------------------------------------------------------ bottom sheet */
+
+.ax-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.55);
+  animation: ax-fade-in var(--ax-base) var(--ax-ease);
+}
+
+.ax-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 51;
+  max-height: 82vh;
+  overflow-y: auto;
+  padding: var(--ax-3) var(--ax-4);
+  padding-bottom: calc(var(--ax-6) + var(--ax-safe-bottom));
+  border-radius: var(--ax-radius-lg) var(--ax-radius-lg) 0 0;
+  background: var(--ax-surface);
+  border-top: 1px solid var(--ax-border);
+  box-shadow: var(--ax-shadow-3);
+  animation: ax-sheet-in var(--ax-base) var(--ax-ease);
+}
+
+.ax-sheet__handle {
+  width: 36px;
+  height: 4px;
+  margin: var(--ax-2) auto var(--ax-4);
+  border-radius: var(--ax-radius-pill);
+  background: var(--ax-border-strong);
+}
+
+@keyframes ax-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes ax-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ----------------------------------------------------------------- stats */
+
+.ax-stat {
+  padding: var(--ax-4);
+  border-radius: var(--ax-radius);
+  background: var(--ax-surface-2);
+  border: 1px solid var(--ax-border);
+}
+
+.ax-stat__value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.ax-stat__label {
+  font-size: 0.75rem;
+  color: var(--ax-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* --------------------------------------------------------------- helpers */
+
+.ax-row-flex {
+  display: flex;
+  align-items: center;
+  gap: var(--ax-3);
+}
+
+.ax-spacer {
+  flex: 1;
+}
+
+.ax-muted {
+  color: var(--ax-text-dim);
+}
+
+.ax-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ax-hide {
+  display: none !important;
+}
+
+/* Respect the user's motion preference */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -191,13 +191,45 @@ class IconConfig {
     );
   }
 
-  /// Default icon for an app name
+  /// Default icon for an app name - a monogram on a generated gradient so a
+  /// fresh app looks designed instead of flat.
   factory IconConfig.defaultFor(String appName) {
     final display = appName.isNotEmpty ? appName[0].toUpperCase() : 'A';
+    final seed = appName.isEmpty
+        ? 7
+        : appName.codeUnits.fold<int>(7, (a, b) => (a * 31 + b) & 0x7fffffff);
+    final hue = (seed % 360).toDouble();
+    final from = _hslToColor(hue, 0.58, 0.46);
+    final to = _hslToColor((hue + 42) % 360, 0.62, 0.30);
     return IconConfig(
-      bgColor: colorForString(display),
-      elements: [IconElement(content: display)],
+      bgColor: from,
+      bgGradient: [from, to],
+      elements: [IconElement(content: display, isText: true)],
     );
+  }
+
+  /// Deterministic HSL -> ARGB helper for the generated gradients.
+  static int _hslToColor(double h, double s, double l) {
+    final c = (1 - (2 * l - 1).abs()) * s;
+    final hp = h / 60.0;
+    final x = c * (1 - ((hp % 2) - 1).abs());
+    double r = 0, g = 0, b = 0;
+    if (hp < 1) {
+      r = c; g = x;
+    } else if (hp < 2) {
+      r = x; g = c;
+    } else if (hp < 3) {
+      g = c; b = x;
+    } else if (hp < 4) {
+      g = x; b = c;
+    } else if (hp < 5) {
+      r = x; b = c;
+    } else {
+      r = c; b = x;
+    }
+    final m = l - c / 2;
+    int channel(double v) => ((v + m) * 255).round().clamp(0, 255).toInt();
+    return 0xFF000000 | (channel(r) << 16) | (channel(g) << 8) | channel(b);
   }
 
   static const _colors = [

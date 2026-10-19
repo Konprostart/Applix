@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Shell theme for generated apps. The launch window shows the app's own
+      icon on the brand background, so the app starts like a real Android app
+      instead of a blank white page.
+    -->
+    <style name="ApplixShellTheme" parent="@android:style/Theme.NoTitleBar">
+        <item name="android:windowBackground">@drawable/applix_launch_background</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@color/applix_launch_bg</item>
+        <item name="android:navigationBarColor">@color/applix_launch_bg</item>
+    </style>
+</resources>

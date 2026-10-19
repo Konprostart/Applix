@@ -198,6 +198,14 @@ Yes. You need Android SDK, Flutter 3.x, and Java 17+. Run `./build.sh` from the 
 ### Where do I get the latest version?
 From the [releases page](https://github.com/Konprostart/Applix/releases/latest). Every `v*` tag publishes the signed container APK plus the full and web shell templates. The version in Settings → About is generated from the `VERSION` file at the repo root, and the changelog is in [CHANGELOG.md](CHANGELOG.md).
 
+### Why do my generated apps look like real Android apps?
+Applix injects its own design system (the "UI Kit") into every app it builds and tells the AI
+to build the screens from those components, so you get consistent spacing, typography, buttons,
+lists, empty states and loading states without describing any of it. After the first version is
+generated, Applix checks the result for the usual "this is a web page" symptoms - no app bar,
+tiny buttons, wrong font, no empty state, content under the status bar - and fixes them in one
+automatic pass. You can also start from one of the eight built-in starter apps.
+
 ### How do I update Applix?
 The app checks for a new version by itself (once a day) and shows a banner on My Apps when one is available. You can also check manually: Settings → About → Check for updates. The update downloads in the background, is verified against the SHA-256 checksum published with the release, and then Android shows its usual install confirmation. Updates are signed with the same key as the current install, so your generated apps and all your settings stay exactly as they are.
 

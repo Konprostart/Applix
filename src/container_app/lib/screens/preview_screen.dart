@@ -27,6 +27,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import '../services/ui_kit.dart';
 
 class PreviewScreen extends StatefulWidget {
   final String htmlContent;
@@ -662,8 +663,16 @@ class _PreviewScreenState extends State<PreviewScreen> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..addJavaScriptChannel('ConsoleChannel', onMessageReceived: _onConsoleMessage)
-      ..addJavaScriptChannel('BridgeChannel', onMessageReceived: _onBridgeMessage)
-      ..loadHtmlString(_injectScripts(widget.htmlContent), baseUrl: 'https://localhost/');
+      ..addJavaScriptChannel('BridgeChannel', onMessageReceived: _onBridgeMessage);
+    _loadPreview();
+  }
+
+  /// Loads the app with the same design system the built app gets, so the
+  /// preview looks exactly like the installed app.
+  Future<void> _loadPreview() async {
+    final html = await UiKit.applyTo(widget.htmlContent);
+    if (!mounted) return;
+    _controller.loadHtmlString(_injectScripts(html), baseUrl: 'https://localhost/');
   }
 
   void _onConsoleMessage(JavaScriptMessage msg) {
