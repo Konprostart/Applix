@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 /// Uses the same MethodChannel as Generator — event callbacks are routed
 /// by the method call handler set up during active P2P operations.
 class P2PService {
-  static const _ch = MethodChannel('com.iappyx.container/p2p');
+  static const _ch = MethodChannel('com.konprostart.applix/p2p');
 
   // Callbacks set by UI
   static void Function(String status)? onStatus;

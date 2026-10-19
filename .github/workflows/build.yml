@@ -38,6 +38,12 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
+      - name: Install freshly built shell templates into container assets
+        run: |
+          cp src/shell_apk/app/build/outputs/apk/release/app-release.apk src/container_app/assets/shell_template.apk
+          cp src/shell_apk_web/app/build/outputs/apk/release/app-release.apk src/container_app/assets/shell_template_web.apk
+          ls -l src/container_app/assets/*.apk
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:

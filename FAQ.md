@@ -1,15 +1,15 @@
-# iappyxOS — Frequently Asked Questions
+# Applix — Frequently Asked Questions
 
 ## General
 
-### What is iappyxOS?
-iappyxOS is an Android app that lets you create, build, and install real Android apps directly on your phone. No computer, no coding, no app store needed. Describe what you want, and it generates a real APK with its own icon in your launcher.
+### What is Applix?
+Applix is an Android app that lets you create, build, and install real Android apps directly on your phone. No computer, no coding, no app store needed. Describe what you want, and it generates a real APK with its own icon in your launcher.
 
 ### Who is it for?
 Anyone who wants a quick app for something — a personal tool, a calculator for a specific task, a simple game, a dashboard, a checklist. You don't need to know how to code. If you can describe what you want, you can build it.
 
 ### Is it free?
-iappyxOS itself is free. If you use the AI-powered app generation, you'll need your own API key from an AI provider (Anthropic or OpenRouter). You can also use the manual flow — copy the prompt to any AI chat (free or paid) and paste the result back.
+Applix itself is free. If you use the AI-powered app generation, you'll need your own API key from an AI provider (Anthropic or OpenRouter). You can also use the manual flow — copy the prompt to any AI chat (free or paid) and paste the result back.
 
 ### Does it need an internet connection?
 Only for AI generation (sending prompts to the AI). Everything else — building, signing, installing, running generated apps — works completely offline.
@@ -21,7 +21,7 @@ Only for AI generation (sending prompts to the AI). Everything else — building
 ### What are the three creation modes?
 
 - **AI-generated App** — Describe what you want in plain language. An AI generates the HTML/JavaScript code, you preview it, then build. The app can use native features like camera, GPS, sensors, and more.
-- **Website as App** — Enter a URL, and iappyxOS wraps it into a lightweight standalone app (~1MB). The website opens full-screen with its own launcher icon, separate from your browser. No native bridges — just a clean, sandboxed WebView.
+- **Website as App** — Enter a URL, and Applix wraps it into a lightweight standalone app (~1MB). The website opens full-screen with its own launcher icon, separate from your browser. No native bridges — just a clean, sandboxed WebView.
 - **Demo App** — 60+ pre-built apps that showcase what's possible. Useful for testing native features (camera, NFC, BLE, sensors, networking, etc.) and as starting points for your own ideas.
 
 ### What's the difference between "Full" and "Linked" prompt in Manual mode?
@@ -31,7 +31,7 @@ Only for AI generation (sending prompts to the AI). Everything else — building
 Both variants carry the same date-stamped version tag and the same anti-hallucination rules; the Linked one just offloads the bridge reference to a URL fetch.
 
 ### How does AI generation work?
-iappyxOS generates a detailed prompt that includes your app description plus documentation for all available native features. You send this prompt to an AI, and it returns complete HTML/JavaScript code. There are two ways:
+Applix generates a detailed prompt that includes your app description plus documentation for all available native features. You send this prompt to an AI, and it returns complete HTML/JavaScript code. There are two ways:
 
 - **AI Manual (recommended)** — The app generates a prompt. Copy it, paste it into any AI chat (Claude, ChatGPT, Gemini, etc.), copy the HTML response back, and paste it in. This gives you the most control — you can use any AI, have a back-and-forth conversation to refine the result, and iterate until it's right.
 - **AI API (automatic)** — Connect your own API key (Anthropic or OpenRouter) in Settings. Then tap "Generate" and the app talks to the AI directly.
@@ -53,7 +53,7 @@ Use Preview to check for errors. The console shows JavaScript errors, warnings, 
 ## Generated apps
 
 ### Are these real apps?
-Yes. Each generated app is a real signed Android APK. It gets its own launcher icon, runs independently from iappyxOS, and can be shared with other people. You can uninstall iappyxOS and your generated apps keep working. Generated apps pass Google Play Protect scanning.
+Yes. Each generated app is a real signed Android APK. It gets its own launcher icon, runs independently from Applix, and can be shared with other people. You can uninstall Applix and your generated apps keep working. Generated apps pass Google Play Protect scanning.
 
 ### What can generated apps do?
 Generated apps run inside a WebView with access to 37 native bridge classes (140+ methods):
@@ -75,10 +75,10 @@ Yes. In My Apps, tap the menu on any app and choose Share. Options include:
 - **Share Nearby** — transfer directly via WiFi Direct
 - **Share HTML** — export the source code
 
-The receiver can rebuild shared apps in their own iappyxOS with their own icon and name.
+The receiver can rebuild shared apps in their own Applix with their own icon and name.
 
 ### What is the Showcase?
-The [Showcase](https://github.com/iappyx/iappyxOS-showcase) is a collection of community-built apps that you can browse and build directly inside iappyxOS. Go to Create → Showcase, pick an app, and build it. You can also submit your own apps — tap the menu on any app in My Apps → "Submit to Showcase" and a GitHub pull request is created automatically.
+The [Showcase](https://github.com/Konprostart/Applix-showcase) is a collection of community-built apps that you can browse and build directly inside Applix. Go to Create → Showcase, pick an app, and build it. You can also submit your own apps — tap the menu on any app in My Apps → "Submit to Showcase" and a GitHub pull request is created automatically.
 
 ### Can generated apps receive push notifications?
 Yes, with setup. In the app's edit flow, expand "Advanced Settings" — you'll see the app's package name and a file picker for Firebase config. Create a free Firebase project at console.firebase.google.com, add an Android app with that package name, download `google-services.json`, and pick it. Rebuild the app. The AI can then use push notifications when you ask for them.
@@ -97,17 +97,17 @@ Because the app wasn't downloaded from Google Play. This is normal for any app i
 Yes. The icon editor supports multiple layers — combine emoji, text, and images with custom colors, scaling, rotation, and positioning. The background color is also customizable.
 
 ### Why does my icon look different on the phone than in the editor?
-The editor shows the raw icon. Android launchers apply their own shape mask (circle, squircle, rounded square, etc.) depending on the device manufacturer. iappyxOS renders full square icons so the launcher mask works correctly.
+The editor shows the raw icon. Android launchers apply their own shape mask (circle, squircle, rounded square, etc.) depending on the device manufacturer. Applix renders full square icons so the launcher mask works correctly.
 
 ---
 
 ## Settings & configuration
 
 ### What is the App ID prefix?
-Every Android app needs a unique package name (like `ljocht.harns.myapp12345`). The prefix is the first part. On first launch, iappyxOS generates a random Frisian prefix for your device (like `kreas.snits` or `noflik.dokkum`). You can change it to your own domain in Settings if you want (e.g., `com.yourname`). Max 20 characters, lowercase letters, digits, and dots.
+Every Android app needs a unique package name (like `ljocht.harns.myapp12345`). The prefix is the first part. On first launch, Applix generates a random Frisian prefix for your device (like `kreas.snits` or `noflik.dokkum`). You can change it to your own domain in Settings if you want (e.g., `com.yourname`). Max 20 characters, lowercase letters, digits, and dots.
 
 ### What is the system prompt?
-The system prompt is the instruction document sent to the AI along with your app description. It tells the AI how to write HTML/JavaScript that works with iappyxOS's native bridges. You can view and edit it in Settings, but the default works well for most cases.
+The system prompt is the instruction document sent to the AI along with your app description. It tells the AI how to write HTML/JavaScript that works with Applix's native bridges. You can view and edit it in Settings, but the default works well for most cases.
 
 ### Where are my API keys stored?
 API keys are encrypted using Android's hardware-backed Keystore (EncryptedSharedPreferences). They never leave your device and are not readable by other apps.
@@ -124,15 +124,15 @@ Check that your app name is not too long (max 37 characters) and doesn't contain
 
 ### The AI generated code but it doesn't work
 Use Preview to see what's wrong. The console will show JavaScript errors. Common issues:
-- The AI included markdown fences (` ``` `) around the code — iappyxOS strips these automatically, but sometimes extra text remains
+- The AI included markdown fences (` ``` `) around the code — Applix strips these automatically, but sometimes extra text remains
 - The code references a native feature incorrectly — copy the console errors and ask the AI to fix them
 - The AI didn't wait for the bridge to load — the `iappyx` object is injected after page load; apps should check `typeof iappyx !== 'undefined'` before using it
 
-### I lost my apps after reinstalling iappyxOS
-App data is stored on the device. If you uninstall iappyxOS, the app library is deleted. However, generated apps that are already installed on your device continue to work independently — they don't depend on iappyxOS.
+### I lost my apps after reinstalling Applix
+App data is stored on the device. If you uninstall Applix, the app library is deleted. However, generated apps that are already installed on your device continue to work independently — they don't depend on Applix.
 
 ### A generated app crashes or shows a white screen
-The HTML/JavaScript has an error. Edit the app in iappyxOS, open Preview, and check the console for errors. If the app was AI-generated, paste the errors back into the AI and ask for a fix.
+The HTML/JavaScript has an error. Edit the app in Applix, open Preview, and check the console for errors. If the app was AI-generated, paste the errors back into the AI and ask for a fix.
 
 ### My event trigger stopped firing (charger / headphones / Bluetooth / WiFi / Android Auto)
 Triggers come in two modes:
@@ -146,7 +146,7 @@ If your trigger was working and then stopped, either use persistent mode, or re-
 Go to Settings → the generated app → Permissions → Location → **Allow all the time**. Android does not let apps request this via a runtime dialog — the user must toggle it manually. Call `iappyx.location.openBackgroundSettings()` from your app to jump them straight to the right Settings page.
 
 ### Why does my geofence take a minute or two to fire after I cross the boundary
-Android debounces geofence transitions to avoid drive-by false positives. "Dwell" events wait for the configured `dwellDelayMs` (default 60 seconds). This is OS behavior, not an iappyxOS limitation.
+Android debounces geofence transitions to avoid drive-by false positives. "Dwell" events wait for the configured `dwellDelayMs` (default 60 seconds). This is OS behavior, not an Applix limitation.
 
 ### Battery impact of geofence triggers
 Using `iappyx.trigger.geofence` is built on Android's `GeofencingClient`, which the OS optimizes heavily (cell/WiFi inference, hardware offload on some chips). One or two geofences typically cost 1–2% battery per 24 hours of background operation. Aggressive OEMs (Xiaomi, Huawei) may throttle Play Services even then — whitelist the app in the OS battery settings if transitions seem to miss.
@@ -172,7 +172,7 @@ Credentials entered at runtime and stored with `iappyx.save()` are in the app's 
 ## Technical
 
 ### How does it work under the hood?
-iappyxOS contains two pre-built WebView shell APK templates — a full shell (~29MB, with all native bridges, ML Kit, and protocol libraries) and a lightweight web-only shell (~1MB, sandboxed, no bridges). When you build an app:
+Applix contains two pre-built WebView shell APK templates — a full shell (~29MB, with all native bridges, ML Kit, and protocol libraries) and a lightweight web-only shell (~1MB, sandboxed, no bridges). When you build an app:
 1. Your HTML/JavaScript is injected into the appropriate template as an asset
 2. The Android binary manifest is patched with a unique package name and your app label
 3. Unused ML Kit libraries are automatically stripped if the app doesn't use camera/ML features
@@ -181,12 +181,12 @@ iappyxOS contains two pre-built WebView shell APK templates — a full shell (~2
 6. Android's PackageInstaller handles the install dialog
 
 ### What Android versions are supported?
-Android 8 (API 26) and above for generated apps. iappyxOS itself runs on Android 10+ (API 29).
+Android 8 (API 26) and above for generated apps. Applix itself runs on Android 10+ (API 29).
 
 ### Is the source code available?
-Yes. iappyxOS is open source under the MIT license.
+Yes. Applix is open source under the MIT license.
 
-### Can I build iappyxOS from source?
+### Can I build Applix from source?
 Yes. You need Android SDK, Flutter 3.x, and Java 17+. Run `./build.sh` from the project root — it builds the shell template, the container app, and installs it on a connected device.
 
 ---
@@ -194,13 +194,13 @@ Yes. You need Android SDK, Flutter 3.x, and Java 17+. Run `./build.sh` from the 
 ## The hard questions
 
 ### Why is it called "OS"? It's not an operating system!
-Not yet. But consider the direction: a phone with no pre-installed apps, no app store, no downloads. You just describe what you need and it appears. Need a calculator? Say so. Need a scanner? Say so. Apps aren't installed — they're generated on demand from prompts, run when needed, and dissolve when you're done. No updates, no storage bloat, no subscriptions. Just tokens in, tools out. iappyxOS is another step toward that idea. The "OS" is not a claim — it's a nod to where things are heading.
+Not yet. But consider the direction: a phone with no pre-installed apps, no app store, no downloads. You just describe what you need and it appears. Need a calculator? Say so. Need a scanner? Say so. Apps aren't installed — they're generated on demand from prompts, run when needed, and dissolve when you're done. No updates, no storage bloat, no subscriptions. Just tokens in, tools out. Applix is another step toward that idea.
 
 ### Did you write all the code yourself?
-No. iappyxOS was built with heavy use of AI — primarily Claude — for code generation, architecture decisions, and bug hunting. The idea, direction, and every design choice are mine. The code is heavily AI-generated. That's kind of the point of the project: if AI can generate apps for end users, it can generate the tool that generates them too. In the end, I believe almost all software will be prompts.
+No. Applix was built with heavy use of AI — primarily Claude — for code generation, architecture decisions, and bug hunting. The idea, direction, and every design choice are mine. The code is heavily AI-generated. That's kind of the point of the project: if AI can generate apps for end users, it can generate the tool that generates them too. In the end, I believe almost all software will be prompts.
 
-### Who is behind iappyx?
-An independent maker from the Netherlands with a non-developer day job, who likes to build useful tools and open-sourcing them. Previously built [Instrumenta](https://github.com/iappyx/Instrumenta), a free consulting-style PowerPoint toolbar that started as a COVID side project.
+### Who is behind Applix?
+Applix is an independent open-source project derived from iappyxOS (MIT). See [NOTICE.md](NOTICE.md) for upstream attribution.
 
 ### Isn't this just a WebView wrapper?
 Yes — and that's the point. A WebView wrapper that patches its own binary manifest, signs itself with a hardware-backed key, generates multi-density icons, injects 35 bridge classes (130+ methods), and installs itself through the system package manager. All on a phone. The "just a wrapper" does a lot of heavy lifting.
@@ -208,15 +208,15 @@ Yes — and that's the point. A WebView wrapper that patches its own binary mani
 More seriously: the value isn't the WebView. It's that you go from "I want an app that does X" to a real installed app in your launcher in under a minute, without touching a computer. With 35 bridge classes giving access to Bluetooth, SSH, network shares, push notifications, HTTP servers, ML Kit, home screen widgets, background tasks, and more — the "wrapper" is a full native development platform. The WebView is an implementation detail. The experience is the product.
 
 ### Why would I use this instead of just making a website?
-A website needs a browser, a URL, and an internet connection. An iappyxOS app has its own icon, launches instantly, works offline, and can access your camera, GPS, NFC, Bluetooth, sensors, contacts, SSH servers, network shares, and 100+ other native features a website can't touch. It also doesn't disappear when you clear your browser tabs.
+A website needs a browser, a URL, and an internet connection. An Applix app has its own icon, launches instantly, works offline, and can access your camera, GPS, NFC, Bluetooth, sensors, contacts, SSH servers, network shares, and 100+ other native features a website can't touch. It also doesn't disappear when you clear your browser tabs.
 
 If a bookmark is enough for your use case, make a bookmark. If you want something that feels like an app and works like an app — that's what this is for.
 
 ### Can I publish a generated app on Google Play?
 Technically, nothing stops you. The APK is properly signed and installable. But Google Play has review policies, and a single-file WebView app may not pass them depending on what it does. For personal use, sharing with friends, or sideloading in an organization — no problem. For app store distribution, you'd want to polish it further.
 
-### Will iappyxOS still work under Google's new sideloading rules?
-Starting September 2026, Google plans to require developer verification for Android apps on certified devices — including sideloaded ones. The policy is still evolving and the impact on iappyxOS isn't fully clear yet. Two potential paths:
+### Will Applix still work under Google's new sideloading rules?
+Starting September 2026, Google plans to require developer verification for Android apps on certified devices — including sideloaded ones. The policy is still evolving and the impact on Applix isn't fully clear yet. Two potential paths:
 
 1. **Enable Android's "advanced flow"** — one-time per device: Developer Mode → "Allow Unverified Packages" → reboot → 24-hour wait → biometric confirm → "indefinitely". After that, installs work normally with a warning dialog.
 2. **Use an uncertified Android** (GrapheneOS, CalyxOS, /e/OS, LineageOS, any custom ROM) — no verification required, no setup friction.
@@ -227,9 +227,9 @@ If you care about this direction of Android, [keepandroidopen.org](https://keepa
 That depends entirely on the AI and your description. A well-described app with clear requirements produces surprisingly capable results — dashboards, calculators, trackers, games, tools. A vague "make me something cool" produces something vague. The native bridges (camera, sensors, SQLite, etc.) give the AI a lot to work with. The quality ceiling is high; the quality floor is your prompt.
 
 ### Why not just use Flutter or React Native?
-Because those require a computer, a development environment, hours of setup, and knowing how to code. Of course AI can help you with that as well, but iappyxOS is for the other 99% of people who don't have or want any of that. A developer might laugh at a single-HTML-file app — until they realize their mom just built a recipe converter with camera input in 45 seconds on her phone.
+Because those require a computer, a development environment, hours of setup, and knowing how to code. Of course AI can help you with that as well, but Applix is for the other 99% of people who don't have or want any of that. A developer might laugh at a single-HTML-file app — until they realize their mom just built a recipe converter with camera input in 45 seconds on her phone.
 
-If you're a developer, you probably don't need iappyxOS. But you might still enjoy how fast it is for throwaway tools.
+If you're a developer, you probably don't need Applix. But you might still enjoy how fast it is for throwaway tools.
 
 ### Why is this free?
 Because it costs nothing to run. There are no servers, no cloud, no accounts, no backend. Everything happens on your device. The only external cost is the AI API call, and you bring your own key for that. There's nothing to monetize without making the product worse.
@@ -240,6 +240,6 @@ If you find it useful, there's a donate link in Settings.
 No plans to. The architecture is deliberately serverless — no infrastructure means no running costs means no pressure to monetize. If the project grows and needs funding for development time, a paid version with extra features is more likely than paywalling the free one.
 
 ### Why not build an app store around this?
-Because that would require servers, moderation, accounts, legal compliance, payment processing, and a full-time job maintaining it. iappyxOS is a tool, not a platform. You make apps for yourself and share them however you want — WiFi Direct, email, USB, or just send the APK file. No middleman.
+Because that would require servers, moderation, accounts, legal compliance, payment processing, and a full-time job maintaining it. Applix is a tool, not a platform. You make apps for yourself and share them however you want — WiFi Direct, email, USB, or just send the APK file. No middleman.
 
-Instead, there's the [Showcase](https://github.com/iappyx/iappyxOS-showcase) — a curated collection of community apps on GitHub. No accounts, no moderation overhead. Anyone can submit an app via pull request, and everyone can browse and build them directly in the app. Open source all the way down.
+Instead, there's the [Showcase](https://github.com/Konprostart/Applix-showcase) — a curated collection of community apps on GitHub. No accounts, no moderation overhead. Anyone can submit an app via pull request, and everyone can browse and build them directly in the app. Open source all the way down.

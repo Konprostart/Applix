@@ -258,7 +258,7 @@ class _ShowcaseScreenState extends State<ShowcaseScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Showcase', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Text('Community apps built with iappyxOS', style: TextStyle(fontSize: 12, color: Colors.white38)),
+            Text('Community apps built with Applix', style: TextStyle(fontSize: 12, color: Colors.white38)),
           ],
         )),
       ]),

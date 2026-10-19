@@ -20,15 +20,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-/// Client for submitting and managing apps in the iappyxOS-showcase GitHub repo.
+/// Client for submitting and managing apps in the Applix-showcase GitHub repo.
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'bundle_storage.dart';
 
 class GithubService {
-  static const _repo = 'iappyxOS-showcase';
-  static const _owner = 'iappyx';
+  static const _repo = 'Applix-showcase';
+  static const _owner = 'Konprostart';
   static const _api = 'https://api.github.com';
 
   final String _token;

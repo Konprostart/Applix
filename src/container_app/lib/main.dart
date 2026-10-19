@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-/// Entry point for iappyxOS. Bootstraps [IappyxOSApp], shows onboarding on
+/// Entry point for Applix. Bootstraps [IappyxOSApp], shows onboarding on
 /// first launch, then presents the main [AppShell] with bottom-nav tabs.
 
 import 'package:flutter/material.dart';
@@ -38,7 +38,7 @@ class IappyxOSApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'iappyxOS',
+      title: 'Applix',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(useMaterial3: true).copyWith(
         scaffoldBackgroundColor: const Color(0xFF0D0D1A),

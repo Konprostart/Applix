@@ -38,7 +38,7 @@ class OnboardingScreen extends StatelessWidget {
           child: Column(
             children: [
               const Spacer(flex: 2),
-              const Text('iappyxOS', style: TextStyle(
+              const Text('Applix', style: TextStyle(
                 fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFF4FC3F7),
                 letterSpacing: -0.5,
               )),

@@ -155,9 +155,9 @@ class AppStorage {
     return _file!;
   }
 
-  static const _tag = '<!-- Built with iappyxOS — https://github.com/iappyx/iappyxOS -->\n';
+  static const _tag = '<!-- Built with Applix — https://github.com/Konprostart/Applix -->\n';
 
-  /// Ensures the iappyxOS attribution tag is present exactly once at the top.
+  /// Ensures the Applix attribution tag is present exactly once at the top.
   static String tagHtml(String html) {
     if (html.isEmpty) return html;
     final clean = html.replaceAll(_tag, '');

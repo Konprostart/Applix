@@ -1,7 +1,7 @@
 <!--
-  iappyxOS Demo App
+  Applix Demo App
   MIT License - Copyright (c) 2026 iappyx
-  https://github.com/iappyx/iappyxOS
+  https://github.com/Konprostart/Applix
 -->
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8">
@@ -43,7 +43,7 @@ input{background:#0f3460;border:1px solid #1a4a8a;color:#fff;border-radius:8px;p
   <div class="card-title">Media Session</div>
   <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:8px">Set up lock screen controls and headphone button handling</div>
   <input id="songTitle" placeholder="Song title" value="My Podcast">
-  <input id="songArtist" placeholder="Artist" value="iappyxOS Radio">
+  <input id="songArtist" placeholder="Artist" value="Applix Radio">
   <button class="btn" onclick="startMediaSession()">Activate Media Session</button>
   <div id="mediaArea" style="display:none">
     <div class="media-info">
@@ -93,7 +93,7 @@ window.onShareReceived=function(data){
 function startMediaSession(){
   var title=document.getElementById('songTitle').value||'Unknown';
   var artist=document.getElementById('songArtist').value||'Unknown';
-  iappyx.audio.setMediaSession(JSON.stringify({title:title,artist:artist,album:'iappyxOS'}));
+  iappyx.audio.setMediaSession(JSON.stringify({title:title,artist:artist,album:'Applix'}));
   document.getElementById('mTitle').textContent=title;
   document.getElementById('mArtist').textContent=artist;
   document.getElementById('mediaArea').style.display='block';

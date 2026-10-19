@@ -46,7 +46,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
   final List<_ConsoleLine> _console = [];
   bool _consoleExpanded = true;
   bool _bannerVisible = true;
-  static const _channel = MethodChannel('com.iappyx.container/generator');
+  static const _channel = MethodChannel('com.konprostart.applix/generator');
 
   // ── Console capture (injected before app code) ──
   static const _consoleCapture = '''
@@ -121,10 +121,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   // ── Device (mock data) ──
   var device={
-    getPackageName:function(){return 'com.iappyx.preview';},
+    getPackageName:function(){return 'com.applix.preview';},
     getAppName:function(){return 'Preview App';},
     getDeviceInfo:function(){return JSON.stringify({
-      brand:'Preview',model:'iappyxOS Preview',sdk:33,
+      brand:'Preview',model:'Applix Preview',sdk:33,
       battery:100,charging:true,
       screenWidth:window.innerWidth,screenHeight:window.innerHeight,
       density:window.devicePixelRatio||1,language:navigator.language||'en'
@@ -640,6 +640,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
     capabilities:capabilities,
     onTextSelected:function(fn){console.log('[Preview] onTextSelected registered');}
   };
+  // Applix alias (canonical name going forward; iappyx kept for backwards compatibility)
+  window.applix=window.iappyx;
 
   console.log('[Preview] iappyx bridge loaded (preview mode — some features simulated)');
 })();

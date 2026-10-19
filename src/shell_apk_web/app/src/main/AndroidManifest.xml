@@ -8,13 +8,13 @@
 
     <application
         android:allowBackup="false"
-        android:label="IAPPYX_PLACEHOLDER_LABEL_XXXXXXXXXXXX"
+        android:label="APPLIX_PLACEHOLDER_LABEL_XXXXXXXXXXXX"
         android:icon="@mipmap/ic_launcher"
         android:theme="@android:style/Theme.NoTitleBar"
         android:hardwareAccelerated="true">
 
         <activity
-            android:name="com.iappyx.generated.placeholder.ShellActivity"
+            android:name="com.applix.generated.placeholder.ShellActivity"
             android:exported="true"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:launchMode="singleTop">

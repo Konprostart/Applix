@@ -32,7 +32,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/app_storage.dart';
 
-const _screenChannel = MethodChannel('com.iappyx.container/generator');
+const _screenChannel = MethodChannel('com.konprostart.applix/generator');
 
 const _prefix = 'IXYQR';
 const _chunkSize = 900; // bytes per QR frame — smaller = easier to scan

@@ -380,7 +380,7 @@ class CreateScreenState extends State<CreateScreen> {
     });
   }
 
-  static const _channel = MethodChannel('com.iappyx.container/generator');
+  static const _channel = MethodChannel('com.konprostart.applix/generator');
 
   Future<void> _voiceInput() async {
     try {
@@ -1413,7 +1413,7 @@ class CreateScreenState extends State<CreateScreen> {
       child: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.asset('assets/ic_launcher.png', width: 44, height: 44))),
     const SizedBox(width: 12),
     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('iappyxOS', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+      const Text('Applix', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
       Text(sub, style: const TextStyle(fontSize: 12, color: Colors.white38)),
     ]),
   ]);

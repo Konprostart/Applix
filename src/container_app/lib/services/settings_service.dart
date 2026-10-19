@@ -29,7 +29,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/ai_provider.dart';
 
 class Settings {
-  static const showcaseBaseUrl = 'https://raw.githubusercontent.com/iappyx/iappyxOS-showcase/main';
+  static const showcaseBaseUrl = 'https://raw.githubusercontent.com/Konprostart/Applix-showcase/main';
 
   static SharedPreferences? _prefs;
   static const _secure = FlutterSecureStorage(
@@ -216,33 +216,16 @@ class Settings {
   // ── Package prefix ──
   static const int maxPrefixLength = 20;
 
-  // Frysk: positive adjectives evoking beauty + the 11 Frisian cities
-  static const _adjectives = [
-    'moai','kreas','noflik','leaf','sierlik',
-    'prachtich','swiid','skjin','ljocht','skoander','smuk',
-  ];
-  static const _nouns = [
-    'ljouwert','snits','drylts','sleat','starum',
-    'hylpen','warkum','boalsert','harns','frjentsjer','dokkum',
-  ];
-
-  static String _generatePrefix() {
-    final r = DateTime.now().microsecondsSinceEpoch;
-    final adj = _adjectives[r % _adjectives.length];
-    final noun = _nouns[(r ~/ 100) % _nouns.length];
-    return '$adj.$noun';
-  }
-
   static Future<String> getPackagePrefix() async {
     final prefs = await getPrefs();
     var prefix = prefs.getString('package_prefix');
-    if (prefix == null || prefix.isEmpty || prefix == 'com.iappyx.g') {
-      // First launch or legacy default — generate a unique prefix
-      prefix = _generatePrefix();
+    if (prefix == null || prefix.isEmpty || prefix == 'com.iappyx.g' || prefix == 'com.applix') {
+      // First launch or legacy default
+      prefix = 'applix';
       await prefs.setString('package_prefix', prefix);
     }
     if (!validatePrefix(prefix)) {
-      prefix = _generatePrefix();
+      prefix = 'applix';
       await prefs.setString('package_prefix', prefix);
     }
     return prefix;

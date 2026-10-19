@@ -1,7 +1,7 @@
 <!--
-  iappyxOS Demo App
+  Applix Demo App
   MIT License - Copyright (c) 2026 iappyx
-  https://github.com/iappyx/iappyxOS
+  https://github.com/Konprostart/Applix
 -->
 <!DOCTYPE html>
 <html lang="en"><head>
@@ -41,7 +41,7 @@ h2{font-size:18px;margin-bottom:16px;text-align:center}
 
 <div class="section">
 <h3>Bundled Files</h3>
-<div class="desc">Files added via "App Files" in the Create/Edit screen are baked into the APK and listed here. If empty, edit this app in iappyxOS, expand App Files, add a file, and rebuild.</div>
+<div class="desc">Files added via "App Files" in the Create/Edit screen are baked into the APK and listed here. If empty, edit this app in Applix, expand App Files, add a file, and rebuild.</div>
 <div id="fileList"><div class="empty"><div class="empty-icon">📦</div>Loading…</div></div>
 </div>
 
@@ -83,7 +83,7 @@ function onReady(){
   try{files=JSON.parse(raw);}catch(e){}
   var el=document.getElementById('fileList');
   if(!files.length){
-    el.innerHTML='<div class="empty"><div class="empty-icon">📦</div><div style="font-size:14px;margin-bottom:8px">No files bundled</div><div class="desc">Edit this app in iappyxOS → expand App Files → add a file → rebuild.</div></div>';
+    el.innerHTML='<div class="empty"><div class="empty-icon">📦</div><div style="font-size:14px;margin-bottom:8px">No files bundled</div><div class="desc">Edit this app in Applix → expand App Files → add a file → rebuild.</div></div>';
     setStatus('No bundled files found');
     return;
   }

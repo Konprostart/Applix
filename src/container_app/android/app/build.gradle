@@ -12,7 +12,7 @@ if (keyPropsFile.exists()) {
 }
 
 android {
-    namespace = "com.iappyx.container"
+    namespace = "com.konprostart.applix"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -37,7 +37,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.iappyx.os"
+        applicationId = "com.konprostart.applix"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

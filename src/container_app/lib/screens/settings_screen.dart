@@ -114,7 +114,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(width: 12),
                 const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('iappyxOS', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  Text('Applix', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                   Text('Settings', style: TextStyle(fontSize: 12, color: Colors.white38)),
                 ]),
               ]),
@@ -124,7 +124,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Support
               _card(children: [
                 InkWell(
-                  onTap: () { try { Generator.openUrl('https://ko-fi.com/iappyx'); } catch (_) {} },
+                  onTap: () { try { Generator.openUrl('https://github.com/Konprostart/Applix'); } catch (_) {} },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                     child: Row(
@@ -141,9 +141,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const Expanded(child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Support iappyxOS', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                            Text('Applix on GitHub', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                             SizedBox(height: 2),
-                            Text('Buy me a coffee on Ko-fi', style: TextStyle(fontSize: 11, color: Colors.white38)),
+                            Text('Source code and releases', style: TextStyle(fontSize: 11, color: Colors.white38)),
                           ],
                         )),
                         const Icon(Icons.open_in_new, size: 16, color: Colors.white24),
@@ -615,7 +615,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     final json = jsonEncode(apps.map((a) => a.toJson()).toList());
     try {
-      await Generator.shareText(content: json, filename: 'iappyxos_apps.json');
+      await Generator.shareText(content: json, filename: 'applix_apps.json');
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Export failed: $e'), backgroundColor: const Color(0xFFFF6B6B)),
@@ -642,7 +642,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: const Text('Invalid file. Expected iappyxOS JSON export.', style: TextStyle(color: Colors.white)), backgroundColor: const Color(0xFFFF6B6B), duration: const Duration(seconds: 4)),
+        SnackBar(content: const Text('Invalid file. Expected Applix JSON export.', style: TextStyle(color: Colors.white)), backgroundColor: const Color(0xFFFF6B6B), duration: const Duration(seconds: 4)),
       );
     }
   }
@@ -653,7 +653,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A2E),
         title: const Text('Clear all saved apps?'),
-        content: const Text('This removes all app data from iappyxOS. Installed apps on your device are not affected.'),
+        content: const Text('This removes all app data from Applix. Installed apps on your device are not affected.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           TextButton(

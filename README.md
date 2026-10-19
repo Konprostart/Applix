@@ -1,14 +1,10 @@
-# iappyxOS
+# Applix
 
 **Generate real Android apps on your device — no server, no app store, no code.**
 
-Describe what you want to your favorite AI, and iappyxOS turns it into a real installed APK with its own launcher icon. Building, signing, and installing all happen on-device. No cloud. No subscription. No coding required.
+Describe what you want to your favorite AI, and Applix turns it into a real installed APK with its own launcher icon. Building, signing, and installing all happen on-device. No cloud. No subscription. No coding required.
 
-Sibling project to [iappyxOS Launcher](https://github.com/iappyx/iappyxOS-Launcher) (a programmable Android home screen) — both are standalone, and the same widget HTML runs in either one.
-
-## Demo
-
-[![Watch the demo](https://img.youtube.com/vi/VWvjfr7BCnY/maxresdefault.jpg)](https://youtu.be/VWvjfr7BCnY)
+Derived from [iappyxOS](https://github.com/iappyx/iappyxOS) (MIT licensed). See [NOTICE.md](NOTICE.md) for attribution.
 
 ## Screenshots
 
@@ -23,7 +19,9 @@ Sibling project to [iappyxOS Launcher](https://github.com/iappyx/iappyxOS-Launch
   <img src="docs/screenshot_6_preview.png" width="24%" />
 </p>
 
-*My Apps • Create • 57 Demos • Generated Radio App • Icon Editor • Preview with Console*
+*Screenshots from the pre-rebrand build — UI and features are unchanged.*
+
+*My Apps • Create • Demos • Generated Radio App • Icon Editor • Preview with Console*
 
 ## What it does
 
@@ -48,7 +46,7 @@ Every generated app is a real signed APK that appears in your Android launcher. 
 └──────────────┬──────────────────────┘
                │ created and signed by
 ┌──────────────▼──────────────────────┐
-│       CONTAINER APP (iappyxOS)      │
+│       CONTAINER APP (Applix)      │
 │  AI prompt → HTML → APK injection   │
 │  → manifest patching → v2 signing   │
 │  → PackageInstaller                 │
@@ -74,7 +72,7 @@ Every generated app is a real signed APK that appears in your Android launcher. 
 - **Preview** — test your app in a WebView with live JS console and simulated bridges before building
 - **Offline-first** — everything except AI generation works in airplane mode
 - **Configurable** — custom system prompt, app ID prefix, multiple AI providers, CSS styles
-- **[Showcase](https://github.com/iappyx/iappyxOS-showcase)** — browse and build community apps directly in the app, or submit your own via PR
+- **[Showcase](https://github.com/Konprostart/Applix-showcase)** — browse and build community apps directly in the app, or submit your own via PR
 - **Home screen widgets** — generated apps can create configurable widgets with grids, clocks, timers, toggles
 - **Background tasks** — scheduled JS execution even when the app is closed, auto-updates widgets
 - **Version history** — automatic snapshots on rebuild, restore previous versions
@@ -82,9 +80,9 @@ Every generated app is a real signed APK that appears in your Android launcher. 
 
 ## Quick start
 
-1. [Download the latest Beta](https://github.com/iappyx/iappyxOS/raw/main/bin/iappyxOS.apk)
+1. [Download the latest Beta](https://github.com/Konprostart/Applix/releases)
 2. Sideload on Android 10+ (enable "Install unknown apps" for your browser)
-3. Open iappyxOS → Create → pick a mode → build
+3. Open Applix → Create → pick a mode → build
 
 **AI generation (two options):**
 - **Manual (recommended)** — copy the generated prompt, paste it into any AI chat (Claude, ChatGPT, Gemini, etc.), paste the HTML back, preview, build. The Manual flow offers two prompt variants:
@@ -93,9 +91,9 @@ Every generated app is a real signed APK that appears in your Android launcher. 
 - **Automatic** — add your API key in Settings (Anthropic or OpenRouter), then tap "Generate" in the Create flow
 
 ### Using the spec from any AI tool
-`SPEC.md` at the repo root is the canonical iappyxOS bridge reference, always fetchable at:
+`SPEC.md` at the repo root is the canonical Applix bridge reference, always fetchable at:
 ```
-https://raw.githubusercontent.com/iappyx/iappyxOS/main/SPEC.md
+https://raw.githubusercontent.com/Konprostart/Applix/main/SPEC.md
 ```
 If you're chatting with Claude.ai or ChatGPT directly (outside the container), include that URL in your prompt and the AI will fetch it. When you get the HTML back, import it via Create → paste HTML.
 
@@ -106,9 +104,9 @@ Share your generated apps with others — multiple ways, no account needed:
 - **Share APK** — send the compiled app file via any app (WhatsApp, email, Drive, Bluetooth)
 - **Share Nearby** — transfer directly to another device via WiFi Direct, no internet required
 - **Share via QR** — beam your app to another device using animated QR codes — no WiFi, no Bluetooth, just two screens
-- **Share HTML** — export the source code so others can preview, modify, and rebuild it in their own iappyxOS
+- **Share HTML** — export the source code so others can preview, modify, and rebuild it in their own Applix
 
-Recipients with iappyxOS installed can rebuild shared apps with their own icon and name.
+Recipients with Applix installed can rebuild shared apps with their own icon and name.
 
 ## Native bridges
 
@@ -164,7 +162,7 @@ Generated apps access device hardware through a JavaScript bridge (`window.iappy
 ### Quick build
 ```bash
 ./build.sh
-# Output: bin/iappyxOS.apk (auto-installs if device connected)
+# Output: bin/Applix.apk (auto-installs if device connected)
 ```
 
 ### Manual build
@@ -173,7 +171,7 @@ Generated apps access device hardware through a JavaScript bridge (`window.iappy
 cd src/shell_apk && ./gradlew assembleRelease
 cp app/build/outputs/apk/release/app-release.apk ../container_app/assets/shell_template.apk
 
-# Container app (iappyxOS itself):
+# Container app (Applix itself):
 cd src/container_app && flutter pub get && flutter build apk --release
 ```
 
@@ -184,15 +182,15 @@ cd src/container_app && flutter pub get && flutter build apk --release
 The release APK is signed with a private keystore (not in this repo). To set up your own:
 
 ```bash
-keytool -genkey -v -keystore iappyxos-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias iappyxos
+keytool -genkey -v -keystore applix-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias applix
 ```
 
 Create `src/container_app/key.properties`:
 ```
 storePassword=YOUR_PASSWORD
 keyPassword=YOUR_PASSWORD
-keyAlias=iappyxos
-storeFile=../../iappyxos-release.jks
+keyAlias=applix
+storeFile=../../applix-release.jks
 ```
 
 Both files are gitignored. Never commit your keystore or passwords.
@@ -203,10 +201,16 @@ See [FAQ.md](FAQ.md) for answers to common questions — including the hard ones
 
 ## License
 
+MIT — see [LICENSE](LICENSE). Original work Copyright (c) 2026 iappyx (iappyxOS), used under the MIT License.
+
+## Attribution
+
+Applix is an independent derivative of **iappyxOS** by iappyx, used under the MIT License. Original project: https://github.com/iappyx/iappyxOS. See [NOTICE.md](NOTICE.md).
+
 MIT
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ## Support
 
-If you find iappyxOS useful, consider [buying me a coffee](https://ko-fi.com/iappyx).
+If you find Applix useful, star the repo and share your generated apps: https://github.com/Konprostart/Applix

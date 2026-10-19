@@ -1,6 +1,6 @@
-# iappyxOS Demo Apps
+# Applix Demo Apps
 
-Pre-built HTML apps that demonstrate iappyxOS native bridges and capabilities. Each file is a complete, self-contained app that can be built and installed through iappyxOS.
+Pre-built HTML apps that demonstrate Applix native bridges and capabilities. Each file is a complete, self-contained app that can be built and installed through Applix.
 
 ## Apps
 
@@ -46,7 +46,7 @@ Pre-built HTML apps that demonstrate iappyxOS native bridges and capabilities. E
 
 ## Usage
 
-1. Open iappyxOS on your Android device
+1. Open Applix on your Android device
 2. Go to Create → Demo App
 3. Select any demo from the list
 4. Tap Build

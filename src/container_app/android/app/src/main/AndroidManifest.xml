@@ -13,7 +13,7 @@
     <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
 
     <application
-        android:label="iappyxOS"
+        android:label="Applix"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -50,7 +50,7 @@
             android:name=".InstallResultReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.iappyx.os.INSTALL_RESULT" />
+                <action android:name="com.konprostart.applix.INSTALL_RESULT" />
             </intent-filter>
         </receiver>
 

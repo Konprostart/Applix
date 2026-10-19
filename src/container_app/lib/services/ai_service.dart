@@ -188,8 +188,8 @@ class AiService {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ${provider.apiKey}',
-        'HTTP-Referer': 'https://iappyx.com',
-        'X-Title': 'iappyxOS',
+        'HTTP-Referer': 'https://github.com/Konprostart/Applix',
+        'X-Title': 'Applix',
       },
       body: body,
     ).timeout(const Duration(seconds: 300));

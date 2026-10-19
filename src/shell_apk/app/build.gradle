@@ -2,10 +2,10 @@ plugins {
     id 'com.android.application'
 }
 android {
-    namespace 'com.iappyx.generated.placeholder'
+    namespace 'com.applix.generated.placeholder'
     compileSdk 35
     defaultConfig {
-        applicationId "com.iappyx.generated.placeholderx.xxxxxxxx"
+        applicationId "com.applix.generated.placeholderx.xxxxxxxx"
         minSdk 26
         targetSdk 35
         versionCode 1

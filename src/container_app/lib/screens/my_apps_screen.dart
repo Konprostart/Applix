@@ -166,7 +166,7 @@ class MyAppsScreenState extends State<MyAppsScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A2E),
         title: const Text('Remove completely?'),
-        content: Text('Uninstall "${app.name}" from your device AND remove it from iappyxOS.'),
+        content: Text('Uninstall "${app.name}" from your device AND remove it from Applix.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           TextButton(
@@ -221,7 +221,7 @@ class MyAppsScreenState extends State<MyAppsScreen> {
                 ),
               ListTile(
                 leading: const Icon(Icons.delete_outline, color: Color(0xFFFF6B6B)),
-                title: const Text('Delete from iappyxOS', style: TextStyle(color: Color(0xFFFF6B6B))),
+                title: const Text('Delete from Applix', style: TextStyle(color: Color(0xFFFF6B6B))),
                 onTap: () { Navigator.pop(ctx); _delete(app); },
               ),
               if (app.packageName.isNotEmpty)
@@ -520,7 +520,7 @@ class MyAppsScreenState extends State<MyAppsScreen> {
                           ),
                           const SizedBox(width: 12),
                           const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text('iappyxOS', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                            Text('Applix', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                             Text('My Apps', style: TextStyle(fontSize: 12, color: Colors.white38)),
                           ])),
                           IconButton(
@@ -774,7 +774,7 @@ class MyAppsScreenState extends State<MyAppsScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A2E),
         title: const Text('Uninstall from device?'),
-        content: Text('Uninstall "${app.name}" from your device. Your saved app data in iappyxOS will be kept.'),
+        content: Text('Uninstall "${app.name}" from your device. Your saved app data in Applix will be kept.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Uninstall', style: TextStyle(color: Color(0xFFFF6B6B)))),

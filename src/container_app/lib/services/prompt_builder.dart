@@ -82,13 +82,13 @@ class PromptBuilder {
     final versionTag = _todayVersionTag();
     final update = existingHtml != null && existingHtml.trim().startsWith('<');
     final buf = StringBuffer();
-    buf.writeln('Build a complete single-file HTML app for iappyxOS ($versionTag).');
+    buf.writeln('Build a complete single-file HTML app for Applix ($versionTag).');
     buf.writeln();
     buf.writeln('App name: $appName');
     buf.writeln('Task: $description');
     buf.writeln();
-    buf.writeln('The full iappyxOS spec (bridge reference + rules) is here:');
-    buf.writeln('https://raw.githubusercontent.com/iappyx/iappyxOS/main/SPEC.md');
+    buf.writeln('The full Applix spec (bridge reference + rules) is here:');
+    buf.writeln('https://raw.githubusercontent.com/Konprostart/Applix/main/SPEC.md');
     buf.writeln('Fetch it before generating. Only use iappyx.* methods documented there.');
     buf.writeln();
     buf.writeln('Core rules (in case you cannot fetch):');
@@ -137,7 +137,7 @@ $existingHtml
 
 Update this app based on the description. Preserve all existing functionality unless the description explicitly asks to change it. Return the complete updated HTML.
 
-REMINDER (iappyxOS system prompt $versionTag): the code above may contain `iappyx.*` calls that were hallucinated by an earlier AI generation and silently fail at runtime. Before returning the updated HTML, re-verify EVERY `iappyx.*` call — both the ones already in the code and any new ones you add — against the Bridge reference at the top of this prompt. If a call does not match a method in the reference, replace it with the correct method or remove the feature. Do not preserve a wrong call just because it is already in the file.''';
+REMINDER (Applix system prompt $versionTag): the code above may contain `iappyx.*` calls that were hallucinated by an earlier AI generation and silently fail at runtime. Before returning the updated HTML, re-verify EVERY `iappyx.*` call — both the ones already in the code and any new ones you add — against the Bridge reference at the top of this prompt. If a call does not match a method in the reference, replace it with the correct method or remove the feature. Do not preserve a wrong call just because it is already in the file.''';
     }
     return '''$systemPrompt
 
@@ -149,6 +149,6 @@ Description: $description
 
 Generate a complete, fully functional app matching this description. Apply all technical requirements from the instructions above.
 
-REMINDER (iappyxOS system prompt $versionTag): every `iappyx.*` method you use must be verified against the Bridge reference above. If you are uncertain whether a method exists, it does not — pick one that IS listed.''';
+REMINDER (Applix system prompt $versionTag): every `iappyx.*` method you use must be verified against the Bridge reference above. If you are uncertain whether a method exists, it does not — pick one that IS listed.''';
   }
 }

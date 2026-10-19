@@ -113,13 +113,13 @@
         android:allowBackup="false"
         android:extractNativeLibs="true"
         android:usesCleartextTraffic="true"
-        android:label="IAPPYX_PLACEHOLDER_LABEL_XXXXXXXXXXXX"
+        android:label="APPLIX_PLACEHOLDER_LABEL_XXXXXXXXXXXX"
         android:icon="@mipmap/ic_launcher"
         android:theme="@android:style/Theme.NoTitleBar"
         android:hardwareAccelerated="true">
 
         <activity
-            android:name="com.iappyx.generated.placeholder.ShellActivity"
+            android:name="com.applix.generated.placeholder.ShellActivity"
             android:exported="true"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:launchMode="singleTop"
@@ -151,17 +151,17 @@
 
         <!-- Notification action receiver -->
         <receiver
-            android:name="com.iappyx.generated.placeholder.NotificationActionReceiver"
+            android:name="com.applix.generated.placeholder.NotificationActionReceiver"
             android:exported="false" />
 
         <!-- Scheduled notification receiver -->
         <receiver
-            android:name="com.iappyx.generated.placeholder.ScheduledNotificationReceiver"
+            android:name="com.applix.generated.placeholder.ScheduledNotificationReceiver"
             android:exported="false" />
 
         <!-- Alarm receiver — exported=true needed for BOOT_COMPLETED broadcast -->
         <receiver
-            android:name="com.iappyx.generated.placeholder.AlarmReceiver"
+            android:name="com.applix.generated.placeholder.AlarmReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
@@ -170,16 +170,16 @@
 
         <!-- Scheduled background tasks -->
         <service
-            android:name="com.iappyx.generated.placeholder.TaskService"
+            android:name="com.applix.generated.placeholder.TaskService"
             android:exported="false"
             android:foregroundServiceType="shortService" />
         <receiver
-            android:name="com.iappyx.generated.placeholder.TaskSchedulerReceiver"
+            android:name="com.applix.generated.placeholder.TaskSchedulerReceiver"
             android:exported="false" />
 
         <!-- Home screen widget — disabled by default, enabled on first widget.update() -->
         <receiver
-            android:name="com.iappyx.generated.placeholder.WidgetProvider"
+            android:name="com.applix.generated.placeholder.WidgetProvider"
             android:exported="false"
             android:enabled="false">
             <intent-filter>
@@ -192,15 +192,15 @@
 
         <!-- Background audio service -->
         <service
-            android:name="com.iappyx.generated.placeholder.AudioService"
+            android:name="com.applix.generated.placeholder.AudioService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
         <service
-            android:name="com.iappyx.generated.placeholder.NetworkService"
+            android:name="com.applix.generated.placeholder.NetworkService"
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
         <service
-            android:name="com.iappyx.generated.placeholder.PushService"
+            android:name="com.applix.generated.placeholder.PushService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
@@ -212,21 +212,21 @@
 
         <!-- Foreground location tracking service -->
         <service
-            android:name="com.iappyx.generated.placeholder.LocationService"
+            android:name="com.applix.generated.placeholder.LocationService"
             android:exported="false"
             android:foregroundServiceType="location" />
 
         <!-- Geofence transition receiver (legacy iappyx.location.addGeofence) -->
         <receiver
-            android:name="com.iappyx.generated.placeholder.GeofenceReceiver"
+            android:name="com.applix.generated.placeholder.GeofenceReceiver"
             android:exported="false" />
 
         <!-- Geofence transition receiver for iappyx.trigger.geofence (Play Services) -->
         <receiver
-            android:name="com.iappyx.generated.placeholder.GeofenceTransitionReceiver"
+            android:name="com.applix.generated.placeholder.GeofenceTransitionReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.iappyx.trigger.GEOFENCE_TRANSITION" />
+                <action android:name="com.applix.trigger.GEOFENCE_TRANSITION" />
             </intent-filter>
         </receiver>
 
@@ -235,7 +235,7 @@
              when the process is dead. BT/WiFi are dynamic-only (registered from ShellActivity
              and BOOT_COMPLETED via TriggerReceiver.registerDynamic). -->
         <receiver
-            android:name="com.iappyx.generated.placeholder.TriggerReceiver"
+            android:name="com.applix.generated.placeholder.TriggerReceiver"
             android:exported="true">
             <!-- Charger + headphones: exempt from background-broadcast restrictions,
                  work from a static receiver on all API levels. -->
@@ -269,7 +269,7 @@
              the user swiping the app away. Started on-demand when a trigger is registered
              with persistent:true; stopped when the last persistent trigger is cancelled. -->
         <service
-            android:name="com.iappyx.generated.placeholder.TriggerKeepaliveService"
+            android:name="com.applix.generated.placeholder.TriggerKeepaliveService"
             android:exported="false"
             android:foregroundServiceType="specialUse">
             <property

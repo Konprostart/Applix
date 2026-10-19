@@ -32,7 +32,7 @@ class BuildResult {
 }
 
 class Generator {
-  static const _ch = MethodChannel('com.iappyx.container/generator');
+  static const _ch = MethodChannel('com.konprostart.applix/generator');
   static bool _building = false;
 
   static Future<BuildResult> generateFromTemplate({
