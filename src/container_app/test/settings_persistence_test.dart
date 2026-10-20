@@ -26,6 +26,12 @@ void main() {
     });
 
     test('is empty when nothing was saved', () async {
+      // Settings caches the SharedPreferences instance, so the values are
+      // cleared explicitly instead of relying on the mock reset.
+      final prefs = await Settings.getPrefs();
+      await prefs.remove('prompt_draft_full');
+      await prefs.remove('prompt_draft_linked');
+      await prefs.remove('prompt_draft_desc');
       final draft = await Settings.getPromptDraft();
       expect(draft['full'], '');
       expect(draft['linked'], '');
