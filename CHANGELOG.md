@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.8] - 2026-10-19
+
+### Fixed
+- **No more "update available" for the version that is already installed.** The notice was kept
+  in the app's storage and shown again after every restart, even after the update had been
+  installed. The stored notice is now checked against the running version and removed as soon as
+  it is obsolete.
+- Version parsing strips the build suffix, so "0.1.7+8" is compared as 0.1.7 and not as 0.1.78.
+
 ## [0.1.7] - 2026-10-19
 
 ### Fixed
@@ -176,7 +185,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.7...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.8...HEAD
+[0.1.8]: https://github.com/Konprostart/Applix/releases/tag/v0.1.8
 [0.1.7]: https://github.com/Konprostart/Applix/releases/tag/v0.1.7
 [0.1.6]: https://github.com/Konprostart/Applix/releases/tag/v0.1.6
 [0.1.5]: https://github.com/Konprostart/Applix/releases/tag/v0.1.5

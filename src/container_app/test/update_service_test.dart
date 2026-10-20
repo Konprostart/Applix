@@ -1,6 +1,8 @@
+import 'package:applix/services/settings_service.dart';
 import 'package:applix/services/update_service.dart';
 import 'package:applix/version.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('version parsing', () {
@@ -9,6 +11,22 @@ void main() {
       expect(UpdateService.parseVersion('0.1.3'), [0, 1, 3]);
       expect(UpdateService.parseVersion('1.2'), [1, 2, 0]);
       expect(UpdateService.parseVersion('v10.0.1'), [10, 0, 1]);
+    });
+
+    test('ignores the build suffix', () {
+      // "0.1.7+8" must be 0.1.7 - not 0.1.78.
+      expect(UpdateService.parseVersion('0.1.7+8'), [0, 1, 7]);
+      expect(UpdateService.parseVersion('v0.1.7+8'), [0, 1, 7]);
+      expect(UpdateService.parseVersion('1.2.3+45'), [1, 2, 3]);
+      expect(UpdateService.parseBuildNumber('0.1.7+8'), 8);
+      expect(UpdateService.parseBuildNumber('0.1.7'), 0);
+    });
+
+    test('the build suffix does not change the semantic comparison', () {
+      expect(UpdateService.compareVersions('0.1.7', '0.1.7+8'), 0);
+      expect(UpdateService.compareVersions('v0.1.7', '0.1.7'), 0);
+      expect(UpdateService.compareVersions('0.1.8', '0.1.7+8'), greaterThan(0));
+      expect(UpdateService.compareVersions('0.1.6', '0.1.7+8'), lessThan(0));
     });
 
     test('compares versions numerically, not lexically', () {
@@ -68,6 +86,39 @@ void main() {
       expect(UpdateService.extractChecksum(content, 'Applix-0.1.3-container.apk'), 'abc123');
       expect(UpdateService.extractChecksum(content, 'other.apk'), isNull);
       expect(UpdateService.extractChecksum('', 'other.apk'), isNull);
+    });
+  });
+
+  group('cached update', () {
+    test('drops a notice for a version that is already installed', () async {
+      SharedPreferences.setMockInitialValues({});
+      // A notice for the version this build is running is obsolete.
+      await Settings.setCachedUpdate({
+        'tag': 'v$kAppVersion',
+        'version': kAppVersion,
+        'assetName': 'x.apk',
+        'downloadUrl': 'https://x/x.apk',
+        'size': 1,
+        'sha256': '',
+      });
+      expect(await UpdateService.readCachedUpdate(), isNull);
+      // ... and it is removed so it cannot come back.
+      expect(await Settings.getCachedUpdate(), isNull);
+    });
+
+    test('keeps a notice for a newer version', () async {
+      SharedPreferences.setMockInitialValues({});
+      await Settings.setCachedUpdate({
+        'tag': 'v99.0.0',
+        'version': '99.0.0',
+        'assetName': 'x.apk',
+        'downloadUrl': 'https://x/x.apk',
+        'size': 1,
+        'sha256': '',
+      });
+      final info = await UpdateService.readCachedUpdate();
+      expect(info, isNotNull);
+      expect(info!.version, '99.0.0');
     });
   });
 

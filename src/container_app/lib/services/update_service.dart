@@ -73,14 +73,33 @@ class UpdateService {
 
   // ── Pure helpers (unit tested) ──
 
-  /// Split "v0.1.3" or "0.1.3" into [major, minor, patch].
+  /// Split "v0.1.3", "0.1.3" or "0.1.3+8" into [major, minor, patch].
+  ///
+  /// The build suffix after "+" is NOT part of the semantic version - without
+  /// stripping it, "0.1.7+8" would parse as 0.1.78 and the app would believe
+  /// it is older (or newer) than it really is.
   static List<int> parseVersion(String version) {
-    final clean = version.trim().replaceFirst(RegExp('^v'), '');
+    final clean = _cleanVersion(version);
     final parts = clean.split('.');
     return List<int>.generate(3, (i) {
       if (i >= parts.length) return 0;
       return int.tryParse(parts[i].replaceAll(RegExp('[^0-9]'), '')) ?? 0;
     });
+  }
+
+  /// The build number of "1.2.3+45" (0 when there is none).
+  static int parseBuildNumber(String version) {
+    final plus = version.indexOf('+');
+    if (plus < 0) return 0;
+    return int.tryParse(version.substring(plus + 1).replaceAll(RegExp('[^0-9]'), '')) ?? 0;
+  }
+
+  /// Normalised version string: no "v" prefix, no build suffix.
+  static String _cleanVersion(String version) {
+    var clean = version.trim();
+    final plus = clean.indexOf('+');
+    if (plus >= 0) clean = clean.substring(0, plus);
+    return clean.replaceFirst(RegExp('^v'), '');
   }
 
   /// > 0 when [a] is newer than [b], 0 when equal, < 0 when older.
@@ -154,6 +173,29 @@ class UpdateService {
 
   // ── Network ──
 
+  /// The cached update, but only while it is still newer than this build.
+  ///
+  /// After the app was updated the cached entry is stale - it would keep
+  /// announcing a version that is already installed. The stale entry is
+  /// removed instead of being shown.
+  static Future<UpdateInfo?> readCachedUpdate() async {
+    final cached = await Settings.getCachedUpdate();
+    if (cached == null) return null;
+    UpdateInfo info;
+    try {
+      info = UpdateInfo.fromJson(cached);
+    } catch (_) {
+      await Settings.setCachedUpdate(null);
+      return null;
+    }
+    if (info.version.isEmpty || compareVersions(info.version, kAppVersion) <= 0) {
+      // Already on that version (or newer) - the notice is obsolete.
+      await Settings.setCachedUpdate(null);
+      return null;
+    }
+    return info;
+  }
+
   /// Look for a newer release on GitHub.
   ///
   /// Throws on network/API errors so the caller can decide whether to show
@@ -161,9 +203,8 @@ class UpdateService {
   static Future<UpdateInfo?> check({bool force = false}) async {
     if (!force) {
       final last = await Settings.getLastUpdateCheck();
-      final cached = await _cachedInfo();
       if (last != null && DateTime.now().difference(last) < checkInterval) {
-        return cached;
+        return readCachedUpdate();
       }
     }
 
@@ -176,9 +217,9 @@ class UpdateService {
     final uri = Uri.parse('$api/repos/$repo/releases/latest');
     final resp = await http.get(uri, headers: headers).timeout(const Duration(seconds: 15));
     if (resp.statusCode == 304) {
-      // Not modified - cached result stays valid and the quota is not used.
+      // Not modified - the cached result stays valid and the quota is not used.
       await Settings.setLastUpdateCheck(DateTime.now());
-      final cached = await _cachedInfo();
+      final cached = await readCachedUpdate();
       latest = cached;
       return cached;
     }
@@ -203,17 +244,6 @@ class UpdateService {
     await Settings.setCachedUpdate(info?.toJson());
     latest = info;
     return info;
-  }
-
-  /// Cached update descriptor as an UpdateInfo (null when up to date).
-  static Future<UpdateInfo?> _cachedInfo() async {
-    final cached = await Settings.getCachedUpdate();
-    if (cached == null) return null;
-    try {
-      return UpdateInfo.fromJson(cached);
-    } catch (_) {
-      return null;
-    }
   }
 
   /// Download the release APK into the app cache and verify its SHA-256 when

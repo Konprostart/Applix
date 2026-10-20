@@ -66,10 +66,12 @@ class MyAppsScreenState extends State<MyAppsScreen> {
   }
 
   /// A newer release found earlier (startup check or a previous session).
+  ///
+  /// The cache is validated against the running version: after an update the
+  /// old notice is obsolete and must not be shown again.
   Future<void> _loadUpdateInfo() async {
-    final cached = await Settings.getCachedUpdate();
-    if (cached == null) return;
-    final info = UpdateInfo.fromJson(cached);
+    final info = await UpdateService.readCachedUpdate();
+    if (info == null) return;
     if (!mounted) return;
     setState(() {
       _updateInfo = info;
