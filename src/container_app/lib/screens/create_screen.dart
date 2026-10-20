@@ -41,6 +41,7 @@ import '../services/settings_service.dart';
 import '../widgets/build_log.dart';
 import '../models/icon_config.dart';
 import '../models/ai_provider.dart';
+import 'code_editor_screen.dart';
 import 'preview_screen.dart';
 import 'icon_editor_screen.dart';
 import '../services/error_helper.dart';
@@ -952,6 +953,30 @@ class CreateScreenState extends State<CreateScreen> {
     );
   }
 
+  /// Opens the built-in code editor for the project files.
+  Future<void> _openCodeEditor() async {
+    final appId = _editingId;
+    if (appId == null) { _snack('Save the app first, then edit its code.'); return; }
+    await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CodeEditorScreen(
+          appId: appId,
+          packageName: _existingPackageName,
+          onSaved: (file, content) {
+            // The entry page is the app code - keep the editor in sync and
+            // refresh the list of project files.
+            if (file == 'index.html' && mounted) {
+              _htmlController.text = content;
+              setState(() {});
+            }
+            _loadProjectFiles();
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _advancedSettings() {
     if (_existingPackageName == null || _existingPackageName!.isEmpty) return const SizedBox.shrink();
     return ExpansionTile(
@@ -974,6 +999,30 @@ class CreateScreenState extends State<CreateScreen> {
             SelectableText(_existingPackageName!, style: const TextStyle(fontSize: 13, fontFamily: 'monospace', color: Color(0xFF4FC3F7))),
             const SizedBox(height: 4),
             const Text('Use this when adding an Android app in Firebase Console.', style: TextStyle(fontSize: 10, color: Colors.white24)),
+            const SizedBox(height: 16),
+            // Advanced: open the code editor for the project files.
+            GestureDetector(
+              onTap: _openCodeEditor,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F3460),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.code, size: 16, color: Color(0xFF4FC3F7)),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text('Edit Code',
+                        style: TextStyle(fontSize: 13, color: Colors.white)),
+                  ),
+                  const Text('index.html, style.css, script.js',
+                      style: TextStyle(fontSize: 10, color: Colors.white54)),
+                  const SizedBox(width: 6),
+                  const Icon(Icons.chevron_right, size: 18, color: Colors.white24),
+                ]),
+              ),
+            ),
             const SizedBox(height: 16),
             const Text('Firebase Config (optional)', style: TextStyle(fontSize: 11, color: Colors.white38)),
             const SizedBox(height: 4),

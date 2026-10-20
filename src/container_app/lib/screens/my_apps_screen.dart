@@ -33,6 +33,7 @@ import '../services/p2p_service.dart';
 import '../services/project_store.dart';
 import '../widgets/build_log.dart';
 import '../models/icon_config.dart';
+import 'code_editor_screen.dart';
 import 'icon_editor_screen.dart';
 import 'qr_transfer_screen.dart';
 import '../services/error_helper.dart';
@@ -215,6 +216,40 @@ class MyAppsScreenState extends State<MyAppsScreen> {
 
   /// Removes the built APK of a deleted app - every APK is around 40 MB and
   /// would otherwise stay on the device forever.
+  /// Opens the built-in code editor for the files of a saved app.
+  Future<void> _openCodeEditor(AppData app) async {
+    await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CodeEditorScreen(
+          appId: app.id,
+          packageName: app.packageName,
+          onSaved: (file, content) {
+            // Keep the stored app code in sync with the editor.
+            if (file == 'index.html') {
+              AppStorage.save(AppData(
+                id: app.id,
+                name: app.name,
+                description: app.description,
+                prompt: app.prompt,
+                html: AppStorage.tagHtml(content),
+                appType: app.appType,
+                templateId: app.templateId,
+                packageName: app.packageName,
+                apkPath: app.apkPath,
+                iconConfig: app.iconConfig,
+                firebaseConfig: app.firebaseConfig,
+                createdAt: app.createdAt,
+                updatedAt: DateTime.now(),
+              ));
+              refresh();
+            }
+          },
+        ),
+      ),
+    );
+  }
+
   Future<void> _deleteApkFile(AppData app) async {
     final path = app.apkPath;
     if (path.isEmpty) return;
@@ -259,6 +294,13 @@ class MyAppsScreenState extends State<MyAppsScreen> {
                   title: const Text('Uninstall from device'),
                   onTap: () { Navigator.pop(ctx); _uninstall(app); },
                 ),
+              ListTile(
+                leading: const Icon(Icons.code, color: Color(0xFF4FC3F7)),
+                title: const Text('Edit Code'),
+                subtitle: const Text('index.html, style.css, script.js',
+                    style: TextStyle(fontSize: 11, color: Colors.white38)),
+                onTap: () { Navigator.pop(ctx); _openCodeEditor(app); },
+              ),
               ListTile(
                 leading: const Icon(Icons.delete_outline, color: Color(0xFFFF6B6B)),
                 title: const Text('Delete from Applix', style: TextStyle(color: Color(0xFFFF6B6B))),

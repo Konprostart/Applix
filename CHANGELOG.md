@@ -10,6 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.11] - 2026-10-19
+
+### Added
+- **Built-in code editor.** The files of an app project (index.html, style.css, script.js, ...)
+  can now be edited directly in Applix. It is a light, dependency free editor: monospace text
+  field, line numbers that follow the scroll, a status bar with the cursor position, a tab bar
+  for switching between the project files and a mobile toolbar with the usual insert keys
+  (tab, braces, brackets, angle brackets, quotes).
+- The editor writes through the project storage, so a saved file is immediately part of the
+  next build and of the preview.
+- Two entry points: Advanced Settings -> Edit Code while creating or editing an app, and
+  "Edit Code" in the app menu in My Apps. The simple creation flow is unchanged.
+
 ## [0.1.10] - 2026-10-19
 
 ### Added
@@ -224,7 +237,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.10...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.11...HEAD
+[0.1.11]: https://github.com/Konprostart/Applix/releases/tag/v0.1.11
 [0.1.10]: https://github.com/Konprostart/Applix/releases/tag/v0.1.10
 [0.1.9]: https://github.com/Konprostart/Applix/releases/tag/v0.1.9
 [0.1.8]: https://github.com/Konprostart/Applix/releases/tag/v0.1.8
