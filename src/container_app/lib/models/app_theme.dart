@@ -9,23 +9,23 @@ import 'dart:convert';
 /// working exactly as before.
 class AppTheme {
   /// Background color of the splash screen. 0 = take it from the app icon.
-  int splashBackground;
+  final int splashBackground;
 
   /// How the splash is painted:
   ///   'auto'     - a solid color derived from the app icon
   ///   'solid'    - the solid splashBackground color
   ///   'gradient' - the gradient of the app icon
   ///   'icon'     - the app icon fills the background
-  String splashStyle;
+  final String splashStyle;
 
   /// Whether the app icon is shown in the middle of the splash screen.
-  bool splashShowIcon;
+  final bool splashShowIcon;
 
   /// Color of the status bar. 0 = follow the app icon.
-  int statusBarColor;
+  final int statusBarColor;
 
   /// Color of the navigation bar. 0 = follow the app icon.
-  int navigationBarColor;
+  final int navigationBarColor;
 
   const AppTheme({
     this.splashBackground = 0,
