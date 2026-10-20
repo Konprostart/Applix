@@ -10,6 +10,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.14] - 2026-10-19
+
+### Fixed
+- **The app no longer sends you back to the API key screen in a loop.** The provider setup
+  screen always saves the key and hands the configured provider back, no matter whether you
+  leave it with the back button, the system gesture or the new Save button. Before, the system
+  back gesture popped without a result and the saved key was read before it had been written.
+- The "Generate" button opens the provider setup instead of doing nothing when no usable
+  provider is configured, and the AI / Manual switch always shows a clear message about what
+  is missing.
+
+### Changed
+- **The AI / Manual switch now has an unmistakable state**: the active option uses the primary
+  color, a bright border, a check mark and a soft glow, the inactive one is dimmed. When no
+  provider is set up yet, the AI option shows an amber warning instead of a silent failure.
+- The provider setup screen has a "Save" button next to the back button.
+
 ## [0.1.13] - 2026-10-19
 
 ### Fixed
@@ -277,7 +294,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.13...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.14...HEAD
+[0.1.14]: https://github.com/Konprostart/Applix/releases/tag/v0.1.14
 [0.1.13]: https://github.com/Konprostart/Applix/releases/tag/v0.1.13
 [0.1.12]: https://github.com/Konprostart/Applix/releases/tag/v0.1.12
 [0.1.11]: https://github.com/Konprostart/Applix/releases/tag/v0.1.11

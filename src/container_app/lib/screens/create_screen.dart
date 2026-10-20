@@ -260,6 +260,40 @@ class CreateScreenState extends State<CreateScreen> {
     if (result != null) setState(() => _appTheme = result);
   }
 
+  /// Selects the AI API mode. When no provider is configured yet, the setup
+  /// screen opens - the key the user types there is saved and handed back, so
+  /// the app never sends the user to the key screen in a loop.
+  Future<void> _selectAiApi() async {
+    if (_activeProvider == null || !_activeProvider!.isConfigured) {
+      final provider = _activeProvider ?? AiProvider.anthropic();
+      final result = await Navigator.push<AiProvider>(
+        context,
+        MaterialPageRoute(builder: (_) => ProviderSetupPage(provider: provider)),
+      );
+      if (result == null) {
+        // The user left the setup screen without a usable provider.
+        await _loadActiveProvider();
+        if (!mounted) return;
+        final ready = _activeProvider?.isConfigured == true;
+        setState(() => _genMethod = ready ? 'api' : '');
+        if (!ready) {
+          _snack('Set an API key (or a base URL and a model) to use the AI.');
+        }
+        return;
+      }
+      await Settings.setActiveProvider(result);
+      _activeProvider = result;
+      if (!result.isConfigured) {
+        if (mounted) {
+          setState(() => _genMethod = '');
+          _snack('The provider still needs a valid API key and a model.');
+        }
+        return;
+      }
+    }
+    if (mounted) setState(() => _genMethod = 'api');
+  }
+
   Future<void> _openIconEditor() async {
     _ensureIconConfig(_nameController.text.trim());
     final result = await Navigator.push<IconConfig>(
@@ -1303,25 +1337,10 @@ class CreateScreenState extends State<CreateScreen> {
               label: 'AI API',
               sublabel: _activeProvider != null && _activeProvider!.isConfigured
                   ? _activeProvider!.selectedModel.split('/').last.split('-').take(3).join('-')
-                  : 'Tap to set up',
+                  : 'Set up an AI provider',
+              warning: _activeProvider == null || !_activeProvider!.isConfigured,
               selected: _genMethod == 'api',
-              onTap: () async {
-                if (_activeProvider == null || !_activeProvider!.isConfigured) {
-                  final provider = _activeProvider ?? AiProvider.anthropic();
-                  final result = await Navigator.push<AiProvider>(
-                    context,
-                    MaterialPageRoute(builder: (_) => ProviderSetupPage(provider: provider)),
-                  );
-                  if (result != null && result.isConfigured) {
-                    await Settings.setActiveProvider(result);
-                    _activeProvider = result;
-                  } else {
-                    await _loadActiveProvider();
-                  }
-                  if (_activeProvider == null || !_activeProvider!.isConfigured) return;
-                }
-                setState(() => _genMethod = 'api');
-              },
+              onTap: () => _selectAiApi(),
             )),
           ]),
           if (_genMethod.isNotEmpty) ...[
@@ -1354,7 +1373,8 @@ class CreateScreenState extends State<CreateScreen> {
                   } else if (_activeProvider != null && _activeProvider!.isConfigured) {
                     _generateWithAI(_activeProvider!);
                   } else {
-                    _snack('Set up an AI provider first, or switch to AI Manual.');
+                    // No usable provider: open the setup instead of doing nothing.
+                    _selectAiApi();
                   }
                 },
               ),
@@ -1668,25 +1688,61 @@ class CreateScreenState extends State<CreateScreen> {
     ]);
   }
 
-  Widget _genButton({required IconData icon, required String label, required String sublabel, required bool selected, required VoidCallback onTap}) {
+  /// The AI / Manual switch. The active option is clearly highlighted: the
+  /// primary color, a bright border and a check mark. The inactive one is
+  /// dimmed, so the current mode is never in doubt.
+  Widget _genButton({
+    required IconData icon,
+    required String label,
+    required String sublabel,
+    required bool selected,
+    required VoidCallback onTap,
+    bool warning = false,
+  }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF0F3460) : const Color(0xFF1A1A2E),
+          color: selected ? const Color(0xFF0F3460) : const Color(0xFF14141F),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: selected ? const Color(0xFF4FC3F7) : Colors.white12),
+          border: Border.all(
+            color: selected
+                ? const Color(0xFF4FC3F7)
+                : (warning ? const Color(0xFFFFB86B) : Colors.white12),
+            width: selected ? 2 : 1,
+          ),
+          boxShadow: selected
+              ? [const BoxShadow(color: Color(0x334FC3F7), blurRadius: 10)]
+              : null,
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Icon(icon, size: 16, color: selected ? const Color(0xFF4FC3F7) : Colors.white38),
             const SizedBox(width: 8),
-            Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
-                color: selected ? Colors.white : Colors.white54)),
+            Expanded(
+              child: Text(label,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                      color: selected ? Colors.white : Colors.white54)),
+            ),
+            if (selected)
+              const Icon(Icons.check_circle, size: 15, color: Color(0xFF4FC3F7))
+            else if (warning)
+              const Icon(Icons.error_outline, size: 15, color: Color(0xFFFFB86B)),
           ]),
           const SizedBox(height: 3),
-          Text(sublabel, style: TextStyle(fontSize: 10, color: selected ? Colors.white38 : Colors.white24)),
+          Text(
+            sublabel,
+            style: TextStyle(
+              fontSize: 10,
+              color: selected
+                  ? Colors.white70
+                  : (warning ? const Color(0xFFFFB86B) : Colors.white24),
+            ),
+          ),
         ]),
       ),
     );
@@ -2117,9 +2173,16 @@ class ProviderSetupPageState extends State<ProviderSetupPage> {
 
   @override
   Widget build(BuildContext context) {
+    // canPop: false - the page saves the provider itself and pops with it, so
+    // the caller always receives the configured provider (also when the user
+    // leaves with the system back gesture).
     return PopScope(
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) await _autoSave();
+        if (didPop) return;
+        await _autoSave();
+        if (!mounted) return;
+        Navigator.pop(context, _provider);
       },
       child: Scaffold(
       backgroundColor: const Color(0xFF0D0D1A),
@@ -2128,8 +2191,23 @@ class ProviderSetupPageState extends State<ProviderSetupPage> {
         title: Text(_provider.name, style: const TextStyle(fontSize: 16)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () async { await _autoSave(); Navigator.pop(context, _provider); },
+          onPressed: () async {
+            await _autoSave();
+            if (!mounted) return;
+            Navigator.pop(context, _provider);
+          },
         ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await _autoSave();
+              if (!mounted) return;
+              Navigator.pop(context, _provider);
+            },
+            child: const Text('Save',
+                style: TextStyle(color: Color(0xFF4FC3F7), fontSize: 16)),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
