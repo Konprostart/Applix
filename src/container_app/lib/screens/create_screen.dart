@@ -34,6 +34,7 @@ import '../services/prompt_builder.dart';
 import '../services/app_storage.dart';
 import '../services/ai_service.dart';
 import '../services/bridge_linter.dart';
+import '../version.dart';
 import '../services/project_store.dart';
 import '../services/ui_auditor.dart';
 import '../services/settings_service.dart';
