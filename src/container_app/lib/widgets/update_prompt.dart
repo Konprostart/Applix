@@ -182,7 +182,7 @@ class UpdatePrompt {
               if (needsPermission) {
                 UpdateService.openAppSettings();
               } else {
-                Generator.openUrl(info.downloadUrl);
+                UpdateService.openUrl(info.downloadUrl);
               }
             },
             child: Text(needsPermission ? 'Open settings' : 'Open in browser',

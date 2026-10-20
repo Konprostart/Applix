@@ -328,6 +328,14 @@ class UpdateService {
     return compute(_sha256FileIsolate, file.path);
   }
 
+  /// Opens a URL in the browser (used as a manual fallback for an update).
+  static Future<void> openUrl(String url) async {
+    if (url.isEmpty) return;
+    try {
+      await _ch.invokeMethod('openUrl', {'url': url});
+    } catch (_) {}
+  }
+
   /// Opens this app's system settings page (for the "install unknown apps"
   /// permission the system asks for).
   static Future<void> openAppSettings() async {
