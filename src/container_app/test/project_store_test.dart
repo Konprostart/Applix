@@ -122,7 +122,7 @@ void main() {
     test('dollar signs in the file are kept as they are', () {
       final out = ProjectStore.inlineProjectFiles(
         '<script src="script.js"></script>',
-        {'script.js': 'const a = "${1 + 1}";'},
+        {'script.js': r'const a = "${1 + 1}";'},
       );
       expect(out, contains(r'${1 + 1}'));
     });
