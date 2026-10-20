@@ -7,6 +7,7 @@ import android.content.Context
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.security.keystore.KeyProperties
 import android.security.keystore.KeyProtection
 import android.util.Log
 import java.io.ByteArrayInputStream
