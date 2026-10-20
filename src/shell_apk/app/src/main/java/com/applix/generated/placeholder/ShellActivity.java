@@ -919,8 +919,8 @@ public class ShellActivity extends ComponentActivity {
                                     background,
                                     new android.graphics.drawable.BitmapDrawable(getResources(), icon)
                             });
-                    layer.setGravity(0, android.view.Gravity.FILL);
-                    layer.setGravity(1, android.view.Gravity.CENTER);
+                    layer.setLayerGravity(0, android.view.Gravity.FILL);
+                    layer.setLayerGravity(1, android.view.Gravity.CENTER);
                     getWindow().setBackgroundDrawable(layer);
                     return;
                 }
