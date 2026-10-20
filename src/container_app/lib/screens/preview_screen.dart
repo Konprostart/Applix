@@ -699,7 +699,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
   /// The first JavaScript error in the console (a syntax error breaks the app).
   String? get _jsError {
     for (final line in _console) {
-      if (line.type == 'error' && line.msg.contains('SyntaxError')) return line.msg;
+      if (line.type == 'error' && line.message.contains('SyntaxError')) return line.message;
     }
     return null;
   }
