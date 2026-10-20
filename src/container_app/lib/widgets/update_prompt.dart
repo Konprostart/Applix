@@ -4,6 +4,7 @@ library;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/generator.dart';
 import '../services/update_service.dart';
@@ -131,7 +132,21 @@ class UpdatePrompt {
         content: const Text('Installing update...'),
         backgroundColor: const Color(0xFF1A1A2E),
       ));
-      await UpdateService.install(apk, expectedSha256: info.sha256);
+      try {
+        await UpdateService.install(apk, expectedSha256: info.sha256);
+      } on PlatformException catch (e) {
+        final message = e.message ?? '';
+        if (!message.contains('SIGNATURE_CONFLICT')) rethrow;
+        // An older copy with a different key is installed - offer to replace it
+        // instead of letting the system fail with "package invalid".
+        final packageName = message.split('SIGNATURE_CONFLICT:').last.trim();
+        final replace = await Generator.handleSignatureConflict(
+          packageName: packageName,
+          context: context,
+        );
+        if (!replace) return;
+        await UpdateService.install(apk, expectedSha256: info.sha256);
+      }
       // Android restarts the app after the package is replaced.
     } catch (e) {
       final ctx = dialogContext;

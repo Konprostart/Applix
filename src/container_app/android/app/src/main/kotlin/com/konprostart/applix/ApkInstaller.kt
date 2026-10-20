@@ -128,6 +128,14 @@ class ApkInstaller(private val context: Context) {
             cont.resumeWithException(InstallException(archiveProblem))
             return@suspendCancellableCoroutine
         }
+        // An older copy of this app with a different signature is installed:
+        // the system would only say "package invalid". Detect it here so the
+        // app can offer to replace it.
+        val conflict = detectSignatureConflict(apkFile)
+        if (conflict != null) {
+            cont.resumeWithException(InstallException(conflict))
+            return@suspendCancellableCoroutine
+        }
         // The archive must be signed with the same key as the installed app and
         // must be newer - otherwise Android refuses it with a cryptic message.
         val problem = verifyArchive(apkFile)
@@ -381,6 +389,49 @@ class ApkInstaller(private val context: Context) {
             null
         } catch (e: Exception) {
             "Could not verify the signature of the APK: ${e.message}"
+        }
+    }
+
+    /**
+     * Detects an installed copy of the app that was signed with a different key.
+     * Returns "SIGNATURE_CONFLICT:<package>" or null when there is no conflict.
+     */
+    private fun detectSignatureConflict(apkFile: File): String? {
+        return try {
+            val pm = context.packageManager
+            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
+            } else {
+                0
+            }
+            val archive = pm.getPackageArchiveInfo(apkFile.absolutePath, flags) ?: return null
+            val packageName = archive.packageName ?: return null
+            val installed = try {
+                pm.getPackageInfo(packageName, flags)
+            } catch (e: Exception) {
+                return null // not installed -> nothing to replace
+            }
+            val installedSigs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                installed.signingInfo?.apkContentsSigners?.map { KeystoreService.digest(it.toByteArray()) }
+                    ?: emptyList()
+            } else {
+                @Suppress("DEPRECATION")
+                installed.signatures?.map { KeystoreService.digest(it.toByteArray()) } ?: emptyList()
+            }
+            val archiveSigs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                archive.signingInfo?.apkContentsSigners?.map { KeystoreService.digest(it.toByteArray()) }
+                    ?: emptyList()
+            } else {
+                @Suppress("DEPRECATION")
+                archive.signatures?.map { KeystoreService.digest(it.toByteArray()) } ?: emptyList()
+            }
+            if (installedSigs.isEmpty() || archiveSigs.isEmpty()) return null
+            if (installedSigs.toSet() == archiveSigs.toSet()) return null
+            Log.w(TAG, "Signature conflict for $packageName: installed $installedSigs, new $archiveSigs")
+            "SIGNATURE_CONFLICT:$packageName"
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not check for a signature conflict: ${e.message}")
+            null
         }
     }
 

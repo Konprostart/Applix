@@ -64,6 +64,16 @@ object KeyManager {
         return "SHA-256: ${fingerprint.take(29)}..."
     }
 
+    /** The full SHA-256 fingerprint of the signing certificate (empty when
+     *  there is no key). Two builds with the same fingerprint sign the same way. */
+    fun fullFingerprint(context: Context): String {
+        return try {
+            KeystoreService.fingerprint(context)
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
     /**
      * Check whether an installed app's signing certificate matches this
      * device's master key.

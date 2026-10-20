@@ -244,6 +244,7 @@ class MainActivity : FlutterActivity() {
                         val info = mapOf(
                             "exists" to KeyManager.keyExists(this@MainActivity),
                             "fingerprint" to KeyManager.getCertificateInfo(this@MainActivity),
+                            "fingerprintFull" to KeyManager.fullFingerprint(this@MainActivity),
                         )
                         result.success(info)
                     } catch (e: Exception) {

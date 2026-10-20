@@ -411,23 +411,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Fingerprint', style: TextStyle(fontSize: 11, color: Colors.white38)),
+                        const Text('Fingerprint (SHA-256)',
+                            style: TextStyle(fontSize: 11, color: Colors.white38)),
                         const SizedBox(height: 4),
                         GestureDetector(
                           onTap: () {
-                            Clipboard.setData(ClipboardData(text: _keyInfo['fingerprint']));
+                            Clipboard.setData(ClipboardData(
+                                text: (_keyInfo['fingerprintFull'] ?? _keyInfo['fingerprint'] ?? '').toString(),
+                            ));
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Fingerprint copied.')),
                             );
                           },
                           child: Row(children: [
                             Expanded(child: Text(
-                              _keyInfo['fingerprint'],
-                              style: const TextStyle(fontSize: 11, fontFamily: 'monospace', color: Colors.white54),
+                              (_keyInfo['fingerprintFull'] ?? _keyInfo['fingerprint'] ?? 'unknown').toString(),
+                              style: const TextStyle(fontSize: 10, fontFamily: 'monospace', color: Colors.white54),
                             )),
                             const SizedBox(width: 8),
                             const Icon(Icons.copy, size: 14, color: Colors.white24),
                           ]),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Every build signs with this key. If it changes, the apps that were '
+                          'built before cannot be updated any more.',
+                          style: TextStyle(fontSize: 10, color: Colors.white24),
                         ),
                       ],
                     ),

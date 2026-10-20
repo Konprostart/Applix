@@ -10,6 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.2.4] - 2026-10-20
+
+### Fixed
+- **The installer detects a signature conflict itself and offers to replace the app.** When an
+  older copy of the app is installed that was signed with a different key, the system used to
+  answer with a bare "package invalid". Now the installer compares the signature of the finished
+  APK with the installed one before the session starts and the app shows a clear dialog:
+  "Replace the existing app" (uninstall the old one, install the new one) - with the fingerprint
+  of both, so it is visible what happened.
+- **The signing key is never created a second time.** If the stored key cannot be read, the build
+  stops with a clear message instead of quietly generating a new key - a new key changes the
+  signature of every app that was built before.
+- Settings → Signing Key shows the complete SHA-256 fingerprint of the key, so it can be
+  compared between two builds at a glance, and explains that a changed fingerprint means the
+  apps can no longer be updated.
+
 ## [0.2.3] - 2026-10-20
 
 ### Fixed
@@ -442,7 +458,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/Konprostart/Applix/releases/tag/v0.2.4
 [0.2.3]: https://github.com/Konprostart/Applix/releases/tag/v0.2.3
 [0.2.2]: https://github.com/Konprostart/Applix/releases/tag/v0.2.2
 [0.2.1]: https://github.com/Konprostart/Applix/releases/tag/v0.2.1
