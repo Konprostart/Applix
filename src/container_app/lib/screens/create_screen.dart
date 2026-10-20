@@ -95,12 +95,38 @@ class CreateScreenState extends State<CreateScreen> {
   bool _loadingProvider = false;
   List<ChatMessage> _conversation = [];
   bool _aiGenerating = false;
+  bool _promptGenerating = false;
   DateTime? _genStartTime;
   int _genId = 0;
   final _followUpController = TextEditingController();
   String? _selectedHtml; // HTML selected via "Use This"
   final _formScrollController = ScrollController();
   List<BridgeIssue> _bridgeIssues = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _restorePromptDraft();
+  }
+
+  /// The manual prompt is kept on the device, so it survives leaving the screen
+  /// or restarting the app.
+  Future<void> _restorePromptDraft() async {
+    final draft = await Settings.getPromptDraft();
+    if (!mounted) return;
+    final full = draft['full'] ?? '';
+    if (full.isEmpty) return;
+    setState(() {
+      _generatedPrompt = full;
+      _generatedLinkedPrompt = draft['linked'] ?? '';
+      _promptVisible = true;
+      _promptExpanded = true;
+      final desc = draft['description'] ?? '';
+      if (desc.isNotEmpty && _descController.text.trim().isEmpty) {
+        _descController.text = desc;
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -795,13 +821,35 @@ class CreateScreenState extends State<CreateScreen> {
   Future<void> _generatePrompt() async {
     final name = _nameController.text.trim();
     final desc = _descController.text.trim();
-    if (name.isEmpty || desc.isEmpty) { _snack('Fill in name and description.'); return; }
+    if (name.isEmpty || desc.isEmpty) {
+      _snack('Fill in the app name and describe what it should do.');
+      return;
+    }
+    if (_promptGenerating) return;
+    setState(() => _promptGenerating = true);
     try {
       final existingHtml = _editingId != null ? _htmlController.text.trim() : null;
-      _generatedPrompt = await PromptBuilder.buildPrompt(appName: name, description: desc, existingHtml: existingHtml);
-      _generatedLinkedPrompt = await PromptBuilder.buildLinkedPrompt(appName: name, description: desc, existingHtml: existingHtml);
-      setState(() { _promptVisible = true; _promptExpanded = true; _descExpanded = false; _htmlExpanded = true; });
-    } catch (e) { _snack('Prompt generation failed: $e'); }
+      final full = await PromptBuilder.buildPrompt(appName: name, description: desc, existingHtml: existingHtml);
+      final linked = await PromptBuilder.buildLinkedPrompt(appName: name, description: desc, existingHtml: existingHtml);
+      // Keep the prompt on the device - it is the only copy of the work the
+      // user did, and the Manual flow spans several app launches.
+      await Settings.savePromptDraft(full: full, linked: linked, description: desc);
+      if (!mounted) return;
+      setState(() {
+        _generatedPrompt = full;
+        _generatedLinkedPrompt = linked;
+        _promptVisible = true;
+        _promptExpanded = true;
+        _promptCopied = false;
+        _descExpanded = false;
+        _htmlExpanded = true;
+      });
+      _snack('Prompt ready - copy it to your AI, then paste the HTML back here.');
+    } catch (e) {
+      _snack('Could not create the prompt: $e');
+    } finally {
+      if (mounted) setState(() => _promptGenerating = false);
+    }
   }
 
   // ── UI ──
@@ -1102,13 +1150,19 @@ class CreateScreenState extends State<CreateScreen> {
               )
             else
               h.buildActionButton(
-                label: _genMethod == 'api' ? 'Generate' : (_editingId != null ? 'Create Update Prompt' : 'Create Prompt for AI'),
+                label: _promptGenerating
+                    ? 'Creating prompt...'
+                    : (_genMethod == 'api'
+                        ? 'Generate'
+                        : (_editingId != null ? 'Create Update Prompt' : 'Create Prompt for AI')),
                 icon: _genMethod == 'api' ? Icons.auto_awesome : Icons.content_paste,
-                onPressed: _aiGenerating ? null : () {
+                onPressed: (_aiGenerating || _promptGenerating) ? null : () {
                   if (_genMethod == 'manual') {
                     _generatePrompt();
                   } else if (_activeProvider != null && _activeProvider!.isConfigured) {
                     _generateWithAI(_activeProvider!);
+                  } else {
+                    _snack('Set up an AI provider first, or switch to AI Manual.');
                   }
                 },
               ),
@@ -1161,7 +1215,7 @@ class CreateScreenState extends State<CreateScreen> {
           _section('Copy prompt to AI', _promptExpanded, () => setState(() => _promptExpanded = !_promptExpanded), done: _promptCopied,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const SizedBox(height: 8),
-              const Text('Send this prompt to an AI assistant. The prompt contains the bridge documentation and your app description.',
+              const Text('Send this prompt to an AI assistant. The prompt contains the bridge documentation and your app description. It is saved on this device, so you can come back to it later.',
                   style: TextStyle(fontSize: 11, color: Colors.white38)),
               const SizedBox(height: 10),
               // Variant toggle — Full (works anywhere) vs Linked (short, needs an AI that can fetch URLs).
@@ -1706,6 +1760,8 @@ class ProviderSetupPageState extends State<ProviderSetupPage> {
   String _searchQuery = '';
   bool _loading = false;
   String? _error;
+  String? _notice; // "API key saved" / "could not store the key"
+  bool _keyStored = true;
 
   @override
   void initState() {
@@ -1744,6 +1800,9 @@ class ProviderSetupPageState extends State<ProviderSetupPage> {
     } else if (_provider.id != 'openrouter' && _keyController.text.trim().isEmpty) {
       return;
     }
+    // Save first: the key has to be stored even when the user only taps
+    // refresh, and the request must use the key that is currently typed.
+    await _autoSave();
     final apiKey = _keyController.text.trim();
     setState(() { _loading = true; _error = null; });
     try {
@@ -1755,18 +1814,62 @@ class ProviderSetupPageState extends State<ProviderSetupPage> {
         _provider.baseUrl = _baseUrlController.text.trim();
         _models = await AiService.fetchOpenAICompatibleModels(_provider.baseUrl, apiKey);
       }
-      setState(() => _loading = false);
+      if (_models.isEmpty) {
+        _models = _standardModels(isCustom);
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _notice = 'The server returned no model list - showing the usual local models. '
+                'You can also type any model ID above.';
+          });
+        }
+        return;
+      }
+      if (mounted) setState(() { _loading = false; _notice = null; });
     } catch (e) {
-      setState(() { _loading = false; _error = 'Failed to fetch models: $e'; });
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Could not load the model list: $e';
+      });
+      // Keep whatever we know and offer the standard models as a fallback.
+      if (_models.isEmpty) _models = _standardModels(isCustom);
     }
   }
 
-  Future<void> _autoSave() async {
+  /// Fallback list for servers that do not expose /models (or fail to answer).
+  List<AiModel> _standardModels(bool isCustom) {
+    final ids = isCustom
+        ? const [
+            'llama3.2', 'llama3.1', 'qwen2.5', 'qwen3', 'mistral', 'gemma3',
+            'phi4', 'deepseek-r1', 'command-r', 'gpt-4o-mini', 'gpt-4o',
+          ]
+        : const [
+            'claude-sonnet-4-20250514', 'claude-3-5-haiku-20241022',
+            'gpt-4o', 'gpt-4o-mini',
+          ];
+    return ids.map((id) => AiModel(id: id, name: id)).toList();
+  }
+
+  /// Persists the provider. The key goes into the encrypted store; when that
+  /// is not available the user is told instead of silently losing the key.
+  Future<bool> _autoSave() async {
     _provider.baseUrl = _baseUrlController.text.trim();
     _provider.apiKey = _keyController.text.trim();
     _provider.selectedModel = _modelIdController.text.trim();
-    await Settings.updateProvider(_provider);
-    await Settings.setActiveProvider(_provider);
+    final stored = await Settings.updateProvider(_provider);
+    final activeStored = await Settings.setActiveProvider(_provider);
+    final ok = stored && activeStored;
+    if (mounted) {
+      setState(() {
+        _keyStored = ok;
+        _notice = ok
+            ? (_provider.apiKey.isEmpty ? 'Settings saved.' : 'API key saved.')
+            : 'The API key could NOT be stored securely on this device. '
+                'It stays only for this session.';
+      });
+    }
+    return ok;
   }
 
   @override
@@ -1846,6 +1949,16 @@ class ProviderSetupPageState extends State<ProviderSetupPage> {
           if (_error != null) ...[
             const SizedBox(height: 8),
             Text(_error!, style: const TextStyle(fontSize: 11, color: Color(0xFFFF6B6B))),
+          ],
+          if (_notice != null) ...[
+            const SizedBox(height: 8),
+            Row(children: [
+              Icon(_keyStored ? Icons.check_circle : Icons.warning_amber_rounded,
+                  size: 13, color: _keyStored ? const Color(0xFF69F0AE) : const Color(0xFFFFB86B)),
+              const SizedBox(width: 6),
+              Expanded(child: Text(_notice!,
+                  style: TextStyle(fontSize: 11, color: _keyStored ? const Color(0xFF69F0AE) : const Color(0xFFFFB86B)))),
+            ]),
           ],
 
           const SizedBox(height: 20),

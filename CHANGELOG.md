@@ -10,6 +10,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.7] - 2026-10-19
+
+### Fixed
+- **API key storage is now visible.** The key is still written to the encrypted store, but the
+  setup screen now says "API key saved" after every save, and it warns you when the encrypted
+  store is not available on the device instead of silently dropping the key. The key never lands
+  in SharedPreferences.
+- **The model list refreshes correctly.** Tapping refresh now saves the key and the base URL
+  first, so the request is made with the key you just typed. When the server does not return a
+  model list (or cannot be reached), the usual local models are offered as a fallback and you
+  can still type any model ID.
+- **"Create Prompt for AI" now works and keeps your work.** The manual prompt is saved on the
+  device together with your description, so it survives leaving the screen or restarting the
+  app, and it is restored the next time you open the Create screen. The button shows a
+  "Creating prompt..." state while it works and confirms with a message when the prompt is
+  ready.
+
 ## [0.1.6] - 2026-10-19
 
 ### Fixed
@@ -159,7 +176,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/Konprostart/Applix/releases/tag/v0.1.7
 [0.1.6]: https://github.com/Konprostart/Applix/releases/tag/v0.1.6
 [0.1.5]: https://github.com/Konprostart/Applix/releases/tag/v0.1.5
 [0.1.4]: https://github.com/Konprostart/Applix/releases/tag/v0.1.4

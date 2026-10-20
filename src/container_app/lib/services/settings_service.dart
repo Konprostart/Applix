@@ -53,15 +53,31 @@ class Settings {
     }
   }
 
-  static Future<void> _writeKey(String id, String apiKey) async {
+  /// Stores a key in the encrypted store. Returns false when the secure store
+  /// is unavailable, so the caller can tell the user instead of silently
+  /// pretending the key was saved.
+  static Future<bool> _writeKey(String id, String apiKey) async {
     try {
       if (apiKey.isNotEmpty) {
         await _secure.write(key: 'apikey_$id', value: apiKey);
       } else {
         await _secure.delete(key: 'apikey_$id');
       }
+      return true;
     } catch (e) {
       debugPrint('[Settings] Secure write failed for $id: $e');
+      return false;
+    }
+  }
+
+  /// True when the encrypted key store works on this device.
+  static Future<bool> isSecureStoreAvailable() async {
+    try {
+      await _secure.read(key: 'applix_storage_probe');
+      return true;
+    } catch (e) {
+      debugPrint('[Settings] Secure store unavailable: $e');
+      return false;
     }
   }
 
@@ -85,14 +101,17 @@ class Settings {
     }
   }
 
-  static Future<void> setActiveProvider(AiProvider provider) async {
+  /// Saves the active provider. Returns false when the API key could not be
+  /// stored in the encrypted store (the rest of the settings are saved anyway).
+  static Future<bool> setActiveProvider(AiProvider provider) async {
     final prefs = await getPrefs();
     // Store API key in secure storage
-    await _writeKey(provider.id, provider.apiKey);
+    final keyStored = await _writeKey(provider.id, provider.apiKey);
     // Strip key from SharedPreferences
     final json = provider.toJson();
     json.remove('apiKey');
     await prefs.setString('active_provider', jsonEncode(json));
+    return keyStored;
   }
 
   // ── AI Providers (legacy multi-provider, kept for migration) ──
@@ -116,10 +135,12 @@ class Settings {
     }
   }
 
-  static Future<void> saveProviders(List<AiProvider> providers) async {
+  static Future<bool> saveProviders(List<AiProvider> providers) async {
     final prefs = await getPrefs();
+    var allStored = true;
     for (final p in providers) {
-      await _writeKey(p.id, p.apiKey);
+      final ok = await _writeKey(p.id, p.apiKey);
+      if (!ok) allStored = false;
     }
     final jsonList = providers.map((p) {
       final j = p.toJson();
@@ -127,6 +148,7 @@ class Settings {
       return j;
     }).toList();
     await prefs.setString('ai_providers', jsonEncode(jsonList));
+    return allStored;
   }
 
   static Future<AiProvider?> getProvider(String id) async {
@@ -135,12 +157,12 @@ class Settings {
     catch (_) { return null; }
   }
 
-  static Future<void> updateProvider(AiProvider provider) async {
+  static Future<bool> updateProvider(AiProvider provider) async {
     final providers = await getProviders();
     final idx = providers.indexWhere((p) => p.id == provider.id);
     if (idx >= 0) providers[idx] = provider;
     else providers.add(provider);
-    await saveProviders(providers);
+    return saveProviders(providers);
   }
 
   // ── Legacy API key (migrate to providers) ──
@@ -259,6 +281,30 @@ class Settings {
     } else {
       await prefs.setString('cached_update', jsonEncode(update));
     }
+  }
+
+  // ── Manual prompt draft ──
+  // The prompt generated in the Manual flow is kept on the device so it is not
+  // lost when the user leaves the screen or restarts the app.
+
+  static Future<void> savePromptDraft({
+    required String full,
+    required String linked,
+    required String description,
+  }) async {
+    final prefs = await getPrefs();
+    await prefs.setString('prompt_draft_full', full);
+    await prefs.setString('prompt_draft_linked', linked);
+    await prefs.setString('prompt_draft_desc', description);
+  }
+
+  static Future<Map<String, String>> getPromptDraft() async {
+    final prefs = await getPrefs();
+    return {
+      'full': prefs.getString('prompt_draft_full') ?? '',
+      'linked': prefs.getString('prompt_draft_linked') ?? '',
+      'description': prefs.getString('prompt_draft_desc') ?? '',
+    };
   }
 
   // ── Package prefix ──
