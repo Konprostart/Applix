@@ -39,10 +39,12 @@ import '../services/project_store.dart';
 import '../services/ui_auditor.dart';
 import '../services/settings_service.dart';
 import '../widgets/build_log.dart';
+import '../models/app_theme.dart';
 import '../models/icon_config.dart';
 import '../models/ai_provider.dart';
 import 'code_editor_screen.dart';
 import 'preview_screen.dart';
+import 'splash_settings_screen.dart';
 import 'icon_editor_screen.dart';
 import '../services/error_helper.dart';
 import 'flows/create_helpers.dart' as h;
@@ -64,6 +66,7 @@ class CreateScreenState extends State<CreateScreen> {
 
   final _nameController = TextEditingController();
   IconConfig _iconConfig = IconConfig();
+  AppTheme _appTheme = const AppTheme();
   String? _editingId;
   String? _existingPackageName;
   String _firebaseConfig = '';
@@ -179,6 +182,7 @@ class CreateScreenState extends State<CreateScreen> {
     if (app.iconConfig.isNotEmpty) {
       try {
         _iconConfig = IconConfig.fromJsonString(app.iconConfig);
+      _appTheme = AppTheme.fromJsonString(app.appTheme);
       } catch (_) {
         _iconConfig = IconConfig.defaultFor(app.name);
       }
@@ -224,6 +228,7 @@ class CreateScreenState extends State<CreateScreen> {
       _firebaseConfig = '';
       _selectedDemoId = null;
       _iconConfig = IconConfig();
+    _appTheme = const AppTheme();
       _descExpanded = true;
       _promptVisible = false;
       _promptExpanded = false;
@@ -241,6 +246,18 @@ class CreateScreenState extends State<CreateScreen> {
   IconConfig _ensureIconConfig(String label) {
     if (_iconConfig.elements.isEmpty) _iconConfig = IconConfig.defaultFor(label);
     return _iconConfig;
+  }
+
+  /// Opens the splash / system bar settings.
+  Future<void> _openSplashSettings() async {
+    _ensureIconConfig(_nameController.text.trim());
+    final result = await Navigator.push<AppTheme>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SplashSettingsScreen(theme: _appTheme, icon: _iconConfig),
+      ),
+    );
+    if (result != null) setState(() => _appTheme = result);
   }
 
   Future<void> _openIconEditor() async {
@@ -778,7 +795,7 @@ class CreateScreenState extends State<CreateScreen> {
         indexHtml: html,
       );
       final projectPaths = await ProjectStore.paths(appId: appId, packageName: _existingPackageName);
-      final result = await Generator.injectHtml(label: label, htmlContent: html, packageName: _existingPackageName, iconConfig: ic.toJsonString(), firebaseConfig: _firebaseConfig.isNotEmpty ? _firebaseConfig : null, onProgress: _addLog, webOnly: appType == 'web', bundleFiles: bundlePaths, projectFiles: projectPaths);
+      final result = await Generator.injectHtml(label: label, htmlContent: html, packageName: _existingPackageName, iconConfig: ic.toJsonString(), appTheme: _appTheme.toJsonString(), firebaseConfig: _firebaseConfig.isNotEmpty ? _firebaseConfig : null, onProgress: _addLog, webOnly: appType == 'web', bundleFiles: bundlePaths, projectFiles: projectPaths);
       // Now that the package name is known, move the project to its final place.
       await ProjectStore.migrateToPackage(appId: appId, packageName: result.packageName);
       await ProjectStore.writeConfig(
@@ -790,6 +807,8 @@ class CreateScreenState extends State<CreateScreen> {
           'version': kAppVersion,
           'entry': 'index.html',
           'files': projectPaths.keys.toList(),
+          'icon': jsonDecode(ic.toJsonString()),
+          'theme': _appTheme.toJson(),
           'updated': DateTime.now().toIso8601String(),
         },
       );
@@ -798,7 +817,8 @@ class CreateScreenState extends State<CreateScreen> {
       await AppStorage.save(AppData(
         id: appId, name: label,
         description: description, prompt: prompt, html: AppStorage.tagHtml(html), appType: appType,
-        packageName: result.packageName, apkPath: result.apkPath, iconConfig: ic.toJsonString(), firebaseConfig: _firebaseConfig,
+        packageName: result.packageName, apkPath: result.apkPath, iconConfig: ic.toJsonString(),
+        appTheme: _appTheme.toJsonString(), firebaseConfig: _firebaseConfig,
         createdAt: _editingId != null ? (await _getExistingCreatedAt(_editingId!) ?? now) : now, updatedAt: now,
       ));
       _editingId = appId;
@@ -1176,6 +1196,40 @@ class CreateScreenState extends State<CreateScreen> {
           )),
         ]),
         const SizedBox(height: 20),
+
+        // Splash + system bars (not for the web wrapper)
+        if (_mode != 'web')
+          GestureDetector(
+            onTap: _openSplashSettings,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF12121F),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: Row(children: [
+                Container(
+                  width: 26, height: 26,
+                  decoration: BoxDecoration(
+                    color: _appTheme.splashBackground != 0
+                        ? Color(_appTheme.splashBackground)
+                        : Color(_iconConfig.bgGradient != null && _iconConfig.bgGradient!.isNotEmpty
+                            ? _iconConfig.bgGradient!.first
+                            : _iconConfig.bgColor),
+                    borderRadius: BorderRadius.circular(7),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text('Splash & system bars',
+                      style: TextStyle(fontSize: 13, color: Colors.white70)),
+                ),
+                const Icon(Icons.chevron_right, size: 18, color: Colors.white24),
+              ]),
+            ),
+          ),
 
         if (_mode == 'web') _webFields(),
         if (_mode == 'ai') _aiFields(),

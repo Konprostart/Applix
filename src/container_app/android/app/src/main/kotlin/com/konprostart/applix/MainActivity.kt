@@ -135,13 +135,15 @@ class MainActivity : FlutterActivity() {
                     // Project files (style.css, script.js, ...): {filename: absolutePath}
                     @Suppress("UNCHECKED_CAST")
                     val projectFiles = call.argument<Map<String, String>>("projectFiles") ?: emptyMap()
+                    // Optional per-app theme (splash + system bars)
+                    val appTheme = call.argument<String>("appTheme")
                     if (label.isBlank()) { result.error("INVALID", "label required", null); return@setMethodCallHandler }
                     if (html.isBlank()) { result.error("INVALID", "html required", null); return@setMethodCallHandler }
                     installScope.launch {
                         try {
                             val info = generator.injectAndInstall(
                                 label, html, packageName, iconConfig, firebaseConfig, webOnly,
-                                bundleFiles, projectFiles,
+                                bundleFiles, projectFiles, appTheme,
                             ) { msg ->
                                 channel.invokeMethod("onProgress", msg)
                             }

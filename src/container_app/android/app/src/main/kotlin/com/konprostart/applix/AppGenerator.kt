@@ -91,17 +91,68 @@ class AppGenerator(private val context: Context) {
      * the colors: a light app gets light bars with dark icons, everything else
      * gets the dark surface with light icons.
      */
-    private fun appThemeJson(html: String, iconConfig: String?): String {
+    private fun appThemeJson(html: String, iconConfig: String?, appTheme: String?): String {
         val lower = html.lowercase()
         val edgeToEdge = lower.contains("applix-edge-to-edge") &&
             (lower.contains("content=\"true\"") || lower.contains("content='true'"))
         val lightTheme = lower.contains("applix-theme") &&
             (lower.contains("content=\"light\"") || lower.contains("content='light'"))
-        val statusBar = if (lightTheme) "#f2f4f8" else "#12122a"
-        val navBar = if (lightTheme) "#f2f4f8" else "#12122a"
+        var statusBar = if (lightTheme) "#f2f4f8" else "#12122a"
+        var navBar = if (lightTheme) "#f2f4f8" else "#12122a"
         // true -> the bar is light, so the icons on it must be dark
-        val lightIcons = lightTheme
-        return """{"statusBar":"$statusBar","statusBarLightIcons":$lightIcons,"navBar":"$navBar","navBarLightIcons":$lightIcons,"edgeToEdge":$edgeToEdge}"""
+        var lightIcons = lightTheme
+        var splashBackground = ""
+        var splashStyle = "auto"
+        var splashShowIcon = true
+        // The icon colors are the default for the splash screen.
+        var splashColor = if (lightTheme) "#f2f4f8" else "#0d0d1a"
+        var splashGradient = ""
+
+        // Optional per-app theme (older apps do not have one -> defaults apply).
+        try {
+            val t = org.json.JSONObject(appTheme ?: "{}")
+            val sb = t.optInt("statusBarColor", 0)
+            if (sb != 0) {
+                statusBar = String.format("#%06x", sb and 0xFFFFFF)
+                lightIcons = luminanceOf(sb) < 0.55
+            }
+            val nb = t.optInt("navigationBarColor", 0)
+            if (nb != 0) {
+                navBar = String.format("#%06x", nb and 0xFFFFFF)
+                lightIcons = lightIcons && luminanceOf(nb) < 0.55
+            }
+            val splash = t.optInt("splashBackground", 0)
+            if (splash != 0) splashBackground = String.format("#%06x", splash and 0xFFFFFF)
+            val style = t.optString("splashStyle", "auto")
+            if (style in listOf("auto", "solid", "gradient", "icon")) splashStyle = style
+            splashShowIcon = t.optBoolean("splashShowIcon", true)
+        } catch (e: Exception) {
+            // No (or broken) theme -> the defaults stay.
+        }
+
+        // The app icon provides the default splash colors.
+        try {
+            val cfg = org.json.JSONObject(iconConfig ?: "{}")
+            val gradArr = cfg.optJSONArray("bgGradient")
+            if (gradArr != null && gradArr.length() >= 2) {
+                splashColor = String.format("#%06x", gradArr.optInt(0) and 0xFFFFFF)
+                splashGradient = "[\"${String.format("#%06x", gradArr.optInt(0) and 0xFFFFFF)}\",\"${String.format("#%06x", gradArr.optInt(1) and 0xFFFFFF)}\"]"
+            } else if (cfg.has("bgColor")) {
+                splashColor = String.format("#%06x", cfg.optInt("bgColor") and 0xFFFFFF)
+            }
+        } catch (e: Exception) {
+            // keep the defaults
+        }
+
+        return """{"statusBar":"$statusBar","statusBarLightIcons":$lightIcons,"navBar":"$navBar","navBarLightIcons":$lightIcons,"edgeToEdge":$edgeToEdge,"splashBackground":"$splashBackground","splashStyle":"$splashStyle","splashShowIcon":$splashShowIcon,"splashColor":"$splashColor","splashGradient":$splashGradient}"""
+    }
+
+    /** Relative luminance of a color - decides whether the bar icons are dark. */
+    private fun luminanceOf(color: Int): Double {
+        val r = (color shr 16) and 0xFF
+        val g = (color shr 8) and 0xFF
+        val b = color and 0xFF
+        return (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
     }
 
     /**
@@ -214,6 +265,7 @@ class AppGenerator(private val context: Context) {
         webOnly: Boolean = false,
         bundleFiles: Map<String, String> = emptyMap(),
         projectFiles: Map<String, String> = emptyMap(),
+        appTheme: String? = null,
         onProgress: (String) -> Unit,
     ): Map<String, String> {
         if (building) throw IllegalStateException("A build is already in progress")
@@ -233,7 +285,7 @@ class AppGenerator(private val context: Context) {
             val taggedHtml = "<!-- Built with Applix — https://github.com/Konprostart/Applix -->\n$cleanHtml"
             val themed = withUiKit(taggedHtml)
             val assets = mutableMapOf("index.html" to themed.toByteArray(Charsets.UTF_8))
-            assets["app-theme.json"] = appThemeJson(taggedHtml, iconConfig).toByteArray(Charsets.UTF_8)
+            assets["app-theme.json"] = appThemeJson(taggedHtml, iconConfig, appTheme).toByteArray(Charsets.UTF_8)
             if (!firebaseConfig.isNullOrBlank()) {
                 assets["firebase_config.json"] = firebaseConfig.toByteArray(Charsets.UTF_8)
             }
@@ -378,7 +430,7 @@ class AppGenerator(private val context: Context) {
         val taggedHtml = "<!-- Built with Applix — https://github.com/Konprostart/Applix -->\n$cleanHtml"
         val themed = withUiKit(taggedHtml)
         val assets = mutableMapOf("index.html" to themed.toByteArray(Charsets.UTF_8))
-        assets["app-theme.json"] = appThemeJson(taggedHtml, iconConfig).toByteArray(Charsets.UTF_8)
+        assets["app-theme.json"] = appThemeJson(taggedHtml, iconConfig, appTheme).toByteArray(Charsets.UTF_8)
         // Bundle Explorer gets a sample JSON file so it works out of the box
         if (templateId == "bundledemo") {
             assets["data/sample.json"] = """{"message":"Hello from a bundled file!","items":["Amsterdam","Leeuwarden","Snits","Dokkum","Harlingen"],"version":1}""".toByteArray(Charsets.UTF_8)

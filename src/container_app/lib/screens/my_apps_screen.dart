@@ -32,9 +32,11 @@ import '../services/generator.dart';
 import '../services/p2p_service.dart';
 import '../services/project_store.dart';
 import '../widgets/build_log.dart';
+import '../models/app_theme.dart';
 import '../models/icon_config.dart';
 import 'code_editor_screen.dart';
 import 'icon_editor_screen.dart';
+import 'splash_settings_screen.dart';
 import 'qr_transfer_screen.dart';
 import '../services/error_helper.dart';
 import '../services/github_service.dart';
@@ -216,6 +218,25 @@ class MyAppsScreenState extends State<MyAppsScreen> {
 
   /// Removes the built APK of a deleted app - every APK is around 40 MB and
   /// would otherwise stay on the device forever.
+  /// Opens the splash / system bar settings of a saved app.
+  Future<void> _openSplashSettings(AppData app) async {
+    final icon = app.iconConfig.isNotEmpty
+        ? IconConfig.fromJsonString(app.iconConfig)
+        : IconConfig.defaultFor(app.name);
+    final result = await Navigator.push<AppTheme>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SplashSettingsScreen(
+          theme: AppTheme.fromJsonString(app.appTheme),
+          icon: icon,
+        ),
+      ),
+    );
+    if (result == null) return;
+    await AppStorage.save(app.copyWith(appTheme: result.toJsonString()));
+    refresh();
+  }
+
   /// Opens the built-in code editor for the files of a saved app.
   Future<void> _openCodeEditor(AppData app) async {
     await Navigator.push<String>(
@@ -294,6 +315,13 @@ class MyAppsScreenState extends State<MyAppsScreen> {
                   title: const Text('Uninstall from device'),
                   onTap: () { Navigator.pop(ctx); _uninstall(app); },
                 ),
+              ListTile(
+                leading: const Icon(Icons.wallpaper, color: Color(0xFF4FC3F7)),
+                title: const Text('Splash & Bars'),
+                subtitle: const Text('Launch screen and system bar colors',
+                    style: TextStyle(fontSize: 11, color: Colors.white38)),
+                onTap: () { Navigator.pop(ctx); _openSplashSettings(app); },
+              ),
               ListTile(
                 leading: const Icon(Icons.code, color: Color(0xFF4FC3F7)),
                 title: const Text('Edit Code'),

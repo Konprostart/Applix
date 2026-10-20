@@ -10,6 +10,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.12] - 2026-10-19
+
+### Added
+- **Splash and system bar settings.** A new "Splash & Bars" screen lets you choose the launch
+  screen background (a solid color, the gradient of the app icon or the icon itself), whether
+  the app icon is shown in the splash, and the colors of the status and navigation bars. The
+  settings are stored with the app, written into the project manifest (`app-config.json`) and
+  handed to the shell through `app-theme.json`.
+- A live preview of the splash screen in the settings.
+
+### Fixed
+- **The app icon now shows on Android 8 and newer as well.** The adaptive icon foreground was
+  never replaced in the built APK, so the launcher used the static icon of the shell template.
+  The icon builder now also renders the adaptive foregrounds (108dp, 5 densities) with the symbol
+  inside the 66dp safe zone.
+
+### Compatibility
+- Apps that were created before these options existed keep their look: every setting is
+  optional and falls back to the colors of the app icon.
+
 ## [0.1.11] - 2026-10-19
 
 ### Added
@@ -237,7 +257,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.11...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.12...HEAD
+[0.1.12]: https://github.com/Konprostart/Applix/releases/tag/v0.1.12
 [0.1.11]: https://github.com/Konprostart/Applix/releases/tag/v0.1.11
 [0.1.10]: https://github.com/Konprostart/Applix/releases/tag/v0.1.10
 [0.1.9]: https://github.com/Konprostart/Applix/releases/tag/v0.1.9

@@ -277,6 +277,9 @@ public class ShellActivity extends ComponentActivity {
         super.onCreate(savedInstanceState);
 
         applyWindowStyling();
+        // The per-app theme (splash + system bars) is applied before the content
+        // is set, so the launch window already shows the app's own look.
+        applyAppTheme();
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         nfcAdapter = NfcAdapter.getDefaultAdapter(this);
 
@@ -321,8 +324,6 @@ public class ShellActivity extends ComponentActivity {
             android.view.Gravity.TOP));
 
         setContentView(root);
-
-        applyAppTheme();
 
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         WebSettings s = webView.getSettings();
@@ -869,8 +870,64 @@ public class ShellActivity extends ComponentActivity {
             bridge.setStatusBar(statusColor, statusLight);
             bridge.setNavigationBar(navColor, navLight);
             if (edgeToEdge) bridge.setEdgeToEdge(true);
+
+            // Splash screen: solid color, the icon gradient or the icon itself.
+            String splashColor = theme != null ? theme.optString("splashColor", "#0D0D1A") : "#0D0D1A";
+            if (splashColor == null || splashColor.isEmpty()) splashColor = "#0D0D1A";
+            String splashStyle = theme != null ? theme.optString("splashStyle", "auto") : "auto";
+            boolean splashShowIcon = theme == null || theme.optBoolean("splashShowIcon", true);
+            org.json.JSONArray splashGradient = theme != null ? theme.optJSONArray("splashGradient") : null;
+            applySplashBackground(splashStyle, splashColor, splashGradient, splashShowIcon);
         } catch (Exception e) {
             android.util.Log.w("Applix", "app theme not applied: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Paints the launch window of the app: a color, the gradient of the app
+     * icon or the icon itself, with the icon centered on top.
+     */
+    private void applySplashBackground(String style, String color,
+                                       org.json.JSONArray gradient, boolean showIcon) {
+        try {
+            android.graphics.drawable.Drawable background;
+            if ("gradient".equals(style) && gradient != null && gradient.length() >= 2) {
+                background = new android.graphics.drawable.GradientDrawable(
+                        android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                        new int[]{
+                                android.graphics.Color.parseColor(gradient.optString(0, color)),
+                                android.graphics.Color.parseColor(gradient.optString(1, color))
+                        });
+            } else if ("icon".equals(style)) {
+                android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeResource(
+                        getResources(), com.applix.generated.placeholder.R.mipmap.ic_launcher);
+                if (bmp != null) {
+                    background = new android.graphics.drawable.BitmapDrawable(getResources(), bmp);
+                } else {
+                    background = new android.graphics.drawable.ColorDrawable(android.graphics.Color.parseColor(color));
+                }
+            } else {
+                background = new android.graphics.drawable.ColorDrawable(android.graphics.Color.parseColor(color));
+            }
+
+            if (showIcon) {
+                android.graphics.Bitmap icon = android.graphics.BitmapFactory.decodeResource(
+                        getResources(), com.applix.generated.placeholder.R.mipmap.ic_launcher);
+                if (icon != null) {
+                    android.graphics.drawable.LayerDrawable layer =
+                            new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{
+                                    background,
+                                    new android.graphics.drawable.BitmapDrawable(getResources(), icon)
+                            });
+                    layer.setGravity(0, android.view.Gravity.FILL);
+                    layer.setGravity(1, android.view.Gravity.CENTER);
+                    getWindow().setBackgroundDrawable(layer);
+                    return;
+                }
+            }
+            getWindow().setBackgroundDrawable(background);
+        } catch (Exception e) {
+            android.util.Log.w("Applix", "Splash background not applied: " + e.getMessage());
         }
     }
 

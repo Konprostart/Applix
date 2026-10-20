@@ -38,6 +38,7 @@ class AppData {
   final String appType; // 'web', 'ai', 'demo'
   final String templateId;
   final String iconConfig; // JSON string — new icon system
+  final String appTheme; // JSON string — splash + system bar theme
   final String firebaseConfig; // google-services.json content (optional)
   final String emoji; // legacy
   final double emojiScale; // legacy
@@ -57,6 +58,7 @@ class AppData {
     this.appType = '',
     this.templateId = '',
     this.iconConfig = '',
+    this.appTheme = '',
     this.firebaseConfig = '',
     this.emoji = '',
     this.emojiScale = 1.0,
@@ -94,6 +96,7 @@ class AppData {
       appType: appType ?? this.appType,
       templateId: templateId ?? this.templateId,
       iconConfig: iconConfig ?? this.iconConfig,
+      appTheme: appTheme ?? this.appTheme,
       firebaseConfig: firebaseConfig ?? this.firebaseConfig,
       emoji: emoji ?? this.emoji,
       emojiScale: emojiScale ?? this.emojiScale,
@@ -115,6 +118,7 @@ class AppData {
     'appType': appType,
     'templateId': templateId,
     'iconConfig': iconConfig,
+    if (appTheme.isNotEmpty) 'appTheme': appTheme,
     if (firebaseConfig.isNotEmpty) 'firebaseConfig': firebaseConfig,
     'emoji': emoji,
     'emojiScale': emojiScale,
@@ -135,6 +139,7 @@ class AppData {
     appType: j['appType'] as String? ?? '',
     templateId: j['templateId'] as String? ?? '',
     iconConfig: j['iconConfig'] as String? ?? '',
+    appTheme: j['appTheme'] as String? ?? '',
     firebaseConfig: j['firebaseConfig'] as String? ?? '',
     emoji: j['emoji'] as String? ?? '',
     emojiScale: (j['emojiScale'] as num?)?.toDouble() ?? 1.0,

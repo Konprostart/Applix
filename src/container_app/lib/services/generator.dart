@@ -53,6 +53,7 @@ class Generator {
         'templateId': templateId,
         if (packageName != null) 'packageName': packageName,
         if (iconConfig != null) 'iconConfig': iconConfig,
+        if (appTheme != null && appTheme.isNotEmpty) 'appTheme': appTheme,
       });
       return BuildResult(
         packageName: result?['packageName'] as String? ?? '',
@@ -70,6 +71,7 @@ class Generator {
     required void Function(String) onProgress,
     String? packageName,
     String? iconConfig,
+    String? appTheme,
     String? firebaseConfig,
     bool webOnly = false,
     Map<String, String>? bundleFiles,

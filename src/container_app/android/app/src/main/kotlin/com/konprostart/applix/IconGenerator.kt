@@ -44,6 +44,8 @@ object IconGenerator {
         configJson: String?,
         appLabel: String,
         sizePx: Int,
+        // Adaptive foreground: no background, the symbol inside the 66/108 safe zone.
+        foregroundOnly: Boolean = false,
     ): ByteArray {
         val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
@@ -101,24 +103,29 @@ object IconGenerator {
 
         // Draw full square background — the launcher applies its own shape mask
         val rect = RectF(0f, 0f, sizePx.toFloat(), sizePx.toFloat())
-        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
-        if (bgGradient != null) {
-            bgPaint.shader = LinearGradient(0f, 0f, sizePx.toFloat(), sizePx.toFloat(),
-                bgGradient[0], bgGradient[1], Shader.TileMode.CLAMP)
-        } else {
-            bgPaint.color = bgColor
+        if (!foregroundOnly) {
+            val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+            if (bgGradient != null) {
+                bgPaint.shader = LinearGradient(0f, 0f, sizePx.toFloat(), sizePx.toFloat(),
+                    bgGradient[0], bgGradient[1], Shader.TileMode.CLAMP)
+            } else {
+                bgPaint.color = bgColor
+            }
+            canvas.drawRect(rect, bgPaint)
         }
-        canvas.drawRect(rect, bgPaint)
 
         // Clip to canvas bounds so zoomed elements don't overflow
         canvas.clipRect(rect)
+
+        // The adaptive foreground is 108dp with a 66dp safe zone in the middle.
+        val safeScale = if (foregroundOnly) 0.611f else 1.0f
 
         // Draw each element
         for (el in elements) {
             if (el.content.isBlank()) continue
 
-            val cx = sizePx / 2f + (el.offsetX * sizePx).toFloat()
-            val cy = sizePx / 2f + (el.offsetY * sizePx).toFloat()
+            val cx = sizePx / 2f + (el.offsetX * safeScale * sizePx).toFloat()
+            val cy = sizePx / 2f + (el.offsetY * safeScale * sizePx).toFloat()
 
             canvas.save()
             canvas.rotate(el.rotation.toFloat(), cx, cy)
@@ -131,8 +138,13 @@ object IconGenerator {
                 drawElement(canvas, el, cx, cy, sizePx, isShadow = true, shadowAlpha = shadow.alpha, shadowColor = shadow.color, shadowBlur = shadow.blur)
                 canvas.restore()
             }
-            // Main element
-            drawElement(canvas, el, cx, cy, sizePx, isShadow = false)
+            // Main element (scaled into the safe zone for the adaptive foreground)
+            val scaled = if (safeScale != 1.0f) el.copy(
+                scale = el.scale * safeScale,
+                offsetX = el.offsetX * safeScale,
+                offsetY = el.offsetY * safeScale,
+            ) else el
+            drawElement(canvas, scaled, cx, cy, sizePx, isShadow = false)
 
             canvas.restore()
         }
@@ -225,9 +237,22 @@ object IconGenerator {
             "res/mipmap-xxhdpi-v4/ic_launcher.png" to 144,
             "res/mipmap-xxxhdpi-v4/ic_launcher.png" to 192,
         )
-        return densities.mapValues { (_, size) ->
+        val out = densities.mapValues { (_, size) ->
             generateFromConfig(configJson, appLabel, size)
+        }.toMutableMap()
+        // Adaptive icon foregrounds (108dp). Without them Android 8+ shows the
+        // static icon of the shell template instead of the app icon.
+        val foregrounds = mapOf(
+            "res/mipmap-mdpi-v4/ic_launcher_foreground.png" to 108,
+            "res/mipmap-hdpi-v4/ic_launcher_foreground.png" to 162,
+            "res/mipmap-xhdpi-v4/ic_launcher_foreground.png" to 216,
+            "res/mipmap-xxhdpi-v4/ic_launcher_foreground.png" to 324,
+            "res/mipmap-xxxhdpi-v4/ic_launcher_foreground.png" to 432,
+        )
+        for ((path, size) in foregrounds) {
+            out[path] = generateFromConfig(configJson, appLabel, size, foregroundOnly = true)
         }
+        return out
     }
 
     private fun defaultColorFor(s: String): Int {
