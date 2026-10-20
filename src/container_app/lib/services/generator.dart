@@ -237,7 +237,7 @@ class Generator {
   /// Status of the durable key backup (it survives an uninstall of Applix).
   static Future<Map<String, dynamic>> getKeyBackupInfo() async {
     final result = await _ch.invokeMethod<Map>('getKeyBackupInfo', {});
-    return result ?? <String, dynamic>{'exists': false, 'name': ''};
+    return Map<String, dynamic>.from(result ?? {'exists': false, 'name': ''});
   }
 
   /// Writes the master key backup to the shared Downloads folder.
