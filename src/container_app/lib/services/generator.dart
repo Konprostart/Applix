@@ -53,7 +53,6 @@ class Generator {
         'templateId': templateId,
         if (packageName != null) 'packageName': packageName,
         if (iconConfig != null) 'iconConfig': iconConfig,
-        if (appTheme != null && appTheme.isNotEmpty) 'appTheme': appTheme,
       });
       return BuildResult(
         packageName: result?['packageName'] as String? ?? '',
@@ -88,6 +87,7 @@ class Generator {
         'html': htmlContent,
         if (packageName != null) 'packageName': packageName,
         if (iconConfig != null) 'iconConfig': iconConfig,
+        if (appTheme != null && appTheme.isNotEmpty) 'appTheme': appTheme,
         if (firebaseConfig != null && firebaseConfig.isNotEmpty) 'firebaseConfig': firebaseConfig,
         'webOnly': webOnly,
         if (bundleFiles != null && bundleFiles.isNotEmpty) 'bundleFiles': bundleFiles,

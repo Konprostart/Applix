@@ -107,7 +107,7 @@ class _SplashSettingsScreenState extends State<SplashSettingsScreen> {
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             value: _theme.splashShowIcon,
-            activeThumbColor: const Color(0xFF4FC3F7),
+            activeColor: const Color(0xFF4FC3F7),
             title: const Text('Show the app icon in the splash',
                 style: TextStyle(fontSize: 14)),
             onChanged: (v) =>

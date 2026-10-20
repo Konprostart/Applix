@@ -78,6 +78,7 @@ class AppData {
     String? appType,
     String? templateId,
     String? iconConfig,
+    String? appTheme,
     String? firebaseConfig,
     String? emoji,
     double? emojiScale,
