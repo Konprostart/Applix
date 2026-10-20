@@ -247,7 +247,7 @@ class AppGenerator(private val context: Context) {
         // The install copies the whole APK into the package installer session -
         // that must not happen on the main thread (ANR on large APKs).
         withContext(Dispatchers.Main) { onProgress("\uD83D\uDCF2 Launching installer...") }
-        withContext(Dispatchers.IO) { installer.install(finalApk) }
+        withContext(Dispatchers.IO) { installer.install(finalApk, packageName) }
         withContext(Dispatchers.Main) {
             onProgress("\u2705 Done! Check your launcher for \"$appLabel\"")
         }
@@ -345,7 +345,7 @@ class AppGenerator(private val context: Context) {
         withContext(Dispatchers.Main) {
             onProgress("\uD83D\uDCF2 Launching installer...")
         }
-        withContext(Dispatchers.IO) { installer.install(finalApk) }
+        withContext(Dispatchers.IO) { installer.install(finalApk, packageName) }
         withContext(Dispatchers.Main) {
             onProgress("\u2705 Done! Check your launcher for \"$appLabel\"")
         }

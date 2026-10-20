@@ -341,8 +341,11 @@ class ApkInjector(private val context: Context) {
     // ── APK v2 signing ──
 
     private fun applyV2Signature(unsigned: File, signed: File) {
-        val privateKey = KeystoreService.privateKey(context)
-        val cert = KeystoreService.certificate(context)
+        val master = KeystoreService.loadOrCreate(context)
+        val privateKey = master.privateKey
+        val cert = master.certificate
+        // Log the signer so a signature problem is visible in the build log.
+        log("Signing with master key ${master.fingerprint}")
 
         val apk = unsigned.readBytes()
         val eocdOffset = findEocd(apk)

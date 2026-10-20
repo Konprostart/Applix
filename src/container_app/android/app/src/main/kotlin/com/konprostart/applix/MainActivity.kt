@@ -250,11 +250,23 @@ class MainActivity : FlutterActivity() {
                         result.error("FAILED", e.message, null)
                     }
                 }
+                "getInstalledSigner" -> {
+                    val packageName = call.argument<String>("packageName") ?: ""
+                    if (packageName.isBlank()) {
+                        result.error("INVALID", "packageName required", null)
+                        return@setMethodCallHandler
+                    }
+                    try {
+                        result.success(KeyManager.getInstalledSigner(this@MainActivity, packageName))
+                    } catch (e: Exception) {
+                        result.error("FAILED", e.message, null)
+                    }
+                }
                 // ── Master signing key: export / import ──
                 "exportMasterKey" -> {
                     try {
-                        val file = KeystoreService.masterKeyFile(this@MainActivity)
-                        if (!file.exists()) {
+                        val file = KeystoreService.exportKey(this@MainActivity)
+                        if (file == null || !file.exists()) {
                             result.error("NOT_FOUND", "No master key yet", null)
                             return@setMethodCallHandler
                         }

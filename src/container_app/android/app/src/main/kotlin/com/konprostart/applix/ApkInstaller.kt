@@ -66,7 +66,8 @@ class ApkInstaller(private val context: Context) {
      * Requires: android.permission.REQUEST_INSTALL_PACKAGES
      * The user must also enable "Install unknown apps" for the container app.
      */
-    suspend fun install(apkFile: File): Unit = installInternal(apkFile, null)
+    suspend fun install(apkFile: File, packageName: String? = null): Unit =
+        installInternal(apkFile, null, packageName)
 
     /**
      * Install an APK after verifying its SHA-256 against [expectedSha256].
@@ -75,10 +76,10 @@ class ApkInstaller(private val context: Context) {
      * file that was truncated, swapped or purged between the download and the
      * install can never reach the package installer.
      */
-    suspend fun installVerified(apkFile: File, expectedSha256: String): Unit =
-        installInternal(apkFile, expectedSha256)
+    suspend fun installVerified(apkFile: File, expectedSha256: String, packageName: String? = null): Unit =
+        installInternal(apkFile, expectedSha256, packageName)
 
-    private suspend fun installInternal(apkFile: File, expectedSha256: String?): Unit =
+    private suspend fun installInternal(apkFile: File, expectedSha256: String?, packageName: String?): Unit =
         suspendCancellableCoroutine { cont ->
         // The application context outlives the Activity - the install must keep
         // working (and keep its receiver) when the Activity is destroyed, which is
@@ -89,7 +90,13 @@ class ApkInstaller(private val context: Context) {
         val params = PackageInstaller.SessionParams(
             PackageInstaller.SessionParams.MODE_FULL_INSTALL
         ).apply {
-            setAppLabel("Applix Generated App")
+            setAppLabel("Applix App")
+            // Telling the system which package and how big the file is makes the
+            // install smoother (it can pre-allocate and validate up front).
+            if (!packageName.isNullOrBlank()) {
+                try { setAppPackageName(packageName) } catch (ignored: Exception) {}
+            }
+            try { setSize(apkFile.length()) } catch (ignored: Exception) {}
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_REQUIRED)
             }

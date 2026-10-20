@@ -10,6 +10,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.16] - 2026-10-19
+
+### Fixed
+- **The signing key can no longer change behind your back.** The master key is stored as plain
+  files (PKCS#8 key + X.509 certificate + a fingerprint file) instead of a PKCS#12 keystore.
+  Keystore providers differ between Android versions and vendors - a file written by one could
+  not be read by the other, and a *new* key was then created silently, which is exactly what
+  made every build produce a different signature.
+- **A stored key is now used without exception.** If the key files exist they are loaded; if they
+  are damaged, the backup copy is used; if that fails too, the build stops with a clear message
+  instead of silently signing with a new key.
+- Every build now logs which key signed the app ("Signing with master key ...") and the signature
+  conflict dialog shows both fingerprints (the installed app and the Applix key), so a mismatch
+  is visible instead of mysterious.
+- The key can be exported and imported again (Settings → Signing Key). The export is a single
+  file with a checksum; the import rejects a file that does not match.
+
+### Changed
+- The package installer now knows the package name and the file size of the app it installs, which
+  makes the installation smoother and the errors clearer.
+
 ## [0.1.15] - 2026-10-19
 
 ### Fixed
@@ -313,7 +334,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.15...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.16...HEAD
+[0.1.16]: https://github.com/Konprostart/Applix/releases/tag/v0.1.16
 [0.1.15]: https://github.com/Konprostart/Applix/releases/tag/v0.1.15
 [0.1.14]: https://github.com/Konprostart/Applix/releases/tag/v0.1.14
 [0.1.13]: https://github.com/Konprostart/Applix/releases/tag/v0.1.13

@@ -95,6 +95,28 @@ object KeyManager {
         return if (installedSigs.contains(localDigest)) "same_signer" else "different_signer"
     }
 
+    /**
+     * The fingerprint of the signer of an installed app (null when the app is
+     * not installed or its signature cannot be read).
+     */
+    fun getInstalledSigner(context: Context, packageName: String): String? {
+        val pm = context.packageManager
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val pi = pm.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+                pi.signingInfo?.apkContentsSigners?.firstOrNull()
+                    ?.let { sigDigest(it.toByteArray()) }
+            } else {
+                @Suppress("DEPRECATION")
+                val pi = pm.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
+                @Suppress("DEPRECATION")
+                pi.signatures?.firstOrNull()?.let { sigDigest(it.toByteArray()) }
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private fun sigDigest(certBytes: ByteArray): String =
         KeystoreService.digest(certBytes)
 }

@@ -149,6 +149,17 @@ class Generator {
     return result ?? 'not_installed';
   }
 
+  /// The fingerprint of the installed app and of the master key - shown in the
+  /// signature conflict dialog so the reason is visible.
+  static String? _installedFingerprint;
+  static String? _masterFingerprint;
+
+  /// The fingerprint of the signer of an installed app (null when unknown).
+  static Future<String?> getInstalledSigner({required String packageName}) async {
+    final result = await _ch.invokeMethod<String>('getInstalledSigner', {'packageName': packageName});
+    return result;
+  }
+
   /// Checks for signature conflict and shows uninstall dialog if needed.
   /// Returns true if safe to proceed with install, false if user cancelled.
   static Future<bool> handleSignatureConflict({
@@ -159,6 +170,16 @@ class Generator {
     final sig = await checkSignature(packageName: packageName);
     if (sig != 'different_signer') return true;
 
+    // Show both fingerprints so the user can see that the key really differs.
+    try {
+      final info = await getKeyInfo();
+      _masterFingerprint = info['fingerprint'] as String?;
+    } catch (_) {}
+    try {
+      final installed = await getInstalledSigner(packageName: packageName);
+      _installedFingerprint = installed;
+    } catch (_) {}
+
     final proceed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -166,15 +187,21 @@ class Generator {
         backgroundColor: const Color(0xFF1A1A2E),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Update required'),
-        content: const Text(
-          'A different version of this app is already installed. '
-          'To update it, the old version needs to be removed first.\n\n'
-          'This happens when the app was signed with an older Applix key. '
-          'Applix now uses one stable master key for every app it builds, '
-          'so this is the last time.\n\n'
-          'Any data saved in the app will be deleted.',
-          style: TextStyle(color: Colors.white70),
-        ),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text(
+            'The installed app was signed with a different key than the one Applix uses now. '
+            'Applix signs every app with one stable master key, so this happens only for apps '
+            'that were built with an older version of Applix.\n\n'
+            'You can import the old key (Settings → Signing Key → Import key) to update the app '
+            'without losing its data - or replace it, which deletes the data of the app.',
+            style: TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          Text('Installed:  ${_installedFingerprint ?? 'unknown'}',
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 9, color: Colors.white38)),
+          Text('Applix key: ${_masterFingerprint ?? 'unknown'}',
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 9, color: Colors.white38)),
+        ]),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
