@@ -27,7 +27,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import '../models/ai_provider.dart';
+import '../services/ai_service.dart';
+import '../services/prompt_builder.dart';
 import '../services/project_store.dart';
+import '../services/settings_service.dart';
 import '../services/ui_kit.dart';
 
 class PreviewScreen extends StatefulWidget {
@@ -35,11 +39,14 @@ class PreviewScreen extends StatefulWidget {
   /// Extra project files (style.css, script.js, ...) that are inlined so the
   /// preview looks exactly like the installed app.
   final Map<String, String> projectFiles;
+  /// Called when the AI fixed the code, so the editor can be updated.
+  final void Function(String html)? onHtmlFixed;
   final List<String> initialWarnings;
   const PreviewScreen({
     super.key,
     required this.htmlContent,
     this.projectFiles = const {},
+    this.onHtmlFixed,
     this.initialWarnings = const [],
   });
   @override
@@ -57,6 +64,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
   final List<_ConsoleLine> _console = [];
   bool _consoleExpanded = true;
   bool _bannerVisible = true;
+  bool _fixing = false;
   static const _channel = MethodChannel('com.konprostart.applix/generator');
 
   // ── Console capture (injected before app code) ──
@@ -682,10 +690,73 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   /// The HTML as the app will really be built: the project files inlined and
   /// the design system applied.
-  Future<String> _prepareHtml() async {
-    final withFiles =
-        ProjectStore.inlineProjectFiles(widget.htmlContent, widget.projectFiles);
+  Future<String> _prepareHtml([String? html]) async {
+    final source = html ?? widget.htmlContent;
+    final withFiles = ProjectStore.inlineProjectFiles(source, widget.projectFiles);
     return UiKit.applyTo(withFiles);
+  }
+
+  /// The first JavaScript error in the console (a syntax error breaks the app).
+  String? get _jsError {
+    for (final line in _console) {
+      if (line.type == 'error' && line.msg.contains('SyntaxError')) return line.msg;
+    }
+    return null;
+  }
+
+  /// Asks the AI to fix the broken JavaScript of the current app.
+  Future<void> _fixWithAi() async {
+    final error = _jsError;
+    if (error == null || _fixing) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final provider = await Settings.getActiveProvider();
+    if (provider == null || !provider.isConfigured) {
+      messenger.showSnackBar(const SnackBar(
+        content: Text('Set up an AI provider first.'),
+        backgroundColor: Color(0xFF1A1A2E),
+      ));
+      return;
+    }
+    setState(() => _fixing = true);
+    try {
+      final systemPrompt = await PromptBuilder.getSystemPrompt();
+      final response = await AiService.generate(
+        provider: provider,
+        systemPrompt: systemPrompt,
+        messages: [
+          ChatMessage(
+            role: 'user',
+            content: 'The JavaScript of this app has a syntax error:\n\n$error\n\n'
+                'Here is the current code:\n```html\n${widget.htmlContent}\n```\n\n'
+                'Return the complete fixed HTML file. Fix only the syntax error, keep '
+                'everything else exactly as it is.',
+          ),
+        ],
+      );
+      final fixed = response.trim();
+      if (!fixed.startsWith('<')) {
+        messenger.showSnackBar(const SnackBar(
+          content: Text('The AI did not return a valid HTML file.'),
+          backgroundColor: Color(0xFF1A1A2E),
+        ));
+        return;
+      }
+      if (!mounted) return;
+      setState(() {
+        _console.clear();
+        _fixing = false;
+      });
+      widget.onHtmlFixed?.call(fixed);
+      final prepared = await _prepareHtml(fixed);
+      if (!mounted) return;
+      _controller.loadHtmlString(_injectScripts(prepared), baseUrl: 'https://localhost/');
+    } catch (e) {
+      if (mounted) setState(() => _fixing = false);
+      messenger.showSnackBar(SnackBar(
+        content: Text('The fix failed: $e'),
+        backgroundColor: const Color(0xFF1A1A2E),
+      ));
+    }
   }
 
   void _onConsoleMessage(JavaScriptMessage msg) {
@@ -930,7 +1001,53 @@ class _PreviewScreenState extends State<PreviewScreen> {
           // WebView
           Expanded(
             flex: _consoleExpanded ? 6 : 10,
-            child: WebViewWidget(controller: _controller),
+            child: Stack(children: [
+              WebViewWidget(controller: _controller),
+              // A JavaScript syntax error breaks the whole app - offer a fix.
+              if (_jsError != null)
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  bottom: 12,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2A1620),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFFF6B6B)),
+                    ),
+                    child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Row(children: [
+                        Icon(Icons.error_outline, size: 16, color: Color(0xFFFF6B6B)),
+                        SizedBox(width: 8),
+                        Text('The JavaScript of this app is broken',
+                            style: TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600)),
+                      ]),
+                      const SizedBox(height: 6),
+                      Text(_jsError!,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 11, fontFamily: 'monospace', color: Colors.white54)),
+                      const SizedBox(height: 10),
+                      Row(children: [
+                        Expanded(child: ElevatedButton.icon(
+                          onPressed: _fixing ? null : _fixWithAi,
+                          icon: _fixing
+                              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Icon(Icons.auto_fix_high, size: 16),
+                          label: Text(_fixing ? 'Fixing...' : 'Fix with AI'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4FC3F7),
+                            foregroundColor: const Color(0xFF06121C),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        )),
+                      ]),
+                    ]),
+                  ),
+                ),
+            ]),
           ),
           // Console
           if (_consoleExpanded)

@@ -1689,6 +1689,11 @@ class CreateScreenState extends State<CreateScreen> {
                 htmlContent: html,
                 projectFiles: projectFiles,
                 initialWarnings: issues.map((issue) => issue.consoleLine).toList(),
+                onHtmlFixed: (fixed) {
+                  if (!mounted) return;
+                  _htmlController.text = fixed;
+                  setState(() {});
+                },
               )));
             }),
             const SizedBox(height: 10),

@@ -10,6 +10,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.2.6] - 2026-10-20
+
+### Fixed
+- **The app name is always exactly what the user typed.** The name is written into the
+  binary manifest of the generated app; the placeholder in the shell is replaced including its
+  length, so no leftovers of the placeholder can end up in the name.
+- **A broken JavaScript file can now be fixed with one tap.** When the preview reports a
+  JavaScript syntax error, the preview shows what is broken and a "Fix with AI" button that
+  sends the code and the error to the AI and loads the corrected version back into the editor and
+  the preview.
+- The preview and the refresh button load the app exactly the same way - with the project files
+  and the design system - so the preview always matches the built app.
+
+### Changed
+- **A new, more polished UI Kit.** The design system that is injected into every app got a
+  deeper, calmer dark palette, a gradient primary button, softer elevation, a blurred app bar, a
+  hero block, badges, chevrons, field hints and smooth page transitions. The system prompt now
+  also demands a native look: a top bar, real spacing, cards or lists, empty and loading states,
+  48px touch targets and feedback for every action.
+
 ## [0.2.5] - 2026-10-20
 
 ### Changed
@@ -472,7 +492,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/Konprostart/Applix/releases/tag/v0.2.6
 [0.2.5]: https://github.com/Konprostart/Applix/releases/tag/v0.2.5
 [0.2.4]: https://github.com/Konprostart/Applix/releases/tag/v0.2.4
 [0.2.3]: https://github.com/Konprostart/Applix/releases/tag/v0.2.3

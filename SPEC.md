@@ -140,18 +140,27 @@ Build the app from these classes instead of inventing your own CSS.
 **Components** (add the class to your own elements):
 - Layout: `.ax-page` (centered column, max 720px) · `.ax-section-title` · `.ax-divider` ·
   `.ax-row-flex` · `.ax-spacer` · `.ax-muted` · `.ax-center` · `.ax-hide`
-- Chrome: `.ax-appbar` + `.ax-appbar__title` + `.ax-appbar__sub`
+- Chrome: `.ax-appbar` + `.ax-appbar__title` + `.ax-appbar__sub` + `.ax-appbar__action`
+- Hero: `.ax-hero` + `.ax-hero__title` + `.ax-hero__sub`
 - Surfaces: `.ax-card` (`.ax-card--flat`, `.ax-card--tap`) · `.ax-list` + `.ax-row`
-  (`.ax-row--tap`) + `.ax-row__icon` `.ax-row__body` `.ax-row__title` `.ax-row__sub` `.ax-row__value`
+  (`.ax-row--tap`) + `.ax-row__icon` `.ax-row__body` `.ax-row__title` `.ax-row__sub` `.ax-row__value` `.ax-row__chevron`
 - Actions: `.ax-btn` (`.ax-btn--secondary` `.ax-btn--ghost` `.ax-btn--danger` `.ax-btn--block`
-  `.ax-btn--small`) · `.ax-fab` · `.ax-chip` (`.ax-chip--active`) · `.ax-switch`
-- Inputs: `.ax-input` · `.ax-field` + `.ax-field__label`
+  `.ax-btn--small`) · `.ax-fab` · `.ax-chip` (`.ax-chip--active`) · `.ax-badge` · `.ax-switch`
+- Inputs: `.ax-input` · `.ax-field` + `.ax-field__label` + `.ax-field__hint`
 - Feedback: `.ax-empty` + `.ax-empty__icon` + `.ax-empty__title` · `.ax-skeleton` · `.ax-toast`
 - Overlays: `.ax-sheet` + `.ax-sheet-backdrop` + `.ax-sheet__handle`
 - Data: `.ax-stat` + `.ax-stat__value` + `.ax-stat__label`
 
 **Rules**
 - Use these classes for the whole layout. Add custom CSS only for what they do not cover.
+- The result must look like a modern native app, never like a web page: no default browser
+  buttons, no underlined links, no dense tables, no tiny text, no default blue.
+- Every screen needs: a top bar (`.ax-appbar`), real spacing (16-24px), a card or list
+  (`.ax-card` / `.ax-list`), an empty state (`.ax-empty`), a loading state (`.ax-skeleton`) and
+  one clear primary action (`.ax-btn`).
+- Touch targets are at least 48px, body text 15-16px, labels 13-14px.
+- Give feedback for every action: pressed states, toasts (`.ax-toast`), loading and disabled
+  states - an app that never reacts feels broken.
 - The stylesheet is injected first, so your own CSS always wins. Re-declare a token in your
   `:root` to change it (e.g. `html{--ax-primary:#ffb86b}`).
 - Touch targets are 48px by default with `.ax-btn` and `.ax-row` — do not shrink them.

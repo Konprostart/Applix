@@ -1,62 +1,34 @@
 /* ==========================================================================
-   Applix UI Kit - a small design system injected into every generated app.
+   Applix UI Kit - a small, premium design system injected into every app.
    Injected as the FIRST stylesheet, so an app's own CSS always wins.
-   Everything is namespaced with .ax- to avoid clashing with app styles.
+   Everything is namespaced with .ax- so it never clashes with app styles.
    ========================================================================== */
 
 :root {
-  /* Color tokens - overridden by the shell with the device theme */
-  --ax-bg: #0d0d1a;
-  --ax-surface: #1a1a2e;
-  --ax-surface-2: #20203a;
-  --ax-elevated: #24243f;
-  --ax-border: rgba(255, 255, 255, 0.08);
-  --ax-border-strong: rgba(255, 255, 255, 0.16);
-  --ax-text: #eaeaea;
-  --ax-text-dim: rgba(255, 255, 255, 0.62);
-  --ax-text-faint: rgba(255, 255, 255, 0.38);
-  --ax-primary: #4fc3f7;
-  --ax-primary-press: #2b9fd6;
-  --ax-on-primary: #06121c;
-  --ax-danger: #ff6b6b;
-  --ax-success: #5cd6a0;
-  --ax-warning: #ffb86b;
+  /* Color tokens - overridden by the shell with the system theme */
+  --ax-bg: #0B0B12;
+  --ax-bg-elevated: #12121C;
+  --ax-surface: #171722;
+  --ax-surface-2: #1E1E2C;
+  --ax-elevated: #232333;
+  --ax-border: rgba(255, 255, 255, 0.07);
+  --ax-border-strong: rgba(255, 255, 255, 0.14);
+  --ax-text: #F2F3F7;
+  --ax-text-dim: rgba(242, 243, 247, 0.66);
+  --ax-text-faint: rgba(242, 243, 247, 0.42);
+  --ax-primary: #6C8CFF;
+  --ax-primary-2: #8B5CF6;
+  --ax-primary-press: #5A79E8;
+  --ax-on-primary: #FFFFFF;
+  --ax-danger: #FF6B6B;
+  --ax-success: #3DD68C;
+  --ax-warning: #FFB86B;
 
-  /* Spacing scale (4px base) */
-  --ax-1: 4px;
-  --ax-2: 8px;
-  --ax-3: 12px;
-  --ax-4: 16px;
-  --ax-5: 20px;
-  --ax-6: 24px;
-  --ax-8: 32px;
-  --ax-10: 40px;
-  --ax-12: 48px;
-
-  /* Radius */
-  --ax-radius-sm: 8px;
-  --ax-radius: 12px;
-  --ax-radius-lg: 16px;
-  --ax-radius-pill: 999px;
-
-  /* Elevation */
-  --ax-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --ax-shadow-2: 0 2px 6px rgba(0, 0, 0, 0.35);
-  --ax-shadow-3: 0 8px 24px rgba(0, 0, 0, 0.45);
-
-  /* Motion */
-  --ax-fast: 120ms;
-  --ax-base: 180ms;
-  --ax-slow: 280ms;
-  --ax-ease: cubic-bezier(0.4, 0, 0.2, 1);
-
-  /* Aliases for the variable names the system prompt teaches.
-     Apps that use var(--primary) / var(--surface) / var(--text) get the same
-     values as the .ax-* system instead of falling back to "no color". */
+  /* Aliases for the variable names the system prompt teaches */
   --primary: var(--ax-primary);
   --primary-light: var(--ax-primary);
   --primary-dark: var(--ax-primary-press);
-  --secondary: var(--ax-accent, var(--ax-primary));
+  --secondary: var(--ax-primary-2);
   --bg: var(--ax-bg);
   --surface: var(--ax-surface);
   --surface-2: var(--ax-surface-2);
@@ -70,33 +42,60 @@
   --danger: var(--ax-danger);
   --success: var(--ax-success);
 
-  /* Safe areas - the shell writes the real device values at runtime.
-     Without edge-to-edge they stay 0 and the layout is unaffected. */
+  /* Spacing scale (4px base) */
+  --ax-1: 4px;
+  --ax-2: 8px;
+  --ax-3: 12px;
+  --ax-4: 16px;
+  --ax-5: 20px;
+  --ax-6: 24px;
+  --ax-8: 32px;
+  --ax-10: 40px;
+  --ax-12: 48px;
+
+  /* Radius */
+  --ax-radius-sm: 10px;
+  --ax-radius: 14px;
+  --ax-radius-lg: 20px;
+  --ax-radius-pill: 999px;
+
+  /* Elevation */
+  --ax-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.30);
+  --ax-shadow-2: 0 6px 18px rgba(0, 0, 0, 0.35);
+  --ax-shadow-3: 0 18px 44px rgba(0, 0, 0, 0.45);
+  --ax-glow: 0 8px 28px rgba(108, 140, 255, 0.22);
+
+  /* Motion */
+  --ax-fast: 140ms;
+  --ax-base: 220ms;
+  --ax-slow: 340ms;
+  --ax-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Safe areas - the shell writes the real device values at runtime */
   --ax-safe-top: 0px;
   --ax-safe-bottom: 0px;
   --ax-safe-left: 0px;
   --ax-safe-right: 0px;
-
-  /* System bars */
   --ax-status-bar-height: 24px;
   --ax-nav-bar-height: 48px;
 }
 
-/* Light theme - only applied when the app opts in with
-   <meta name="applix-theme" content="light"> */
+/* Light theme - opt in with <meta name="applix-theme" content="light"> */
 html[data-applix-theme="light"] {
-  --ax-bg: #f6f7fb;
-  --ax-surface: #ffffff;
-  --ax-surface-2: #f0f2f8;
-  --ax-elevated: #ffffff;
-  --ax-border: rgba(15, 23, 42, 0.10);
-  --ax-border-strong: rgba(15, 23, 42, 0.20);
-  --ax-text: #10131c;
-  --ax-text-dim: rgba(16, 19, 28, 0.66);
-  --ax-text-faint: rgba(16, 19, 28, 0.42);
-  --ax-shadow-1: 0 1px 2px rgba(15, 23, 42, 0.10);
-  --ax-shadow-2: 0 2px 8px rgba(15, 23, 42, 0.12);
-  --ax-shadow-3: 0 12px 32px rgba(15, 23, 42, 0.18);
+  --ax-bg: #F5F6FA;
+  --ax-bg-elevated: #FFFFFF;
+  --ax-surface: #FFFFFF;
+  --ax-surface-2: #F1F2F7;
+  --ax-elevated: #FFFFFF;
+  --ax-border: rgba(16, 20, 40, 0.08);
+  --ax-border-strong: rgba(16, 20, 40, 0.16);
+  --ax-text: #12141C;
+  --ax-text-dim: rgba(18, 20, 28, 0.66);
+  --ax-text-faint: rgba(18, 20, 28, 0.44);
+  --ax-shadow-1: 0 1px 2px rgba(16, 20, 40, 0.08);
+  --ax-shadow-2: 0 6px 18px rgba(16, 20, 40, 0.10);
+  --ax-shadow-3: 0 18px 44px rgba(16, 20, 40, 0.14);
+  --ax-glow: 0 8px 28px rgba(108, 140, 255, 0.22);
 }
 
 /* ---------------------------------------------------------------- baseline */
@@ -104,10 +103,13 @@ html[data-applix-theme="light"] {
 html {
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
 }
 
 body {
   overscroll-behavior-y: contain;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
@@ -140,10 +142,13 @@ textarea {
   touch-action: manipulation;
 }
 
-/* Scrollbars: invisible on touch, thin on desktop */
+::selection {
+  background: rgba(108, 140, 255, 0.32);
+}
+
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -152,7 +157,7 @@ textarea {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.18);
   border-radius: var(--ax-radius-pill);
 }
 
@@ -167,10 +172,10 @@ textarea {
   gap: var(--ax-3);
   padding: var(--ax-3) var(--ax-4);
   padding-top: calc(var(--ax-3) + var(--ax-safe-top));
-  background: var(--ax-surface);
+  background: color-mix(in srgb, var(--ax-bg) 72%, transparent);
   border-bottom: 1px solid var(--ax-border);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: saturate(180%) blur(18px);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
 }
 
 .ax-appbar__title {
@@ -178,7 +183,7 @@ textarea {
   min-width: 0;
   font-size: 1.15rem;
   font-weight: 650;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -187,8 +192,19 @@ textarea {
 .ax-appbar__sub {
   display: block;
   font-size: 0.75rem;
-  font-weight: 400;
+  font-weight: 450;
   color: var(--ax-text-faint);
+}
+
+.ax-appbar__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--ax-radius-sm);
+  background: var(--ax-surface-2);
+  border: 1px solid var(--ax-border);
 }
 
 /* ---------------------------------------------------------------- layout */
@@ -198,13 +214,21 @@ textarea {
   margin: 0 auto;
   padding: var(--ax-4);
   padding-bottom: calc(var(--ax-8) + var(--ax-safe-bottom));
+  animation: ax-fade-up var(--ax-base) var(--ax-ease) both;
+}
+
+@keyframes ax-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 
 .ax-section-title {
   margin: var(--ax-6) 0 var(--ax-2);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--ax-text-faint);
 }
@@ -227,16 +251,37 @@ textarea {
 
 .ax-card--flat {
   box-shadow: none;
+  background: var(--ax-surface-2);
 }
 
 .ax-card--tap {
   transition: transform var(--ax-fast) var(--ax-ease),
-    background var(--ax-fast) var(--ax-ease);
+    border-color var(--ax-fast) var(--ax-ease);
 }
 
 .ax-card--tap:active {
   transform: scale(0.985);
-  background: var(--ax-surface-2);
+  border-color: var(--ax-border-strong);
+}
+
+.ax-hero {
+  padding: var(--ax-6);
+  border-radius: var(--ax-radius-lg);
+  background: linear-gradient(135deg, var(--ax-primary), var(--ax-primary-2));
+  color: #fff;
+  box-shadow: var(--ax-glow);
+}
+
+.ax-hero__title {
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.ax-hero__sub {
+  margin-top: var(--ax-1);
+  font-size: 0.9rem;
+  opacity: 0.85;
 }
 
 /* ------------------------------------------------------------- list rows */
@@ -252,7 +297,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: var(--ax-3);
-  min-height: 52px;
+  min-height: 56px;
   padding: var(--ax-3) var(--ax-4);
   border-bottom: 1px solid var(--ax-border);
   transition: background var(--ax-fast) var(--ax-ease);
@@ -270,11 +315,11 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  flex: 0 0 40px;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
   border-radius: var(--ax-radius);
-  background: rgba(79, 195, 247, 0.14);
+  background: color-mix(in srgb, var(--ax-primary) 18%, transparent);
   font-size: 1.25rem;
 }
 
@@ -286,6 +331,7 @@ textarea {
 .ax-row__title {
   font-size: 0.95rem;
   font-weight: 550;
+  letter-spacing: -0.01em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -304,6 +350,11 @@ textarea {
   color: var(--ax-text-faint);
 }
 
+.ax-row__chevron {
+  color: var(--ax-text-faint);
+  font-size: 1.1rem;
+}
+
 /* --------------------------------------------------------------- buttons */
 
 .ax-btn {
@@ -311,45 +362,51 @@ textarea {
   align-items: center;
   justify-content: center;
   gap: var(--ax-2);
-  min-height: 48px;
+  min-height: 50px;
   padding: 0 var(--ax-5);
   border: none;
   border-radius: var(--ax-radius-pill);
-  background: var(--ax-primary);
+  background: linear-gradient(135deg, var(--ax-primary), var(--ax-primary-2));
   color: var(--ax-on-primary);
   font-size: 0.95rem;
   font-weight: 650;
+  letter-spacing: -0.01em;
   cursor: pointer;
   user-select: none;
+  box-shadow: var(--ax-glow);
   transition: transform var(--ax-fast) var(--ax-ease),
-    opacity var(--ax-fast) var(--ax-ease), background var(--ax-fast) var(--ax-ease);
+    opacity var(--ax-fast) var(--ax-ease), box-shadow var(--ax-fast) var(--ax-ease);
 }
 
 .ax-btn:active {
   transform: scale(0.97);
-  opacity: 0.88;
+  box-shadow: none;
 }
 
 .ax-btn[disabled],
 .ax-btn[aria-disabled="true"] {
   opacity: 0.45;
   pointer-events: none;
+  box-shadow: none;
 }
 
 .ax-btn--secondary {
   background: var(--ax-surface-2);
   color: var(--ax-text);
   border: 1px solid var(--ax-border-strong);
+  box-shadow: none;
 }
 
 .ax-btn--ghost {
   background: transparent;
   color: var(--ax-primary);
+  box-shadow: none;
 }
 
 .ax-btn--danger {
   background: var(--ax-danger);
-  color: #2a0a0a;
+  color: #fff;
+  box-shadow: none;
 }
 
 .ax-btn--block {
@@ -358,9 +415,10 @@ textarea {
 }
 
 .ax-btn--small {
-  min-height: 36px;
+  min-height: 38px;
   padding: 0 var(--ax-4);
   font-size: 0.85rem;
+  box-shadow: none;
 }
 
 .ax-fab {
@@ -371,12 +429,12 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
+  width: 58px;
+  height: 58px;
   border: none;
   border-radius: var(--ax-radius-pill);
-  background: var(--ax-primary);
-  color: var(--ax-on-primary);
+  background: linear-gradient(135deg, var(--ax-primary), var(--ax-primary-2));
+  color: #fff;
   font-size: 1.6rem;
   box-shadow: var(--ax-shadow-3);
   cursor: pointer;
@@ -384,20 +442,20 @@ textarea {
 }
 
 .ax-fab:active {
-  transform: scale(0.92);
+  transform: scale(0.9);
 }
 
 /* ---------------------------------------------------------------- inputs */
 
 .ax-input {
   width: 100%;
-  min-height: 48px;
+  min-height: 50px;
   padding: var(--ax-3) var(--ax-4);
   border: 1px solid var(--ax-border-strong);
   border-radius: var(--ax-radius);
   background: var(--ax-surface-2);
   color: var(--ax-text);
-  font-size: 1rem;
+  font-size: 0.95rem;
   outline: none;
   transition: border-color var(--ax-fast) var(--ax-ease),
     box-shadow var(--ax-fast) var(--ax-ease);
@@ -409,7 +467,7 @@ textarea {
 
 .ax-input:focus {
   border-color: var(--ax-primary);
-  box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.16);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ax-primary) 18%, transparent);
 }
 
 .ax-field {
@@ -424,13 +482,20 @@ textarea {
   color: var(--ax-text-dim);
 }
 
-/* ----------------------------------------------------------------- chips */
+.ax-field__hint {
+  display: block;
+  margin-top: var(--ax-1);
+  font-size: 0.75rem;
+  color: var(--ax-text-faint);
+}
+
+/* -------------------------------------------------------- chips & badges */
 
 .ax-chip {
   display: inline-flex;
   align-items: center;
   gap: var(--ax-1);
-  min-height: 32px;
+  min-height: 34px;
   padding: 0 var(--ax-3);
   border-radius: var(--ax-radius-pill);
   background: var(--ax-surface-2);
@@ -440,18 +505,32 @@ textarea {
 }
 
 .ax-chip--active {
-  background: rgba(79, 195, 247, 0.16);
-  border-color: rgba(79, 195, 247, 0.45);
+  background: color-mix(in srgb, var(--ax-primary) 20%, transparent);
+  border-color: color-mix(in srgb, var(--ax-primary) 55%, transparent);
   color: var(--ax-primary);
+}
+
+.ax-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 var(--ax-2);
+  border-radius: var(--ax-radius-pill);
+  background: var(--ax-primary);
+  color: var(--ax-on-primary);
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 /* --------------------------------------------------------------- switch */
 
 .ax-switch {
   position: relative;
-  width: 48px;
-  height: 28px;
-  flex: 0 0 48px;
+  width: 50px;
+  height: 30px;
+  flex: 0 0 50px;
   border-radius: var(--ax-radius-pill);
   background: var(--ax-border-strong);
   border: none;
@@ -464,8 +543,8 @@ textarea {
   position: absolute;
   top: 3px;
   left: 3px;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: #fff;
   box-shadow: var(--ax-shadow-1);
@@ -493,8 +572,14 @@ textarea {
 }
 
 .ax-empty__icon {
-  font-size: 2.6rem;
-  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--ax-radius-lg);
+  background: var(--ax-surface-2);
+  font-size: 1.8rem;
 }
 
 .ax-empty__title {
@@ -517,13 +602,8 @@ textarea {
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.06),
-    transparent
-  );
-  animation: ax-shimmer 1.4s infinite;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+  animation: ax-shimmer 1.5s infinite;
 }
 
 @keyframes ax-shimmer {
@@ -543,8 +623,8 @@ textarea {
   max-width: 88%;
   padding: var(--ax-3) var(--ax-5);
   border-radius: var(--ax-radius-pill);
-  background: rgba(20, 20, 35, 0.94);
-  border: 1px solid var(--ax-border);
+  background: rgba(24, 24, 36, 0.96);
+  border: 1px solid var(--ax-border-strong);
   color: #fff;
   font-size: 0.9rem;
   box-shadow: var(--ax-shadow-3);
@@ -554,17 +634,17 @@ textarea {
 @keyframes ax-toast-in {
   from {
     opacity: 0;
-    transform: translate(-50%, 12px);
+    transform: translate(-50%, 14px);
   }
 }
 
-/* ------------------------------------------------------------ bottom sheet */
+/* ----------------------------------------------------------- bottom sheet */
 
 .ax-sheet-backdrop {
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.6);
   animation: ax-fade-in var(--ax-base) var(--ax-ease);
 }
 
@@ -574,19 +654,19 @@ textarea {
   right: 0;
   bottom: 0;
   z-index: 51;
-  max-height: 82vh;
+  max-height: 84vh;
   overflow-y: auto;
   padding: var(--ax-3) var(--ax-4);
   padding-bottom: calc(var(--ax-6) + var(--ax-safe-bottom));
   border-radius: var(--ax-radius-lg) var(--ax-radius-lg) 0 0;
-  background: var(--ax-surface);
+  background: var(--ax-bg-elevated);
   border-top: 1px solid var(--ax-border);
   box-shadow: var(--ax-shadow-3);
   animation: ax-sheet-in var(--ax-base) var(--ax-ease);
 }
 
 .ax-sheet__handle {
-  width: 36px;
+  width: 38px;
   height: 4px;
   margin: var(--ax-2) auto var(--ax-4);
   border-radius: var(--ax-radius-pill);
@@ -617,14 +697,15 @@ textarea {
 .ax-stat__value {
   font-size: 1.6rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
 .ax-stat__label {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 600;
   color: var(--ax-text-faint);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
 }
 
 /* --------------------------------------------------------------- helpers */
