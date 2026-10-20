@@ -29,6 +29,7 @@ package com.konprostart.applix
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
+import androidx.core.content.FileProvider
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageInstaller
@@ -55,6 +56,7 @@ class ApkInstaller(private val context: Context) {
     companion object {
         private const val TAG = "Applix"
         private const val ACTION_INSTALL_RESULT = "com.konprostart.applix.INSTALL_RESULT"
+        private val HEX = "0123456789abcdef".toCharArray()
     }
 
     /**
@@ -110,6 +112,13 @@ class ApkInstaller(private val context: Context) {
         // Validate the file before anything is staged.
         if (!apkFile.exists() || apkFile.length() <= 0L) {
             cont.resumeWithException(InstallException("The APK file is missing or empty"))
+            return@suspendCancellableCoroutine
+        }
+        // The archive must be signed with the same key as the installed app and
+        // must be newer - otherwise Android refuses it with a cryptic message.
+        val problem = verifyArchive(apkFile)
+        if (problem != null) {
+            cont.resumeWithException(InstallException(problem))
             return@suspendCancellableCoroutine
         }
         if (!expectedSha256.isNullOrBlank()) {
@@ -284,6 +293,106 @@ class ApkInstaller(private val context: Context) {
         session.close()
 
         cont.invokeOnCancellation { unregisterSafely() }
+    }
+
+    /**
+     * Opens the system installer for an APK file (the classic ACTION_VIEW path).
+     *
+     * This is the fallback when the package installer session does not produce
+     * a result: the file is handed to the system installer through a
+     * FileProvider content:// URI, the user confirms and Android installs it.
+     */
+    fun installViaSystemInstaller(apkFile: File): Boolean {
+        return try {
+            if (!apkFile.exists() || apkFile.length() <= 0L) return false
+            val uri = FileProvider.getUriForFile(
+                context,
+                context.packageName + ".fileprovider",
+                apkFile
+            )
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "System installer could not be opened: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * Checks the downloaded APK against the installed app: same signature and
+     * a higher version code. Returns an error message or null when it is fine.
+     */
+    private fun verifyArchive(apkFile: File): String? {
+        return try {
+            val pm = context.packageManager
+            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
+            } else {
+                0
+            }
+            val archive = pm.getPackageArchiveInfo(apkFile.absolutePath, flags)
+                ?: return "The downloaded file is not a valid APK"
+            val installed = pm.getPackageInfo(context.packageName, flags)
+
+            // Signature
+            val archiveSigners = signersOf(archive)
+            val installedSigners = signersOf(installed)
+            if (archiveSigners.isEmpty() || installedSigners.isEmpty()) {
+                return "Could not read the signature of the update"
+            }
+            if (archiveSigners.toSet() != installedSigners.toSet()) {
+                return "The update is signed with a different key than the installed app"
+            }
+
+            // Version
+            val archiveVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                archive.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                archive.versionCode.toLong()
+            }
+            val installedVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                installed.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                installed.versionCode.toLong()
+            }
+            if (archiveVersion <= installedVersion) {
+                return "The update (version code $archiveVersion) is not newer than the " +
+                    "installed app (version code $installedVersion)"
+            }
+            null
+        } catch (e: Exception) {
+            "Could not check the update: ${e.message}"
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun signersOf(info: android.content.pm.PackageInfo): List<String> {
+        val signatures = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                info.signingInfo?.apkContentsSigners?.map { it.toByteArray().toHex() } ?: emptyList()
+            } else {
+                info.signatures?.map { it.toByteArray().toHex() } ?: emptyList()
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+        return signatures
+    }
+
+    private fun ByteArray.toHex(): String {
+        val out = StringBuilder(size * 2)
+        for (b in this) {
+            val v = b.toInt() and 0xFF
+            out.append(HEX[v ushr 4]).append(HEX[v and 0x0F])
+        }
+        return out.toString()
     }
 
     /** SHA-256 of a file, hex encoded. */

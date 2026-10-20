@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <files-path name="work" path="iappyxos_work/" />
+    <!-- The build work directory (current name) -->
+    <files-path name="work" path="applix_work/" />
+    <!-- Built APKs of the user's apps + the project folders -->
+    <files-path name="apps" path="apps/" />
+    <!-- Downloaded update APKs (used by the in-app update installer) -->
+    <files-path name="updates" path="updates/" />
     <cache-path name="share" path="share/" />
 </paths>

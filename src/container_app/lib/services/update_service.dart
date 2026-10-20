@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/services.dart' show MethodChannel;
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -321,15 +322,10 @@ class UpdateService {
     }
   }
 
-  /// SHA-256 of a file, streamed so a 40 MB APK does not need to fit in RAM.
+  /// SHA-256 of a file. The work happens in a background isolate, so hashing a
+  /// 40 MB APK never blocks the UI.
   static Future<String> sha256File(File file) async {
-    final sink = _DigestSink();
-    final input = sha256.startChunkedConversion(sink);
-    await for (final chunk in file.openRead()) {
-      input.add(chunk);
-    }
-    input.close();
-    return sink.digest.toString();
+    return compute(_sha256FileSync, file.path);
   }
 
   /// Opens this app's system settings page (for the "install unknown apps"
@@ -346,11 +342,41 @@ class UpdateService {
   /// The native side re-checks the checksum of the very file it installs and
   /// refuses to commit a session that did not receive every byte.
   static Future<void> install(File apk, {String expectedSha256 = ''}) async {
-    await _ch.invokeMethod('installUpdateApk', {
-      'path': apk.path,
-      'sha256': expectedSha256,
-    });
+    if (!await apk.exists()) {
+      throw Exception('The downloaded update is gone - please try again.');
+    }
+    if (await apk.length() < 1024 * 1024) {
+      throw Exception('The downloaded update is too small to be an APK.');
+    }
+    // The system shows its own dialog; the call returns when the install
+    // finished. The timeout makes sure the app never waits forever.
+    await _ch
+        .invokeMethod('installUpdateApk', {
+          'path': apk.path,
+          'sha256': expectedSha256,
+        })
+        .timeout(const Duration(minutes: 5));
   }
+}
+
+/// Computes the SHA-256 of a file. Runs in a background isolate.
+String _sha256FileSync(String path) {
+  final file = File(path);
+  final sink = _DigestSink();
+  final input = sha256.startChunkedConversion(sink);
+  final handle = file.openSync();
+  try {
+    final buffer = List<int>.filled(64 * 1024, 0);
+    while (true) {
+      final read = handle.readSync(buffer, 0, buffer.length);
+      if (read <= 0) break;
+      input.add(buffer.sublist(0, read));
+    }
+  } finally {
+    handle.close();
+  }
+  input.close();
+  return sink.digest.toString();
 }
 
 class _DigestSink implements Sink<Digest> {

@@ -397,16 +397,38 @@ class MainActivity : FlutterActivity() {
                         return@setMethodCallHandler
                     }
                     installScope.launch {
+                        val file = File(path)
+                        var failure: String? = null
                         try {
                             val installer = ApkInstaller(this@MainActivity)
                             if (sha256.isBlank()) {
-                                installer.install(File(path))
+                                installer.install(file)
                             } else {
-                                installer.installVerified(File(path), sha256)
+                                installer.installVerified(file, sha256)
                             }
                             runOnUiThread { result.success(null) }
-                        } catch (e: Exception) {
-                            runOnUiThread { result.error("FAILED", e.message, null) }
+                            return@launch
+                        } catch (e: Throwable) {
+                            // Never let an install problem take the app down.
+                            Log.e("Applix", "Update install failed: ${e.message}")
+                            failure = e.message ?: "The install failed"
+                        }
+
+                        // Fallback: hand the APK to the system installer. The
+                        // package installer session can be rejected by the system
+                        // (for example when the permission was revoked in the
+                        // meantime) - the classic intent still works.
+                        val opened = try {
+                            ApkInstaller(this@MainActivity).installViaSystemInstaller(file)
+                        } catch (e: Throwable) {
+                            false
+                        }
+                        runOnUiThread {
+                            if (opened) {
+                                result.success(null)
+                            } else {
+                                result.error("FAILED", failure ?: "The install failed", null)
+                            }
                         }
                     }
                 }

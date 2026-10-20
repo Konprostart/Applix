@@ -109,7 +109,13 @@ class UpdatePrompt {
 
     File? apk;
     try {
+      // The progress is throttled: a 40 MB download delivers thousands of
+      // chunks and every one of them would rebuild the dialog.
+      var lastPaint = DateTime.fromMillisecondsSinceEpoch(0);
       apk = await UpdateService.download(info, onProgress: (received, total) {
+        final now = DateTime.now();
+        if (now.difference(lastPaint).inMilliseconds < 100) return;
+        lastPaint = now;
         if (total > 0) progress.value = (received / total).clamp(0.0, 1.0).toDouble();
         final mb = (received / 1048576).toStringAsFixed(1);
         status.value = total > 0
@@ -161,8 +167,8 @@ class UpdatePrompt {
               ? 'Android needs your permission before Applix can install the update.\n\n'
                   'Open the app settings, allow "Install unknown apps" for Applix, then try again.'
               : 'The system refused the package.\n\n$error\n\n'
-                  'You can download the same APK in the browser and install it manually - '
-                  'the file is the same one that was just downloaded.',
+                  'The downloaded file is kept on the device, so you can install it '
+                  'manually from the browser - it is the same file that was just verified.',
           style: const TextStyle(fontSize: 13, color: Colors.white70),
         ),
         actions: [

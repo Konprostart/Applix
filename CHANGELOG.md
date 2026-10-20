@@ -10,6 +10,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.13] - 2026-10-19
+
+### Fixed
+- **In-app update can no longer crash the app.** The whole install path is now guarded
+  (`Throwable`, not just `Exception`), so a problem in the package installer, in the pending
+  intent or in the system dialog is reported as an error instead of taking the app down.
+- **The update is checked before it is installed.** The downloaded APK must be signed with the
+  same key as the installed app and must have a higher version code - otherwise the install is
+  stopped with a clear message ("signed with a different key" / "not newer than the installed
+  app") instead of a cryptic system error.
+- **A second install path.** If the package installer session is rejected, the APK is handed to
+  the system installer through a FileProvider `content://` URI (`ACTION_VIEW`), which is the
+  classic and very reliable way to install an APK.
+- The FileProvider now covers the folders that are actually used: the built APKs and project
+  folders (`files/apps/`), the downloaded updates (`files/updates/`) and the build work
+  directory (`files/applix_work/`, the old `iappyxos_work/` entry was stale).
+- Hashing the downloaded APK happens in a background isolate, the download progress is throttled
+  to 10 updates per second and the install call has a timeout - the app never freezes or waits
+  forever.
+
 ## [0.1.12] - 2026-10-19
 
 ### Added
@@ -257,7 +277,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.12...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.13...HEAD
+[0.1.13]: https://github.com/Konprostart/Applix/releases/tag/v0.1.13
 [0.1.12]: https://github.com/Konprostart/Applix/releases/tag/v0.1.12
 [0.1.11]: https://github.com/Konprostart/Applix/releases/tag/v0.1.11
 [0.1.10]: https://github.com/Konprostart/Applix/releases/tag/v0.1.10
