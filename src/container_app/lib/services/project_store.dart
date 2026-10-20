@@ -45,7 +45,7 @@ class ProjectStore {
     final name = (packageName != null && packageName.isNotEmpty)
         ? 'apps/$packageName'
         : 'projects/$appId';
-    final dir = Directory('${root.path}/$name');
+    final dir = Directory('$root/$name');
     if (!dir.existsSync()) dir.createSync(recursive: true);
     return dir;
   }
@@ -168,7 +168,7 @@ class ProjectStore {
       'projects/$appId',
     ];
     for (final d in dirs) {
-      final dir = Directory('${root.path}/$d');
+      final dir = Directory('$root/$d');
       if (dir.existsSync()) {
         try {
           dir.deleteSync(recursive: true);
@@ -184,8 +184,8 @@ class ProjectStore {
   }) async {
     if (packageName.isEmpty) return;
     final root = await _root();
-    final from = Directory('${root.path}/projects/$appId');
-    final to = Directory('${root.path}/apps/$packageName');
+    final from = Directory('$root/projects/$appId');
+    final to = Directory('$root/apps/$packageName');
     if (!from.existsSync()) return;
     try {
       if (!to.existsSync()) to.createSync(recursive: true);
