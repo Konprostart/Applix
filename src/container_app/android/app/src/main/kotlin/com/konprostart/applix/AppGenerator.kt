@@ -374,6 +374,15 @@ class AppGenerator(private val context: Context) {
         return dest
     }
 
+    /**
+     * The HTML of a built-in demo app - the preview uses it so the demo can be
+     * seen before it is built.
+     */
+    fun getPresetHtml(templateId: String, label: String): String {
+        val assets = getPresetApp(templateId, label)
+        return assets["index.html"]?.toString(Charsets.UTF_8) ?: ""
+    }
+
     private fun getPresetApp(templateId: String, label: String, iconConfig: String? = null, appTheme: String? = null): Map<String, ByteArray> {
         val html = when (templateId) {
             "todo"      -> todoApp(label)

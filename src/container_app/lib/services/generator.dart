@@ -234,6 +234,19 @@ class Generator {
     return false;
   }
 
+  /// The HTML of a built-in demo app (the same one the build uses), so the demo
+  /// can be previewed before it is built.
+  static Future<String> getPresetHtml({
+    required String templateId,
+    required String label,
+  }) async {
+    final result = await _ch.invokeMethod<String>('getPresetHtml', {
+      'templateId': templateId,
+      'label': label,
+    });
+    return result ?? '';
+  }
+
   /// Status of the durable key backup (it survives an uninstall of Applix).
   static Future<Map<String, dynamic>> getKeyBackupInfo() async {
     final result = await _ch.invokeMethod<Map>('getKeyBackupInfo', {});

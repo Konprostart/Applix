@@ -672,13 +672,20 @@ class _PreviewScreenState extends State<PreviewScreen> {
     _loadPreview();
   }
 
-  /// Loads the app with the same design system the built app gets, so the
-  /// preview looks exactly like the installed app.
+  /// Loads the app with the same design system and the same project files the
+  /// built app gets, so the preview looks exactly like the installed app.
   Future<void> _loadPreview() async {
-    final withFiles = ProjectStore.inlineProjectFiles(widget.htmlContent, widget.projectFiles);
-    final html = await UiKit.applyTo(withFiles);
+    final html = await _prepareHtml();
     if (!mounted) return;
     _controller.loadHtmlString(_injectScripts(html), baseUrl: 'https://localhost/');
+  }
+
+  /// The HTML as the app will really be built: the project files inlined and
+  /// the design system applied.
+  Future<String> _prepareHtml() async {
+    final withFiles =
+        ProjectStore.inlineProjectFiles(widget.htmlContent, widget.projectFiles);
+    return UiKit.applyTo(withFiles);
   }
 
   void _onConsoleMessage(JavaScriptMessage msg) {
@@ -876,10 +883,12 @@ class _PreviewScreenState extends State<PreviewScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, size: 20),
-            onPressed: () {
+            onPressed: () async {
               setState(() => _console.clear());
+              final html = await _prepareHtml();
+              if (!mounted) return;
               _controller.loadHtmlString(
-                _injectScripts(widget.htmlContent),
+                _injectScripts(html),
                 baseUrl: 'https://localhost/',
               );
             },

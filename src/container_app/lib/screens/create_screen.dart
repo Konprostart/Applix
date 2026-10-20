@@ -1656,7 +1656,7 @@ class CreateScreenState extends State<CreateScreen> {
       _advancedSettings(),
 
       // Section: Preview & Build (both flows)
-      if (_htmlController.text.trim().startsWith('<') || _selectedHtml != null) ...[
+      if (_htmlController.text.trim().startsWith('<') || _selectedHtml != null || _selectedDemoId != null) ...[
         const SizedBox(height: 10),
         _section('Preview & Build', true, () {},
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1665,8 +1665,19 @@ class CreateScreenState extends State<CreateScreen> {
                 style: TextStyle(fontSize: 11, color: Colors.white38)),
             const SizedBox(height: 8),
             _bridgeWarningCard(),
-            h.buildActionButton(label: 'Preview', icon: Icons.visibility, onPressed: _htmlController.text.trim().isEmpty ? null : () async {
-              final html = _htmlController.text.trim();
+            h.buildActionButton(label: 'Preview', icon: Icons.visibility, onPressed: (_htmlController.text.trim().isEmpty && _selectedDemoId == null) ? null : () async {
+              var html = _htmlController.text.trim();
+              if (html.isEmpty && _selectedDemoId != null) {
+                // A demo has no HTML in the editor - take the one the build uses.
+                html = await Generator.getPresetHtml(
+                  templateId: _selectedDemoId!,
+                  label: _nameController.text.trim(),
+                );
+                if (html.isEmpty) {
+                  _snack('This demo could not be loaded for the preview.');
+                  return;
+                }
+              }
               final issues = await _lintBridge(html);
               // Project files are inlined so the preview matches the built app.
               final projectFiles = _editingId != null

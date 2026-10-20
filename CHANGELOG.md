@@ -10,6 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.2.3] - 2026-10-20
+
+### Fixed
+- **The signing key of the generated apps is the same one as before again.** The apps built
+  between 0.1.15 and 0.1.19 were signed with a key file; 0.2.0 switched to the AndroidKeyStore,
+  which changed the signature of every app. The key file is back, with its own certificate, so
+  the apps that are already installed can be updated again. A key is never imported into the
+  AndroidKeyStore, because the keystore would issue a new certificate for it and the signature
+  would change again.
+- **The preview works again.** The refresh button loads the app exactly like the first time
+  (project files and design system included) instead of the raw editor content, and the demo apps
+  can be previewed before they are built - their code now comes from the same place the build
+  takes it.
+- The "Preview & Build" section is also shown for the demo apps.
+
 ## [0.2.2] - 2026-10-20
 
 ### Fixed
@@ -427,7 +442,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/Konprostart/Applix/releases/tag/v0.2.3
 [0.2.2]: https://github.com/Konprostart/Applix/releases/tag/v0.2.2
 [0.2.1]: https://github.com/Konprostart/Applix/releases/tag/v0.2.1
 [0.2.0]: https://github.com/Konprostart/Applix/releases/tag/v0.2.0

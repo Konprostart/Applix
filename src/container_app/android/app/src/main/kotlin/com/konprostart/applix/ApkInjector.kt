@@ -341,21 +341,15 @@ class ApkInjector(private val context: Context) {
     // ── APK v2 signing ──
 
     private fun applyV2Signature(unsigned: File, signed: File) {
-        // The master key lives in the AndroidKeyStore of the container app. It is
-        // created once and never replaced, so every build signs with the same
-        // key and an update of a generated app is accepted by Android.
-        val keyStore = KeyStore.getInstance("AndroidKeyStore").also { it.load(null) }
-        if (!keyStore.containsAlias(KeyManager.KEY_ALIAS)) {
-            throw IllegalStateException(
-                "The signing key '${KeyManager.KEY_ALIAS}' is missing - it was removed from the " +
-                    "AndroidKeyStore. Apps that were built with it can no longer be updated."
-            )
-        }
-        val privateKey = keyStore.getKey(KeyManager.KEY_ALIAS, null) as? PrivateKey
-            ?: throw IllegalStateException("The signing key cannot be read")
-        val cert = keyStore.getCertificate(KeyManager.KEY_ALIAS) as X509Certificate
+        // The master key is a keystore file with its own certificate. It is
+        // used as it is: importing it into the AndroidKeyStore would make the
+        // keystore issue a NEW certificate, and then every app would be signed
+        // with a different signature than before ("signed with a different key").
+        val master = KeystoreService.loadOrCreate(context)
+        val privateKey = master.privateKey
+        val cert = master.certificate
         // Log the signer so a signature problem is visible in the build log.
-        log("Signing with master key ${KeyManager.fingerprint()}")
+        log("Signing with master key ${master.fingerprint}")
 
         val apk = unsigned.readBytes()
         val eocdOffset = findEocd(apk)

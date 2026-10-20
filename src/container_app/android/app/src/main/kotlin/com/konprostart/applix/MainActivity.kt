@@ -250,12 +250,25 @@ class MainActivity : FlutterActivity() {
                         result.error("FAILED", e.message, null)
                     }
                 }
-                // ── Master signing key backup ──
+                "getPresetHtml" -> {
+                    val templateId = call.argument<String>("templateId") ?: ""
+                    val label = call.argument<String>("label") ?: ""
+                    if (templateId.isBlank()) {
+                        result.error("INVALID", "templateId required", null)
+                        return@setMethodCallHandler
+                    }
+                    try {
+                        result.success(generator.getPresetHtml(templateId, label))
+                    } catch (e: Exception) {
+                        result.error("FAILED", e.message, null)
+                    }
+                }
+                // ── Master signing key: backup + restore ──
                 "getKeyBackupInfo" -> {
                     try {
                         result.success(mapOf(
-                            "exists" to KeyBackup.exists(this@MainActivity),
-                            "name" to KeyBackup.RECORD_NAME,
+                            "exists" to KeystoreService.masterKeyFile(this@MainActivity).exists(),
+                            "name" to "applix_master_key.p12",
                         ))
                     } catch (e: Exception) {
                         result.error("FAILED", e.message, null)
@@ -263,11 +276,11 @@ class MainActivity : FlutterActivity() {
                 }
                 "createKeyBackup" -> {
                     try {
-                        val name = KeyBackup.save(this@MainActivity)
-                        if (name == null) {
+                        val ok = KeystoreService.mirrorToSharedStorage(this@MainActivity)
+                        if (!ok) {
                             result.error("FAILED", "The key backup could not be written", null)
                         } else {
-                            result.success(mapOf("name" to name))
+                            result.success(mapOf("name" to "applix_master_key.p12"))
                         }
                     } catch (e: Exception) {
                         result.error("FAILED", e.message, null)
@@ -275,7 +288,7 @@ class MainActivity : FlutterActivity() {
                 }
                 "restoreKeyBackup" -> {
                     try {
-                        val ok = KeyBackup.restore(this@MainActivity)
+                        val ok = KeystoreService.restoreFromMirror(this@MainActivity)
                         if (ok) {
                             result.success(mapOf("restored" to true))
                         } else {
