@@ -244,7 +244,6 @@ class MainActivity : FlutterActivity() {
                         val info = mapOf(
                             "exists" to KeyManager.keyExists(this@MainActivity),
                             "fingerprint" to KeyManager.getCertificateInfo(this@MainActivity),
-                            "fingerprintFull" to KeyManager.fullFingerprint(this@MainActivity),
                         )
                         result.success(info)
                     } catch (e: Exception) {
@@ -260,53 +259,6 @@ class MainActivity : FlutterActivity() {
                     }
                     try {
                         result.success(generator.getPresetHtml(templateId, label))
-                    } catch (e: Exception) {
-                        result.error("FAILED", e.message, null)
-                    }
-                }
-                // ── Master signing key: backup + restore ──
-                "getKeyBackupInfo" -> {
-                    try {
-                        result.success(mapOf(
-                            "exists" to KeystoreService.masterKeyFile(this@MainActivity).exists(),
-                            "name" to "applix_master_key.p12",
-                        ))
-                    } catch (e: Exception) {
-                        result.error("FAILED", e.message, null)
-                    }
-                }
-                "createKeyBackup" -> {
-                    try {
-                        val ok = KeystoreService.mirrorToSharedStorage(this@MainActivity)
-                        if (!ok) {
-                            result.error("FAILED", "The key backup could not be written", null)
-                        } else {
-                            result.success(mapOf("name" to "applix_master_key.p12"))
-                        }
-                    } catch (e: Exception) {
-                        result.error("FAILED", e.message, null)
-                    }
-                }
-                "restoreKeyBackup" -> {
-                    try {
-                        val ok = KeystoreService.restoreFromMirror(this@MainActivity)
-                        if (ok) {
-                            result.success(mapOf("restored" to true))
-                        } else {
-                            result.error("FAILED", "No usable key backup found", null)
-                        }
-                    } catch (e: Exception) {
-                        result.error("FAILED", e.message, null)
-                    }
-                }
-                "getInstalledSigner" -> {
-                    val packageName = call.argument<String>("packageName") ?: ""
-                    if (packageName.isBlank()) {
-                        result.error("INVALID", "packageName required", null)
-                        return@setMethodCallHandler
-                    }
-                    try {
-                        result.success(KeyManager.getInstalledSigner(this@MainActivity, packageName))
                     } catch (e: Exception) {
                         result.error("FAILED", e.message, null)
                     }
@@ -480,17 +432,8 @@ class MainActivity : FlutterActivity() {
                         // package installer session can be rejected by the system
                         // (for example when the permission was revoked in the
                         // meantime) - the classic intent still works.
-                        val opened = try {
-                            ApkInstaller(this@MainActivity).installViaSystemInstaller(file)
-                        } catch (e: Throwable) {
-                            false
-                        }
                         runOnUiThread {
-                            if (opened) {
-                                result.success(null)
-                            } else {
-                                result.error("FAILED", failure ?: "The install failed", null)
-                            }
+                            result.error("FAILED", failure ?: "The install failed", null)
                         }
                     }
                 }

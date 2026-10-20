@@ -41,7 +41,7 @@ class AppGenerator(private val context: Context) {
         private const val TEMPLATE_ASSET_WEB = "flutter_assets/assets/shell_template_web.apk"
     }
 
-    private val injector = ApkInjector(context)
+    private val injector = ApkInjector(KeyManager.KEY_ALIAS)
     private val installer = ApkInstaller(context)
     private val workDir get() = File(context.filesDir, "applix_work")
     @Volatile private var building = false
@@ -252,7 +252,7 @@ class AppGenerator(private val context: Context) {
         // The install copies the whole APK into the package installer session -
         // that must not happen on the main thread (ANR on large APKs).
         withContext(Dispatchers.Main) { onProgress("\uD83D\uDCF2 Launching installer...") }
-        withContext(Dispatchers.IO) { installer.install(finalApk, packageName) }
+        withContext(Dispatchers.IO) { installer.install(finalApk) }
         withContext(Dispatchers.Main) {
             onProgress("\u2705 Done! Check your launcher for \"$appLabel\"")
         }
@@ -355,7 +355,7 @@ class AppGenerator(private val context: Context) {
         withContext(Dispatchers.Main) {
             onProgress("\uD83D\uDCF2 Launching installer...")
         }
-        withContext(Dispatchers.IO) { installer.install(finalApk, packageName) }
+        withContext(Dispatchers.IO) { installer.install(finalApk) }
         withContext(Dispatchers.Main) {
             onProgress("\u2705 Done! Check your launcher for \"$appLabel\"")
         }

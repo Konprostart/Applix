@@ -149,17 +149,6 @@ class Generator {
     return result ?? 'not_installed';
   }
 
-  /// The fingerprint of the installed app and of the master key - shown in the
-  /// signature conflict dialog so the reason is visible.
-  static String? _installedFingerprint;
-  static String? _masterFingerprint;
-
-  /// The fingerprint of the signer of an installed app (null when unknown).
-  static Future<String?> getInstalledSigner({required String packageName}) async {
-    final result = await _ch.invokeMethod<String>('getInstalledSigner', {'packageName': packageName});
-    return result;
-  }
-
   /// Checks for signature conflict and shows uninstall dialog if needed.
   /// Returns true if safe to proceed with install, false if user cancelled.
   static Future<bool> handleSignatureConflict({
@@ -170,15 +159,6 @@ class Generator {
     final sig = await checkSignature(packageName: packageName);
     if (sig != 'different_signer') return true;
 
-    // Show both fingerprints so the user can see that the key really differs.
-    try {
-      final info = await getKeyInfo();
-      _masterFingerprint = info['fingerprint'] as String?;
-    } catch (_) {}
-    try {
-      final installed = await getInstalledSigner(packageName: packageName);
-      _installedFingerprint = installed;
-    } catch (_) {}
 
     final proceed = await showDialog<bool>(
       context: context,
@@ -189,18 +169,11 @@ class Generator {
         title: const Text('Update required'),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text(
-            'The app on this device was signed with a different key than the one Applix uses now.\n\n'
-            'Applix keeps ONE signing key inside the app and uses it for every app it builds. '
-            'The key is lost when Applix is uninstalled or its data is cleared - after that the '
-            'existing apps can no longer be updated and have to be replaced.\n\n'
-            'Replace the app (its data will be deleted) and do not uninstall Applix again.',
+            'A different version of this app is already installed. '
+            'To update it, the old version needs to be removed first.\n\n'
+            'Any data saved in the app will be deleted.',
             style: TextStyle(color: Colors.white70, fontSize: 13),
           ),
-          const SizedBox(height: 12),
-          Text('Installed:  ${_installedFingerprint ?? 'unknown'}',
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 9, color: Colors.white38)),
-          Text('Applix key: ${_masterFingerprint ?? 'unknown'}',
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 9, color: Colors.white38)),
         ]),
         actions: [
           TextButton(
@@ -245,24 +218,6 @@ class Generator {
       'label': label,
     });
     return result ?? '';
-  }
-
-  /// Status of the durable key backup (it survives an uninstall of Applix).
-  static Future<Map<String, dynamic>> getKeyBackupInfo() async {
-    final result = await _ch.invokeMethod<Map>('getKeyBackupInfo', {});
-    return Map<String, dynamic>.from(result ?? {'exists': false, 'name': ''});
-  }
-
-  /// Writes the master key backup to the shared Downloads folder.
-  static Future<bool> createKeyBackup() async {
-    final result = await _ch.invokeMethod<Map>('createKeyBackup', {});
-    return result != null;
-  }
-
-  /// Restores the master key from the shared backup.
-  static Future<bool> restoreKeyBackup() async {
-    final result = await _ch.invokeMethod<Map>('restoreKeyBackup', {});
-    return result?['restored'] == true;
   }
 
   static Future<Map<String, dynamic>> getKeyInfo() async {

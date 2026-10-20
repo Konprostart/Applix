@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.2.5] - 2026-10-20
+
+### Changed
+- **The signing and installing is the original iappyxOS code again, 1:1.** The master key, the
+  v2 signature of the generated APKs and the PackageInstaller session are taken unchanged from
+  the original project: the key lives in the AndroidKeyStore, is created once and is never
+  replaced. All the custom parts that were added in the meantime (a keystore file of our own, a
+  hand written certificate writer, a backup of the key in the Downloads folder, an export and
+  import of the key, extra signature checks in the installer and the dialogues around them) are
+  removed again.
+- Consequence: every app that is built with this version is signed with the same key for the
+  whole life of the installation, and the apps that are built now can be updated with each
+  other without any further action.
+
 ## [0.2.4] - 2026-10-20
 
 ### Fixed
@@ -458,7 +472,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/Konprostart/Applix/releases/tag/v0.2.5
 [0.2.4]: https://github.com/Konprostart/Applix/releases/tag/v0.2.4
 [0.2.3]: https://github.com/Konprostart/Applix/releases/tag/v0.2.3
 [0.2.2]: https://github.com/Konprostart/Applix/releases/tag/v0.2.2
