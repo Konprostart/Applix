@@ -325,7 +325,7 @@ class UpdateService {
   /// SHA-256 of a file. The work happens in a background isolate, so hashing a
   /// 40 MB APK never blocks the UI.
   static Future<String> sha256File(File file) async {
-    return compute(_sha256FileSync, file.path);
+    return compute(_sha256FileIsolate, file.path);
   }
 
   /// Opens this app's system settings page (for the "install unknown apps"
@@ -359,21 +359,14 @@ class UpdateService {
   }
 }
 
-/// Computes the SHA-256 of a file. Runs in a background isolate.
-String _sha256FileSync(String path) {
+/// Computes the SHA-256 of a file. Runs in a background isolate, so a 40 MB
+/// APK never blocks the UI and never needs to fit into memory at once.
+Future<String> _sha256FileIsolate(String path) async {
   final file = File(path);
   final sink = _DigestSink();
   final input = sha256.startChunkedConversion(sink);
-  final handle = file.openSync();
-  try {
-    final buffer = List<int>.filled(64 * 1024, 0);
-    while (true) {
-      final read = handle.readSync(buffer);
-      if (read <= 0) break;
-      input.add(buffer.sublist(0, read));
-    }
-  } finally {
-    handle.close();
+  await for (final chunk in file.openRead()) {
+    input.add(chunk);
   }
   input.close();
   return sink.digest.toString();
