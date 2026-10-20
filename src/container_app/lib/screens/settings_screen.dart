@@ -683,6 +683,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final apps = await AppStorage.loadAll();
         for (final app in apps) {
           await AppStorage.delete(app.id);
+          // Remove the built APK as well - each one is around 40 MB.
+          final path = app.apkPath;
+          if (path.isNotEmpty) {
+            try {
+              final f = File(path);
+              if (await f.exists()) await f.delete();
+            } catch (_) {}
+          }
         }
       } catch (_) {}
       widget.onAppsImported?.call();

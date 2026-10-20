@@ -142,6 +142,11 @@ class CreateScreenState extends State<CreateScreen> {
 
   void _addLog(String msg) { if (mounted) setState(() => _log.add(msg)); }
 
+  /// Keeps the AI conversation bounded - every message carries the full app code.
+  void _trimConversation() {
+    _conversation = AiService.trimConversation(_conversation);
+  }
+
   void loadApp(AppData app) {
     _nameController.text = app.name;
     _descController.text = app.description;
@@ -319,6 +324,7 @@ class CreateScreenState extends State<CreateScreen> {
       if (!mounted || thisGenId != _genId) return;
       var cleaned = _stripMarkdownFences(response);
       _conversation.add(ChatMessage(role: 'assistant', content: cleaned));
+      _trimConversation();
       setState(() => _aiGenerating = false);
       if (cleaned.trim().startsWith('<')) {
         cleaned = await _repairBridgeIssues(cleaned, thisGenId);
@@ -344,6 +350,7 @@ class CreateScreenState extends State<CreateScreen> {
     final provider = _activeProvider!;
     setState(() {
       _conversation.add(ChatMessage(role: 'user', content: msg));
+      _trimConversation();
       _followUpController.clear();
       _aiGenerating = true; _genStartTime = DateTime.now();
     });
@@ -358,6 +365,7 @@ class CreateScreenState extends State<CreateScreen> {
       if (!mounted || thisGenId != _genId) return;
       var cleaned = _stripMarkdownFences(response);
       _conversation.add(ChatMessage(role: 'assistant', content: cleaned));
+      _trimConversation();
       setState(() => _aiGenerating = false);
       if (cleaned.trim().startsWith('<')) {
         cleaned = await _repairBridgeIssues(cleaned, thisGenId);

@@ -104,15 +104,43 @@ class AppGenerator(private val context: Context) {
         return """{"statusBar":"$statusBar","statusBarLightIcons":$lightIcons,"navBar":"$navBar","navBarLightIcons":$lightIcons,"edgeToEdge":$edgeToEdge}"""
     }
 
+    /**
+     * The scratch directory. Everything in here can be deleted at any time -
+     * finished APKs live in files/apps/ instead.
+     */
     fun cleanWorkDir() {
         val dir = workDir
         if (!dir.exists()) return
         dir.listFiles()?.forEach { f ->
-            if (f.name.startsWith("unsigned_") || f.name.startsWith("generated_") || f.name == "shell_template.apk") {
-                f.delete()
-            }
+            // Keep the APKs of apps that were built before the apps folder
+            // existed - they are still referenced by the saved app list.
+            if (f.name.endsWith(".apk") && f.name != "shell_template.apk") return@forEach
+            try { f.delete() } catch (_: Exception) {}
         }
         Log.i(TAG, "Cleaned work directory")
+    }
+
+    /**
+     * Moves a finished APK into the stable apps folder so it survives the next
+     * build (the work dir is wiped on every build).
+     */
+    private fun storeBuiltApk(built: File, packageName: String): File {
+        return try {
+            val appsDir = File(context.filesDir, "apps")
+            if (!appsDir.exists()) appsDir.mkdirs()
+            val dest = File(appsDir, "$packageName.apk")
+            if (built.absolutePath != dest.absolutePath) {
+                if (dest.exists()) dest.delete()
+                if (!built.renameTo(dest)) {
+                    built.copyTo(dest, overwrite = true)
+                    built.delete()
+                }
+            }
+            dest
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not move the APK to the apps folder: ${e.message}")
+            built
+        }
     }
 
     suspend fun generateAndInstall(
@@ -159,16 +187,21 @@ class AppGenerator(private val context: Context) {
             throw Exception("SIGNATURE_CONFLICT:$packageName")
         }
 
+        // Move the finished APK out of the scratch work dir into the stable
+        // apps folder. The work dir is a pure temporary area and can be wiped
+        // completely - the built APKs of the other apps must survive.
+        val finalApk = withContext(Dispatchers.IO) { storeBuiltApk(outputApk, packageName) }
+
         // The install copies the whole APK into the package installer session -
         // that must not happen on the main thread (ANR on large APKs).
         withContext(Dispatchers.Main) { onProgress("\uD83D\uDCF2 Launching installer...") }
-        withContext(Dispatchers.IO) { installer.install(outputApk) }
+        withContext(Dispatchers.IO) { installer.install(finalApk) }
         withContext(Dispatchers.Main) {
             onProgress("\u2705 Done! Check your launcher for \"$appLabel\"")
         }
 
-        cleanWorkDirExcept(outputApk)
-        return mapOf("packageName" to packageName, "apkPath" to outputApk.absolutePath)
+        cleanWorkDir()
+        return mapOf("packageName" to packageName, "apkPath" to finalApk.absolutePath)
         } finally { building = false }
     }
 
@@ -238,23 +271,20 @@ class AppGenerator(private val context: Context) {
             throw Exception("SIGNATURE_CONFLICT:$packageName")
         }
 
+        // Keep the finished APK in the stable apps folder (the work dir is scratch).
+        val finalApk = withContext(Dispatchers.IO) { storeBuiltApk(outputApk, packageName) }
+
         withContext(Dispatchers.Main) {
             onProgress("\uD83D\uDCF2 Launching installer...")
-            installer.install(outputApk)
+        }
+        withContext(Dispatchers.IO) { installer.install(finalApk) }
+        withContext(Dispatchers.Main) {
             onProgress("\u2705 Done! Check your launcher for \"$appLabel\"")
         }
 
-        cleanWorkDirExcept(outputApk)
-        return mapOf("packageName" to packageName, "apkPath" to outputApk.absolutePath)
+        cleanWorkDir()
+        return mapOf("packageName" to packageName, "apkPath" to finalApk.absolutePath)
         } finally { building = false }
-    }
-
-    private fun cleanWorkDirExcept(keep: File) {
-        workDir.listFiles()?.forEach { f ->
-            if (f.absolutePath != keep.absolutePath) {
-                try { f.delete() } catch (_: Exception) {}
-            }
-        }
     }
 
     private fun extractTemplateApk(assetPath: String = TEMPLATE_ASSET): File {

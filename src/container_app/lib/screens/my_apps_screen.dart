@@ -168,6 +168,7 @@ class MyAppsScreenState extends State<MyAppsScreen> {
     if (confirmed == true) {
       await AppStorage.delete(app.id);
       await BundleStorage.clearBundle(app.id);
+      await _deleteApkFile(app);
       refresh();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -199,12 +200,29 @@ class MyAppsScreenState extends State<MyAppsScreen> {
       try { await Generator.uninstallApp(packageName: app.packageName); } catch (_) {}
       await AppStorage.delete(app.id);
       await BundleStorage.clearBundle(app.id);
+      await _deleteApkFile(app);
       refresh();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('"${app.name}" removed completely.')),
         );
       }
+    }
+  }
+
+  /// Removes the built APK of a deleted app - every APK is around 40 MB and
+  /// would otherwise stay on the device forever.
+  Future<void> _deleteApkFile(AppData app) async {
+    final path = app.apkPath;
+    if (path.isEmpty) return;
+    try {
+      final f = File(path);
+      if (await f.exists()) {
+        await f.delete();
+        debugPrint('[MyApps] Deleted APK $path');
+      }
+    } catch (e) {
+      debugPrint('[MyApps] Could not delete $path: $e');
     }
   }
 

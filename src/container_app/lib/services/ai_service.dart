@@ -6,6 +6,16 @@ import '../models/ai_provider.dart';
 import 'openai_compatible.dart';
 
 class AiService {
+  /// Keeps a chat history bounded. Every message carries the whole app code,
+  /// so an endless chat would grow the memory (and every request) without
+  /// limit. The first message is always kept - it holds the original task.
+  static List<ChatMessage> trimConversation(List<ChatMessage> messages, {int max = 14}) {
+    if (messages.length <= max || max < 2) return messages;
+    final first = messages.first;
+    final tail = messages.sublist(messages.length - (max - 1));
+    return [first, ...tail];
+  }
+
   /// Generate a response from the AI provider.
   /// Returns the assistant's message content.
   static Future<String> generate({

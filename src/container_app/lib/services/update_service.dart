@@ -259,6 +259,16 @@ class UpdateService {
     if (!await updates.exists()) await updates.create(recursive: true);
     final target = File('${updates.path}/${info.assetName}');
     if (await target.exists()) await target.delete();
+    // Keep only the newest download - every APK is around 40 MB.
+    try {
+      for (final old in await updates.list().toList()) {
+        if (old.path != target.path && old.path.endsWith('.apk')) {
+          await old.delete();
+        }
+      }
+    } catch (_) {
+      // Housekeeping only - never block the download.
+    }
 
     final client = http.Client();
     try {

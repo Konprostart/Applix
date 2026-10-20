@@ -458,6 +458,22 @@ public class ShellActivity extends ComponentActivity {
             // Modern API 23+ form. Framework only invokes this on main-frame
             // errors; we filter on the request matching the page URL.
             @Override
+            public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
+                // The WebView renderer died (usually out of memory). Returning false
+                // would kill the whole app, so we handle it: close cleanly and let
+                // the user reopen instead of showing "keeps stopping".
+                Log.w("Applix", "WebView renderer gone");
+                try { if (view != null) view.destroy(); } catch (Exception ignored) {}
+                try {
+                    android.widget.Toast.makeText(ShellActivity.this,
+                            "The app renderer ran out of memory. Reopen the app.",
+                            android.widget.Toast.LENGTH_LONG).show();
+                } catch (Exception ignored) {}
+                try { finish(); } catch (Exception ignored) {}
+                return true;
+            }
+
+            @Override
             public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
                 if (request == null || !request.isForMainFrame()) return;
                 String failingUrl = request.getUrl() != null ? request.getUrl().toString() : "";
@@ -1280,6 +1296,8 @@ public class ShellActivity extends ComponentActivity {
 
     @Override protected void onResume() {
         super.onResume();
+        // Resume the WebView rendering so the app is not stuck on a frozen frame.
+        try { if (webView != null) webView.onResume(); } catch (Exception ignored) {}
         if (nfcAdapter != null && pendingNfcCallbackFn != null) {
             nfcAdapter.enableForegroundDispatch(this, makeNfcPendingIntent(), null, null);
         }
@@ -1287,6 +1305,10 @@ public class ShellActivity extends ComponentActivity {
 
     @Override protected void onPause() {
         super.onPause();
+        // Pause rendering while the app is in the background. JavaScript timers keep
+        // running (background apps may rely on them), but animations and rendering
+        // stop burning CPU and battery.
+        try { if (webView != null) webView.onPause(); } catch (Exception ignored) {}
         if (nfcAdapter != null) {
             try { nfcAdapter.disableForegroundDispatch(this); } catch (Exception ignored) {}
         }

@@ -10,6 +10,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.9] - 2026-10-19
+
+### Fixed
+- **Building an app no longer deletes the APKs of your other apps.** The finished APK was kept
+  in the scratch work directory, which was wiped after every build. Built APKs now live in a
+  stable `files/apps/` folder and the work directory is a pure scratch area.
+- **Deleting an app now also deletes its APK** (about 40 MB each) from the device, both from My
+  Apps and from Settings → Clear All Apps.
+- The WebView of a generated app is paused while the app is in the background - animations and
+  rendering stop burning CPU and battery (JavaScript timers keep running, so background work is
+  not affected).
+- A WebView renderer crash (usually out of memory) no longer takes the app down: the app closes
+  cleanly with a message instead of "keeps stopping".
+- The AI conversation is bounded to the newest messages plus the first one, so a long chat can no
+  longer grow the memory without limit (every message carries the whole app code).
+- Only the newest update download is kept on the device - the old 40 MB APKs are removed.
+
 ## [0.1.8] - 2026-10-19
 
 ### Fixed
@@ -185,7 +202,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.8...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.9...HEAD
+[0.1.9]: https://github.com/Konprostart/Applix/releases/tag/v0.1.9
 [0.1.8]: https://github.com/Konprostart/Applix/releases/tag/v0.1.8
 [0.1.7]: https://github.com/Konprostart/Applix/releases/tag/v0.1.7
 [0.1.6]: https://github.com/Konprostart/Applix/releases/tag/v0.1.6
