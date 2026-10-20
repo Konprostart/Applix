@@ -7,8 +7,6 @@ import android.content.Context
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import android.security.keystore.KeyProperties
-import android.security.keystore.KeyProtection
 import android.util.Log
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -172,13 +170,12 @@ object KeyBackup {
             // no protection parameter of its own.
             val keyStore = KeyStore.getInstance(KEY_STORE)
             keyStore.load(null)
+            // A null protection parameter means "the default of the keystore",
+            // which is what the key was created with.
             keyStore.setEntry(
                 KEY_ALIAS,
                 KeyStore.PrivateKeyEntry(privateKey, chain),
-                KeyProtection.Builder()
-                    .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
-                    .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
-                    .build()
+                null
             )
             Log.i(TAG, "Master key restored from the shared backup")
             true
