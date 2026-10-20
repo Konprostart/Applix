@@ -199,6 +199,7 @@ class AppGenerator(private val context: Context) {
         templateId: String,
         existingPackageName: String? = null,
         iconConfig: String? = null,
+        appTheme: String? = null,
         onProgress: (String) -> Unit,
     ): Map<String, String> {
         if (building) throw IllegalStateException("A build is already in progress")
@@ -215,7 +216,7 @@ class AppGenerator(private val context: Context) {
             val templateApk = extractTemplateApk()
 
             withContext(Dispatchers.Main) { onProgress("\u270D\uFE0F Generating app content...") }
-            val assets = getPresetApp(templateId, appLabel, iconConfig)
+            val assets = getPresetApp(templateId, appLabel, iconConfig, appTheme)
 
             withContext(Dispatchers.Main) { onProgress("\uD83C\uDFA8 Generating icon...") }
             val icons = IconGenerator.generateAllFromConfig(iconConfig, appLabel)
@@ -363,7 +364,7 @@ class AppGenerator(private val context: Context) {
         return dest
     }
 
-    private fun getPresetApp(templateId: String, label: String, iconConfig: String? = null): Map<String, ByteArray> {
+    private fun getPresetApp(templateId: String, label: String, iconConfig: String? = null, appTheme: String? = null): Map<String, ByteArray> {
         val html = when (templateId) {
             "todo"      -> todoApp(label)
             "notes"     -> notesApp(label)

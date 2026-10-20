@@ -108,11 +108,12 @@ class MainActivity : FlutterActivity() {
                     val templateId = call.argument<String>("templateId") ?: "todo"
                     val packageName = call.argument<String>("packageName")
                     val iconConfig = call.argument<String>("iconConfig")
+                    val appTheme = call.argument<String>("appTheme")
                     if (label.isBlank()) { result.error("INVALID", "label required", null); return@setMethodCallHandler }
                     installScope.launch {
                         try {
                             val info = generator.generateAndInstall(
-                                label, templateId, packageName, iconConfig,
+                                label, templateId, packageName, iconConfig, appTheme,
                             ) { msg ->
                                 channel.invokeMethod("onProgress", msg)
                             }

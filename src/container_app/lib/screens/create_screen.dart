@@ -730,7 +730,7 @@ class CreateScreenState extends State<CreateScreen> {
     }
     setState(() { _isBuilding = true; _showBuildLog = true; _log.clear(); });
     try {
-      final result = await Generator.generateFromTemplate(label: label, templateId: t.$1, packageName: _existingPackageName, iconConfig: _iconConfig.toJsonString(), onProgress: _addLog);
+      final result = await Generator.generateFromTemplate(label: label, templateId: t.$1, packageName: _existingPackageName, iconConfig: _iconConfig.toJsonString(), appTheme: _appTheme.toJsonString(), onProgress: _addLog);
       final now = DateTime.now();
       final appId = _editingId ?? '${now.millisecondsSinceEpoch}_${Random().nextInt(9999)}';
       await AppStorage.save(AppData(

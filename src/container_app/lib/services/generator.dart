@@ -41,6 +41,7 @@ class Generator {
     required void Function(String) onProgress,
     String? packageName,
     String? iconConfig,
+    String? appTheme,
   }) async {
     if (_building) throw PlatformException(code: 'BUSY', message: 'A build is already in progress');
     _building = true;
@@ -53,6 +54,7 @@ class Generator {
         'templateId': templateId,
         if (packageName != null) 'packageName': packageName,
         if (iconConfig != null) 'iconConfig': iconConfig,
+        if (appTheme != null && appTheme.isNotEmpty) 'appTheme': appTheme,
       });
       return BuildResult(
         packageName: result?['packageName'] as String? ?? '',
