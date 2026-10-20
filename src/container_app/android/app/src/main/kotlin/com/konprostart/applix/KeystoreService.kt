@@ -90,7 +90,7 @@ object KeystoreService {
         if (file.exists() && file.length() > 0) {
             return try {
                 val key = read(file)
-                Log.i(TAG, "Master signing key loaded (${key.fingerprint})")
+                Log.i(TAG, "Loaded existing master key from ${file.absolutePath} with fingerprint ${key.fingerprint}")
                 key
             } catch (e: Exception) {
                 Log.e(TAG, "The stored signing key cannot be read: ${e.message}")

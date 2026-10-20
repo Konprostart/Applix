@@ -344,8 +344,14 @@ class ApkInjector(private val context: Context) {
         val master = KeystoreService.loadOrCreate(context)
         val privateKey = master.privateKey
         val cert = master.certificate
-        // Log the signer so a signature problem is visible in the build log.
-        log("Signing with master key ${master.fingerprint}")
+        // Strict check: the key must already be on disk. If it was just created,
+        // signing continues but the build log makes the fact visible, so a
+        // mismatch can never happen silently.
+        if (KeystoreService.keyExists(context)) {
+            log("Loaded existing master key from ${KeystoreService.masterKeyFile(context).absolutePath} with fingerprint ${master.fingerprint}")
+        } else {
+            log("WARNING: master key file was missing - a new one was created at ${KeystoreService.masterKeyFile(context).absolutePath} with fingerprint ${master.fingerprint}")
+        }
 
         val apk = unsigned.readBytes()
         val eocdOffset = findEocd(apk)

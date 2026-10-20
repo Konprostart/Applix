@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.18] - 2026-10-20
+
+### Fixed
+- **The master key is now loaded from disk on every build, without exception.**
+  The build log now shows "Loaded existing master key from /path/applix_master.p12
+  with fingerprint XXXX" when the key was read from disk, or a clear warning when
+  the key had to be created. A mismatch can never happen silently.
+- **The key is never regenerated while a key file exists.** If the file is present
+  but damaged, the build stops with a message instead of signing with a new key.
+
 ## [0.1.17] - 2026-10-20
 
 ### Fixed
@@ -351,7 +361,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.17...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.18...HEAD
+[0.1.18]: https://github.com/Konprostart/Applix/releases/tag/v0.1.18
 [0.1.17]: https://github.com/Konprostart/Applix/releases/tag/v0.1.17
 [0.1.16]: https://github.com/Konprostart/Applix/releases/tag/v0.1.16
 [0.1.15]: https://github.com/Konprostart/Applix/releases/tag/v0.1.15
