@@ -121,6 +121,13 @@ class ApkInstaller(private val context: Context) {
             cont.resumeWithException(InstallException("The APK file is missing or empty"))
             return@suspendCancellableCoroutine
         }
+        // The file that is about to be installed must carry the master signature -
+        // this is the last checkpoint before the system sees it.
+        val archiveProblem = verifyArchiveSignature(apkFile)
+        if (archiveProblem != null) {
+            cont.resumeWithException(InstallException(archiveProblem))
+            return@suspendCancellableCoroutine
+        }
         // The archive must be signed with the same key as the installed app and
         // must be newer - otherwise Android refuses it with a cryptic message.
         val problem = verifyArchive(apkFile)
@@ -137,6 +144,9 @@ class ApkInstaller(private val context: Context) {
                 return@suspendCancellableCoroutine
             }
         }
+
+        // Log exactly which file goes to the system, so a problem can be traced.
+        Log.i(TAG, "Installing ${apkFile.absolutePath} (${apkFile.length()} bytes)")
 
         val sessionId = packageInstaller.createSession(params)
         val session = packageInstaller.openSession(sessionId)
@@ -165,6 +175,13 @@ class ApkInstaller(private val context: Context) {
                     session.fsync(output)
                 }
             }
+            if (written != expectedLength) {
+                session.close()
+                throw java.io.IOException(
+                    "Only $written of $expectedLength bytes reached the install session"
+                )
+            }
+            Log.i(TAG, "Staged $written bytes in the install session")
         } catch (e: Exception) {
             session.close()
             throw e
@@ -327,6 +344,45 @@ class ApkInstaller(private val context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "System installer could not be opened: ${e.message}")
             false
+        }
+    }
+
+    /**
+     * Reads the signers out of an APK file with the platform parser and compares
+     * them with the master key. Returns an error message or null when the file
+     * carries the right signature.
+     */
+    private fun verifyArchiveSignature(apkFile: File): String? {
+        return try {
+            val pm = context.packageManager
+            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
+            } else {
+                0
+            }
+            val archive = pm.getPackageArchiveInfo(apkFile.absolutePath, flags)
+                ?: return "The built APK cannot be read - it is not a valid package"
+            val digests = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                archive.signingInfo?.apkContentsSigners?.map { KeystoreService.digest(it.toByteArray()) }
+                    ?: emptyList()
+            } else {
+                @Suppress("DEPRECATION")
+                archive.signatures?.map { KeystoreService.digest(it.toByteArray()) } ?: emptyList()
+            }
+            if (digests.isEmpty()) {
+                return "The built APK carries no signature"
+            }
+            val master = KeystoreService.digest(
+                KeystoreService.certificate(context).encoded
+            )
+            if (!digests.contains(master)) {
+                Log.e(TAG, "APK signature $digests does not match the master key $master")
+                return "The built APK is signed with a different key than Applix uses"
+            }
+            Log.i(TAG, "APK signature verified against the master key (${apkFile.absolutePath})")
+            null
+        } catch (e: Exception) {
+            "Could not verify the signature of the APK: ${e.message}"
         }
     }
 

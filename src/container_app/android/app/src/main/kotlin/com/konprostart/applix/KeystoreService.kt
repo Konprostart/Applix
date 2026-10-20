@@ -2,8 +2,13 @@
 
 package com.konprostart.applix
 
+import android.content.ContentValues
 import android.content.Context
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.util.Log
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -56,6 +61,9 @@ object KeystoreService {
     private const val LEGACY_KEY_FILE = "applix_master.key"
     private const val LEGACY_CERT_FILE = "applix_master.crt"
 
+    /** The name of the key backup in the shared Downloads folder. */
+    private const val MIRROR_NAME = "applix_master_key.p12"
+
     // ── file locations ───────────────────────────────────────────────────────
 
     private fun dir(context: Context): File {
@@ -103,6 +111,15 @@ object KeystoreService {
             }
         }
 
+        // No key file yet. It may still exist in the shared mirror (the user
+        // deleted Applix, but the backup in Downloads survived) - restoring it
+        // keeps every app that was signed with it updatable.
+        if (restoreFromMirror(context)) {
+            val restored = read(masterKeyFile(context))
+            Log.i(TAG, "Master signing key restored from the shared mirror (${restored.fingerprint})")
+            return restored
+        }
+
         // No key file yet - migrate the files of an earlier version if they are
         // there, otherwise create the key exactly once.
         val migrated = migrateLegacyFiles(context)
@@ -114,6 +131,12 @@ object KeystoreService {
         val key = createKey()
         writeFile(context, key)
         Log.i(TAG, "New master signing key created (${key.fingerprint})")
+        // Keep a copy in the shared Downloads folder: if Applix is deleted the
+        // key survives there and the apps that were signed with it stay
+        // updatable.
+        if (mirrorToSharedStorage(context)) {
+            Log.i(TAG, "Master signing key mirrored to the shared Downloads folder")
+        }
         return key
     }
 
@@ -273,10 +296,91 @@ object KeystoreService {
             }
             val master = MasterKey(key, cert, digest(cert.encoded))
             writeFile(context, master)
+            mirrorToSharedStorage(context)
             Log.i(TAG, "Master key imported (${master.fingerprint})")
             "Master key imported - rebuild your apps so they use it"
         } catch (e: Exception) {
             "Could not import the key: ${e.message}"
+        }
+    }
+
+    // ── shared mirror ────────────────────────────────────────────────────────
+
+    /**
+     * Copies the key into the shared Downloads folder. That copy is not removed
+     * when Applix is deleted, so the key (and every signature) survives.
+     */
+    fun mirrorToSharedStorage(context: Context): Boolean {
+        return try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
+            val source = masterKeyFile(context)
+            if (!source.exists()) return false
+            val resolver = context.contentResolver
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, MIRROR_NAME)
+                put(MediaStore.Downloads.MIME_TYPE, "application/x-pkcs12")
+                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                put(MediaStore.Downloads.IS_PENDING, 1)
+            }
+            // Replace an older mirror instead of piling up copies.
+            deleteMirror(context)
+            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                ?: return false
+            resolver.openOutputStream(uri)?.use { out -> out.write(source.readBytes()) }
+                ?: return false
+            values.clear()
+            values.put(MediaStore.Downloads.IS_PENDING, 0)
+            resolver.update(uri, values, null, null)
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not mirror the master key: ${e.message}")
+            false
+        }
+    }
+
+    /** Removes the mirror from the shared storage. */
+    private fun deleteMirror(context: Context) {
+        try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+            val resolver = context.contentResolver
+            val selection = "${MediaStore.Downloads.DISPLAY_NAME}=?"
+            val args = arrayOf(MIRROR_NAME)
+            resolver.delete(MediaStore.Downloads.EXTERNAL_CONTENT_URI, selection, args)
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not remove the old mirror: ${e.message}")
+        }
+    }
+
+    /**
+     * Restores the master key from the shared mirror - this is what makes the
+     * key survive the deletion of Applix.
+     */
+    fun restoreFromMirror(context: Context): Boolean {
+        return try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
+            val resolver = context.contentResolver
+            val projection = arrayOf(MediaStore.Downloads._ID)
+            val selection = "${MediaStore.Downloads.DISPLAY_NAME}=?"
+            val args = arrayOf(MIRROR_NAME)
+            val bytes = resolver.query(
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI, projection, selection, args, null
+            )?.use { cursor ->
+                if (!cursor.moveToFirst()) return false
+                val id = cursor.getLong(0)
+                val uri = MediaStore.Downloads.EXTERNAL_CONTENT_URI.buildUpon()
+                    .appendPath(id.toString()).build()
+                resolver.openInputStream(uri)?.use { it.readBytes() }
+            } ?: return false
+
+            val store = KeyStore.getInstance(KEY_TYPE)
+            store.load(ByteArrayInputStream(bytes), STORE_PASSWORD.toCharArray())
+            if (!store.containsAlias(MASTER_ALIAS)) return false
+            val file = masterKeyFile(context)
+            FileOutputStream(file).use { it.write(bytes) }
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not restore the master key from the mirror: ${e.message}")
+            false
         }
     }
 

@@ -206,6 +206,11 @@ class AppGenerator(private val context: Context) {
         building = true
         try {
         val packageName = existingPackageName?.takeIf { it.isNotBlank() } ?: generatePackageName(appLabel)
+        if (!existingPackageName.isNullOrBlank()) {
+            // The package name belongs to the project and never changes, so an
+            // update installs over the existing app.
+            Log.i(TAG, "Keeping the package name $packageName")
+        }
 
         val outputApk = withContext(Dispatchers.IO) {
             workDir.mkdirs()
@@ -273,6 +278,11 @@ class AppGenerator(private val context: Context) {
         building = true
         try {
         val packageName = existingPackageName?.takeIf { it.isNotBlank() } ?: generatePackageName(appLabel)
+        if (!existingPackageName.isNullOrBlank()) {
+            // The package name belongs to the project and never changes, so an
+            // update installs over the existing app.
+            Log.i(TAG, "Keeping the package name $packageName")
+        }
 
         val outputApk = withContext(Dispatchers.IO) {
             workDir.mkdirs()

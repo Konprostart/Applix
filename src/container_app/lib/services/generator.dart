@@ -219,8 +219,9 @@ class Generator {
     );
     if (proceed != true) return false;
 
-    // Poll until uninstalled or timeout (15s)
-    for (var i = 0; i < 30; i++) {
+    // Poll until the app is really gone (30s - the uninstall is a system
+    // dialog and can take a moment).
+    for (var i = 0; i < 60; i++) {
       await Future.delayed(const Duration(milliseconds: 500));
       final recheck = await checkSignature(packageName: packageName);
       if (recheck != 'different_signer') return true;

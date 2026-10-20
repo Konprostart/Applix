@@ -10,6 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.19] - 2026-10-20
+
+### Fixed
+- **The signing key now survives the deletion of Applix.** The key was only kept in the private
+  storage of the app, so deleting Applix destroyed it and the next build created a new one - the
+  apps that were installed before could never be updated again. The key is now mirrored into the
+  shared Downloads folder and restored from there automatically when it is missing.
+- **The built APK is verified before it is installed.** The signature is read out of the finished
+  APK with the platform parser and compared with the master key. A mismatch stops the install
+  with a clear message instead of letting Android report it as a broken package.
+- **The install logs exactly what goes to the system** (path, size, staged bytes), so a mismatch
+  can be traced to the file.
+- The package name of a project is never changed by an edit (it is logged now), so an update
+  always installs over the existing app.
+- Removing an app waits longer for the system to finish the uninstall.
+
 ## [0.1.18] - 2026-10-20
 
 ### Fixed
@@ -361,7 +377,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.18...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.19...HEAD
+[0.1.19]: https://github.com/Konprostart/Applix/releases/tag/v0.1.19
 [0.1.18]: https://github.com/Konprostart/Applix/releases/tag/v0.1.18
 [0.1.17]: https://github.com/Konprostart/Applix/releases/tag/v0.1.17
 [0.1.16]: https://github.com/Konprostart/Applix/releases/tag/v0.1.16
