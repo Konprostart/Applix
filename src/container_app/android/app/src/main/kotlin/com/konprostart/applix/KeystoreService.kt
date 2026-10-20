@@ -135,8 +135,9 @@ object KeystoreService {
             .generateCertificate(ByteArrayInputStream(certBytes)) as X509Certificate
 
         // The certificate has to belong to the key - otherwise the signature
-        // would not verify.
-        if (cert.publicKey != key.publicKey) {
+        // would not verify. Proved by signing a test payload and verifying it
+        // with the public key of the certificate.
+        if (!keyMatchesCertificate(key, cert)) {
             throw IllegalStateException("The certificate does not match the private key")
         }
         val digest = digest(cert.encoded)
@@ -245,7 +246,7 @@ object KeystoreService {
             val key = KeyFactory.getInstance("RSA").generatePrivate(PKCS8EncodedKeySpec(rest))
             val cert = CertificateFactory.getInstance("X.509")
                 .generateCertificate(ByteArrayInputStream(rest)) as X509Certificate
-            if (cert.publicKey != key.publicKey) {
+            if (!keyMatchesCertificate(key, cert)) {
                 return "The key file is damaged"
             }
             if (!MessageDigest.getInstance("SHA-256").digest(cert.encoded).contentEquals(certDigest)) {
@@ -267,6 +268,28 @@ object KeystoreService {
             backupKeyFile(context), backupCertFile(context), backupFingerprintFile(context),
         ).forEach { if (it.exists()) it.delete() }
         Log.w(TAG, "Master signing key deleted")
+    }
+
+    /**
+     * Checks that the private key really belongs to the certificate by signing
+     * a test payload and verifying it with the public key of the certificate.
+     */
+    private fun keyMatchesCertificate(privateKey: PrivateKey, cert: X509Certificate): Boolean {
+        return try {
+            val payload = "applix-key-check".toByteArray()
+            val signer = Signature.getInstance("SHA256withRSA")
+            signer.initSign(privateKey)
+            signer.update(payload)
+            val bytes = signer.sign()
+            val verifier = Signature.getInstance("SHA256withRSA")
+            verifier.initVerify(cert.publicKey)
+            verifier.update(payload)
+            verifier.verify(bytes)
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "Key/certificate check failed: ${e.message}")
+            false
+        }
     }
 
     /** Verifies that the private key really belongs to the certificate. */
