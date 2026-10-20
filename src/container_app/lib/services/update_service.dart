@@ -368,7 +368,7 @@ String _sha256FileSync(String path) {
   try {
     final buffer = List<int>.filled(64 * 1024, 0);
     while (true) {
-      final read = handle.readSync(buffer, 0, buffer.length);
+      final read = handle.readSync(buffer);
       if (read <= 0) break;
       input.add(buffer.sublist(0, read));
     }
