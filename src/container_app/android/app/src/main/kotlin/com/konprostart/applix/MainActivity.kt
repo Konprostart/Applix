@@ -250,6 +250,41 @@ class MainActivity : FlutterActivity() {
                         result.error("FAILED", e.message, null)
                     }
                 }
+                // ── Master signing key backup ──
+                "getKeyBackupInfo" -> {
+                    try {
+                        result.success(mapOf(
+                            "exists" to KeyBackup.exists(this@MainActivity),
+                            "name" to KeyBackup.RECORD_NAME,
+                        ))
+                    } catch (e: Exception) {
+                        result.error("FAILED", e.message, null)
+                    }
+                }
+                "createKeyBackup" -> {
+                    try {
+                        val name = KeyBackup.save(this@MainActivity)
+                        if (name == null) {
+                            result.error("FAILED", "The key backup could not be written", null)
+                        } else {
+                            result.success(mapOf("name" to name))
+                        }
+                    } catch (e: Exception) {
+                        result.error("FAILED", e.message, null)
+                    }
+                }
+                "restoreKeyBackup" -> {
+                    try {
+                        val ok = KeyBackup.restore(this@MainActivity)
+                        if (ok) {
+                            result.success(mapOf("restored" to true))
+                        } else {
+                            result.error("FAILED", "No usable key backup found", null)
+                        }
+                    } catch (e: Exception) {
+                        result.error("FAILED", e.message, null)
+                    }
+                }
                 "getInstalledSigner" -> {
                     val packageName = call.argument<String>("packageName") ?: ""
                     if (packageName.isBlank()) {

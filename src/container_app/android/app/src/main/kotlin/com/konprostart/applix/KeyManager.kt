@@ -55,11 +55,28 @@ object KeyManager {
             keyStore.load(null)
             if (keyStore.containsAlias(KEY_ALIAS)) {
                 Log.i(TAG, "Signing key already exists (${fingerprint()})")
+                // Keep the durable backup in sync with the key in use.
+                if (!KeyBackup.exists(context)) {
+                    KeyBackup.save(context)
+                    Log.i(TAG, "Master key backup created in the shared Downloads folder")
+                }
                 return
             }
+
+            // The key is gone (Applix was uninstalled or its data was cleared).
+            // The durable backup still holds the very same key - restoring it keeps
+            // every app that was signed with it updatable.
+            if (KeyBackup.restore(context)) {
+                Log.i(TAG, "Master signing key restored from the backup (${fingerprint()})")
+                return
+            }
+
             Log.i(TAG, "Generating new signing key...")
             generateKey()
             Log.i(TAG, "Signing key generated and stored in AndroidKeyStore (${fingerprint()})")
+            // A backup of the new key, so the next reinstall does not break it.
+            KeyBackup.save(context)
+            Log.i(TAG, "Master key backup created in the shared Downloads folder")
         } catch (e: Exception) {
             Log.e(TAG, "Could not prepare the signing key: ${e.message}")
         }

@@ -234,6 +234,24 @@ class Generator {
     return false;
   }
 
+  /// Status of the durable key backup (it survives an uninstall of Applix).
+  static Future<Map<String, dynamic>> getKeyBackupInfo() async {
+    final result = await _ch.invokeMethod<Map>('getKeyBackupInfo', {});
+    return result ?? {'exists': false, 'name': ''};
+  }
+
+  /// Writes the master key backup to the shared Downloads folder.
+  static Future<bool> createKeyBackup() async {
+    final result = await _ch.invokeMethod<Map>('createKeyBackup', {});
+    return result != null;
+  }
+
+  /// Restores the master key from the shared backup.
+  static Future<bool> restoreKeyBackup() async {
+    final result = await _ch.invokeMethod<Map>('restoreKeyBackup', {});
+    return result?['restored'] == true;
+  }
+
   static Future<Map<String, dynamic>> getKeyInfo() async {
     final result = await _ch.invokeMethod<Map>('getKeyInfo', {});
     return Map<String, dynamic>.from(result ?? {});

@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.2.1] - 2026-10-20
+
+### Fixed
+- **The signing key now survives a reinstall of Applix.** The key stays in the AndroidKeyStore
+  (the proven mechanism) and a single backup record of it is kept in the shared Downloads
+  folder. That record is not removed when Applix is uninstalled, so on the next start Applix
+  restores the very same key automatically - and every app that was signed with it can be
+  updated again instead of failing with "signed with a different key".
+- The backup is one file with a magic header and a checksum (applix_master_key.aplixkey) - it
+  is never appended to and never duplicated. A damaged record is rejected instead of restored.
+- Settings → Signing Key shows whether the backup exists and can create or restore it manually.
+- The build log states whether the key was taken from the AndroidKeyStore or restored from the
+  backup.
+
 ## [0.2.0] - 2026-10-20
 
 ### Changed
@@ -400,7 +414,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/Konprostart/Applix/releases/tag/v0.2.1
 [0.2.0]: https://github.com/Konprostart/Applix/releases/tag/v0.2.0
 [0.1.19]: https://github.com/Konprostart/Applix/releases/tag/v0.1.19
 [0.1.18]: https://github.com/Konprostart/Applix/releases/tag/v0.1.18

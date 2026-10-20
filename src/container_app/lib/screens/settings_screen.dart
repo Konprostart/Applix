@@ -53,6 +53,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _prefixError;
   int _appCount = 0;
   Map<String, dynamic> _keyInfo = {};
+  Map<String, dynamic> _keyBackup = {};
   String _stylePreset = 'default';
   bool _loaded = false;
 
@@ -432,15 +433,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const Divider(height: 1, color: Color(0xFF0D0D1A)),
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(14, 10, 14, 12),
-                    child: Text(
-                      'One master key signs every app Applix builds, so the apps you already '
-                      'installed can always be updated. The key lives inside Applix and survives '
-                      'every update of Applix - but do not uninstall Applix, because that would '
-                      'remove the key and the existing apps could no longer be updated.',
-                      style: TextStyle(fontSize: 11, color: Colors.white38),
-                    ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Text(
+                        'One master key signs every app Applix builds, so the apps you already '
+                        'installed can always be updated. The key stays inside Applix and a copy is '
+                        'kept in your Downloads folder, so it also survives a reinstall.',
+                        style: TextStyle(fontSize: 11, color: Colors.white38),
+                      ),
+                      const SizedBox(height: 10),
+                      _row('Backup in Downloads',
+                          _keyBackup['exists'] == true ? 'Saved' : 'Missing'),
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        Expanded(child: helpers.buildActionButton(
+                          label: 'Create backup',
+                          icon: Icons.save_alt,
+                          secondary: true,
+                          onPressed: _createKeyBackup,
+                        )),
+                        const SizedBox(width: 8),
+                        Expanded(child: helpers.buildActionButton(
+                          label: 'Restore key',
+                          icon: Icons.restore,
+                          secondary: true,
+                          onPressed: _restoreKeyBackup,
+                        )),
+                      ]),
+                    ]),
                   ),
                 ],
               ]),
@@ -676,9 +697,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadKeyInfo() async {
     try {
       final info = await Generator.getKeyInfo();
+      final backup = await Generator.getKeyBackupInfo();
       if (!mounted) return;
-      setState(() => _keyInfo = info);
+      setState(() {
+        _keyInfo = info;
+        _keyBackup = backup;
+      });
     } catch (_) {}
+  }
+
+  /// Writes the master key backup to the shared Downloads folder.
+  Future<void> _createKeyBackup() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final ok = await Generator.createKeyBackup();
+      messenger.showSnackBar(SnackBar(
+        content: Text(ok
+            ? 'Key backup saved in your Downloads folder.'
+            : 'The key backup could not be written.'),
+        backgroundColor: const Color(0xFF1A1A2E),
+      ));
+      await _loadKeyInfo();
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Could not create the backup: $e')));
+    }
+  }
+
+  /// Restores the master key from the shared backup.
+  Future<void> _restoreKeyBackup() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final ok = await Generator.restoreKeyBackup();
+      messenger.showSnackBar(SnackBar(
+        content: Text(ok
+            ? 'The signing key was restored - the apps can be updated again.'
+            : 'No usable key backup was found.'),
+        backgroundColor: const Color(0xFF1A1A2E),
+      ));
+      await _loadKeyInfo();
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Could not restore the key: $e')));
+    }
   }
 
   Future<void> _clearApps() async {
