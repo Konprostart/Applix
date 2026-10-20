@@ -242,8 +242,8 @@ class MainActivity : FlutterActivity() {
                 "getKeyInfo" -> {
                     try {
                         val info = mapOf(
-                            "exists" to KeyManager.keyExists(this@MainActivity),
-                            "fingerprint" to KeyManager.getCertificateInfo(this@MainActivity),
+                            "exists" to KeyManager.keyExists(),
+                            "fingerprint" to KeyManager.getCertificateInfo(),
                         )
                         result.success(info)
                     } catch (e: Exception) {
@@ -415,11 +415,7 @@ class MainActivity : FlutterActivity() {
                         var failure: String? = null
                         try {
                             val installer = ApkInstaller(this@MainActivity)
-                            if (sha256.isBlank()) {
-                                installer.install(file)
-                            } else {
-                                installer.installVerified(file, sha256)
-                            }
+                            installer.install(file)
                             runOnUiThread { result.success(null) }
                             return@launch
                         } catch (e: Throwable) {
