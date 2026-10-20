@@ -1,5 +1,5 @@
 // GENERATED FILE - do not edit by hand.
 // Regenerate with: python3 tools/sync_version.py
 
-const String kAppVersion = '0.1.9';
-const int kAppBuildNumber = 10;
+const String kAppVersion = '0.1.10';
+const int kAppBuildNumber = 11;

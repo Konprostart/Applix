@@ -213,6 +213,7 @@ class AppGenerator(private val context: Context) {
         firebaseConfig: String? = null,
         webOnly: Boolean = false,
         bundleFiles: Map<String, String> = emptyMap(),
+        projectFiles: Map<String, String> = emptyMap(),
         onProgress: (String) -> Unit,
     ): Map<String, String> {
         if (building) throw IllegalStateException("A build is already in progress")
@@ -246,6 +247,20 @@ class AppGenerator(private val context: Context) {
                     }
                 } catch (e: Exception) {
                     Log.w(TAG, "Bundle file $name: ${e.message}")
+                }
+            }
+
+            // Project files (style.css, script.js, ...) go to the app root so the
+            // generated HTML can reference them with a relative path.
+            for ((name, path) in projectFiles) {
+                try {
+                    val f = java.io.File(path)
+                    if (f.exists() && f.length() > 0 && name != "index.html") {
+                        assets[name] = f.readBytes()
+                        withContext(Dispatchers.Main) { onProgress("\uD83D\uDCC1 Adding $name (${f.length() / 1024} KB)") }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Project file $name: ${e.message}")
                 }
             }
 

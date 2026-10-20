@@ -30,6 +30,7 @@ import '../services/app_storage.dart';
 import '../services/bundle_storage.dart';
 import '../services/generator.dart';
 import '../services/p2p_service.dart';
+import '../services/project_store.dart';
 import '../widgets/build_log.dart';
 import '../models/icon_config.dart';
 import 'icon_editor_screen.dart';
@@ -169,6 +170,7 @@ class MyAppsScreenState extends State<MyAppsScreen> {
       await AppStorage.delete(app.id);
       await BundleStorage.clearBundle(app.id);
       await _deleteApkFile(app);
+      await ProjectStore.deleteProject(appId: app.id, packageName: app.packageName);
       refresh();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -201,6 +203,7 @@ class MyAppsScreenState extends State<MyAppsScreen> {
       await AppStorage.delete(app.id);
       await BundleStorage.clearBundle(app.id);
       await _deleteApkFile(app);
+      await ProjectStore.deleteProject(appId: app.id, packageName: app.packageName);
       refresh();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -27,14 +27,19 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import '../services/project_store.dart';
 import '../services/ui_kit.dart';
 
 class PreviewScreen extends StatefulWidget {
   final String htmlContent;
+  /// Extra project files (style.css, script.js, ...) that are inlined so the
+  /// preview looks exactly like the installed app.
+  final Map<String, String> projectFiles;
   final List<String> initialWarnings;
   const PreviewScreen({
     super.key,
     required this.htmlContent,
+    this.projectFiles = const {},
     this.initialWarnings = const [],
   });
   @override
@@ -670,7 +675,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
   /// Loads the app with the same design system the built app gets, so the
   /// preview looks exactly like the installed app.
   Future<void> _loadPreview() async {
-    final html = await UiKit.applyTo(widget.htmlContent);
+    final withFiles = ProjectStore.inlineProjectFiles(widget.htmlContent, widget.projectFiles);
+    final html = await UiKit.applyTo(withFiles);
     if (!mounted) return;
     _controller.loadHtmlString(_injectScripts(html), baseUrl: 'https://localhost/');
   }

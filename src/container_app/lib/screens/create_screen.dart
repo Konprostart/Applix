@@ -22,6 +22,7 @@
 
 /// Screen for creating new apps via AI prompt, web URL, or demo template.
 
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -33,6 +34,7 @@ import '../services/prompt_builder.dart';
 import '../services/app_storage.dart';
 import '../services/ai_service.dart';
 import '../services/bridge_linter.dart';
+import '../services/project_store.dart';
 import '../services/ui_auditor.dart';
 import '../services/settings_service.dart';
 import '../widgets/build_log.dart';
@@ -86,6 +88,8 @@ class CreateScreenState extends State<CreateScreen> {
 
   // Bundled app files (databases, JSON, images, etc.)
   List<Map<String, dynamic>> _bundleFiles = [];
+  List<Map<String, dynamic>> _projectFiles = [];
+  bool _projectExpanded = false;
   bool _bundleExpanded = false;
   String? _pendingShowcaseBundleId; // set when loading a showcase app with resources
 
@@ -164,6 +168,7 @@ class CreateScreenState extends State<CreateScreen> {
     _htmlExpanded = true;
     _conversation.clear();
     _loadBundleFiles();
+    _loadProjectFiles();
     _aiGenerating = false;
     _selectedHtml = null;
     _bridgeIssues = [];
@@ -762,7 +767,31 @@ class CreateScreenState extends State<CreateScreen> {
         _editingId = appId; // set early so bundlePaths picks it up
       }
       final bundlePaths = await BundleStorage.paths(appId);
-      final result = await Generator.injectHtml(label: label, htmlContent: html, packageName: _existingPackageName, iconConfig: ic.toJsonString(), firebaseConfig: _firebaseConfig.isNotEmpty ? _firebaseConfig : null, onProgress: _addLog, webOnly: appType == 'web', bundleFiles: bundlePaths);
+      // The project (entry file + extra files) lives on the device and is
+      // shipped inside the APK, so relative paths such as <link href="style.css">
+      // work in the installed app.
+      await ProjectStore.writeProject(
+        appId: appId,
+        packageName: _existingPackageName,
+        indexHtml: html,
+      );
+      final projectPaths = await ProjectStore.paths(appId: appId, packageName: _existingPackageName);
+      final result = await Generator.injectHtml(label: label, htmlContent: html, packageName: _existingPackageName, iconConfig: ic.toJsonString(), firebaseConfig: _firebaseConfig.isNotEmpty ? _firebaseConfig : null, onProgress: _addLog, webOnly: appType == 'web', bundleFiles: bundlePaths, projectFiles: projectPaths);
+      // Now that the package name is known, move the project to its final place.
+      await ProjectStore.migrateToPackage(appId: appId, packageName: result.packageName);
+      await ProjectStore.writeConfig(
+        appId: appId,
+        packageName: result.packageName,
+        config: {
+          'name': label,
+          'packageName': result.packageName,
+          'version': kAppVersion,
+          'entry': 'index.html',
+          'files': projectPaths.keys.toList(),
+          'updated': DateTime.now().toIso8601String(),
+        },
+      );
+      await _loadProjectFiles();
       final now = DateTime.now();
       await AppStorage.save(AppData(
         id: appId, name: label,
@@ -793,6 +822,57 @@ class CreateScreenState extends State<CreateScreen> {
     if (_editingId == null) return;
     final files = await BundleStorage.listFiles(_editingId!);
     if (mounted) setState(() => _bundleFiles = files);
+  }
+
+  /// Loads the project files (style.css, script.js, ...) of the current app.
+  Future<void> _loadProjectFiles() async {
+    final appId = _editingId;
+    if (appId == null) return;
+    final files = await ProjectStore.listFiles(
+      appId: appId,
+      packageName: _existingPackageName,
+    );
+    if (mounted) setState(() => _projectFiles = files);
+  }
+
+  /// Adds a text file to the project. It is shipped next to index.html, so the
+  /// app can load it with a relative path.
+  Future<void> _addProjectFile() async {
+    final appId = _editingId;
+    if (appId == null) { _snack('Save the app first, then add project files.'); return; }
+    final r = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['css', 'js', 'json', 'html', 'txt', 'svg', 'csv', 'md'],
+    );
+    if (r == null || r.files.single.path == null) return;
+    final picked = File(r.files.single.path!);
+    final name = r.files.single.name.replaceAll(RegExp(r'[^\w.\-]'), '_');
+    final bytes = await picked.readAsBytes();
+    if (bytes.length > 2 * 1024 * 1024) { _snack('Project files are limited to 2 MB.'); return; }
+    try {
+      final content = utf8.decode(bytes);
+      await ProjectStore.addFile(
+        appId: appId,
+        packageName: _existingPackageName,
+        name: name,
+        content: content,
+      );
+      await _loadProjectFiles();
+      _snack('Added $name to the project');
+    } catch (_) {
+      _snack('Only text files can be added to a project.');
+    }
+  }
+
+  Future<void> _removeProjectFile(String name) async {
+    final appId = _editingId;
+    if (appId == null) return;
+    await ProjectStore.removeFile(
+      appId: appId,
+      packageName: _existingPackageName,
+      name: name,
+    );
+    await _loadProjectFiles();
   }
 
   Future<void> _addBundleFile() async {
@@ -1353,6 +1433,52 @@ class CreateScreenState extends State<CreateScreen> {
         ),
       ],
 
+      // Project files — extra files that sit next to index.html in the APK
+      if (_editingId != null) ...[
+        const SizedBox(height: 6),
+        _section(
+          'Project files${_projectFiles.isNotEmpty ? ' (${_projectFiles.length})' : ''}',
+          _projectExpanded,
+          () { setState(() => _projectExpanded = !_projectExpanded); if (_projectExpanded && _projectFiles.isEmpty) _loadProjectFiles(); },
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const SizedBox(height: 8),
+            const Text('Files that are shipped next to index.html, so the app can load them with a relative path: <link rel="stylesheet" href="style.css"> or <script src="script.js">.',
+                style: TextStyle(fontSize: 11, color: Colors.white38)),
+            const SizedBox(height: 10),
+            if (_projectFiles.isEmpty)
+              const Padding(padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(child: Text('No project files', style: TextStyle(fontSize: 12, color: Colors.white24))))
+            else
+              ...List.generate(_projectFiles.length, (i) {
+                final f = _projectFiles[i];
+                final name = f['name'] as String;
+                final size = f['size'] as int;
+                final sizeStr = size < 1024 ? '$size B' : '${(size / 1024).toStringAsFixed(0)} KB';
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(color: const Color(0xFF0A0A14), borderRadius: BorderRadius.circular(8)),
+                    child: Row(children: [
+                      const Icon(Icons.code, size: 16, color: Color(0xFF69F0AE)),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(name, style: const TextStyle(fontSize: 12, color: Colors.white70), overflow: TextOverflow.ellipsis)),
+                      Text(sizeStr, style: const TextStyle(fontSize: 11, color: Colors.white30)),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => _removeProjectFile(name),
+                        child: const Icon(Icons.close, size: 16, color: Color(0xFFFF6B6B)),
+                      ),
+                    ]),
+                  ),
+                );
+              }),
+            const SizedBox(height: 8),
+            h.buildActionButton(label: '+ Add project file', icon: Icons.add, secondary: true, onPressed: _addProjectFile),
+          ]),
+        ),
+      ],
+
       // App Files — optional bundled data files (databases, JSON, images, etc.)
       if (_editingId != null) ...[
         const SizedBox(height: 6),
@@ -1418,10 +1544,15 @@ class CreateScreenState extends State<CreateScreen> {
             h.buildActionButton(label: 'Preview', icon: Icons.visibility, onPressed: _htmlController.text.trim().isEmpty ? null : () async {
               final html = _htmlController.text.trim();
               final issues = await _lintBridge(html);
+              // Project files are inlined so the preview matches the built app.
+              final projectFiles = _editingId != null
+                  ? await ProjectStore.readProject(appId: _editingId!, packageName: _existingPackageName)
+                  : const <String, String>{};
               if (!mounted) return;
               setState(() => _bridgeIssues = issues);
               Navigator.push(context, MaterialPageRoute(builder: (_) => PreviewScreen(
                 htmlContent: html,
+                projectFiles: projectFiles,
                 initialWarnings: issues.map((issue) => issue.consoleLine).toList(),
               )));
             }),

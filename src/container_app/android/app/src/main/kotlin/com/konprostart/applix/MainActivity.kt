@@ -132,13 +132,16 @@ class MainActivity : FlutterActivity() {
                     // Bundle file paths: {filename: absolutePath} — read by Kotlin, not passed as bytes
                     @Suppress("UNCHECKED_CAST")
                     val bundleFiles = call.argument<Map<String, String>>("bundleFiles") ?: emptyMap()
+                    // Project files (style.css, script.js, ...): {filename: absolutePath}
+                    @Suppress("UNCHECKED_CAST")
+                    val projectFiles = call.argument<Map<String, String>>("projectFiles") ?: emptyMap()
                     if (label.isBlank()) { result.error("INVALID", "label required", null); return@setMethodCallHandler }
                     if (html.isBlank()) { result.error("INVALID", "html required", null); return@setMethodCallHandler }
                     installScope.launch {
                         try {
                             val info = generator.injectAndInstall(
                                 label, html, packageName, iconConfig, firebaseConfig, webOnly,
-                                bundleFiles,
+                                bundleFiles, projectFiles,
                             ) { msg ->
                                 channel.invokeMethod("onProgress", msg)
                             }

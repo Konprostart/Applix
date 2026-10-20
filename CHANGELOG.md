@@ -10,6 +10,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.10] - 2026-10-19
+
+### Added
+- **Multi-file projects.** An app is no longer forced into a single HTML file. The project is
+  stored on the device as `files/apps/<packageName>/` with `index.html` plus any extra files
+  (`style.css`, `script.js`, `app-config.json`, ...), and those files are shipped into the APK
+  next to the entry page, so the app can load them with a relative path
+  (`<link rel="stylesheet" href="style.css">`, `<script src="script.js">`).
+- A "Project files" section in the Create screen: add or remove project files, see their size.
+- The preview inlines the project files, so it shows exactly what the installed app shows.
+- A small project manifest (`app-config.json`) with the app name, package name, version and the
+  list of files.
+
+### Changed
+- The project folder moves to its final place (`files/apps/<packageName>/`) as soon as the
+  package name is known, and it is removed together with the app when the app is deleted.
+
+### Compatibility
+- Apps that only have a single `index.html` keep working exactly as before: the project folder
+  is optional, the app record still carries the whole app code, and the build writes the entry
+  page when there is no project.
+
 ## [0.1.9] - 2026-10-19
 
 ### Fixed
@@ -202,7 +224,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.9...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.10...HEAD
+[0.1.10]: https://github.com/Konprostart/Applix/releases/tag/v0.1.10
 [0.1.9]: https://github.com/Konprostart/Applix/releases/tag/v0.1.9
 [0.1.8]: https://github.com/Konprostart/Applix/releases/tag/v0.1.8
 [0.1.7]: https://github.com/Konprostart/Applix/releases/tag/v0.1.7
