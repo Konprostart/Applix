@@ -189,11 +189,11 @@ class Generator {
         title: const Text('Update required'),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text(
-            'The installed app was signed with a different key than the one Applix uses now. '
-            'Applix signs every app with one stable master key, so this happens only for apps '
-            'that were built with an older version of Applix.\n\n'
-            'You can import the old key (Settings → Signing Key → Import key) to update the app '
-            'without losing its data - or replace it, which deletes the data of the app.',
+            'The app on this device was signed with a different key than the one Applix uses now.\n\n'
+            'Applix keeps ONE signing key inside the app and uses it for every app it builds. '
+            'The key is lost when Applix is uninstalled or its data is cleared - after that the '
+            'existing apps can no longer be updated and have to be replaced.\n\n'
+            'Replace the app (its data will be deleted) and do not uninstall Applix again.',
             style: TextStyle(color: Colors.white70, fontSize: 13),
           ),
           const SizedBox(height: 12),
@@ -232,18 +232,6 @@ class Generator {
       );
     }
     return false;
-  }
-
-  /// Exports the master signing key (the file that signs every generated app).
-  static Future<String> exportMasterKey() async {
-    final result = await _ch.invokeMethod<Map>('exportMasterKey', {});
-    return result?['path'] as String? ?? '';
-  }
-
-  /// Imports a master signing key from a file.
-  static Future<String> importMasterKey(String path) async {
-    final result = await _ch.invokeMethod<String>('importMasterKey', {'path': path});
-    return result ?? 'The key was imported';
   }
 
   static Future<Map<String, dynamic>> getKeyInfo() async {

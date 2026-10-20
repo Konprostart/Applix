@@ -432,31 +432,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const Divider(height: 1, color: Color(0xFF0D0D1A)),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const Text(
-                        'One master key signs every app Applix builds, so updates of your apps keep working. '
-                        'Export it to keep a backup - without it the apps on this device cannot be updated anymore.',
-                        style: TextStyle(fontSize: 11, color: Colors.white38),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(children: [
-                        Expanded(child: helpers.buildActionButton(
-                          label: 'Export key',
-                          icon: Icons.download,
-                          secondary: true,
-                          onPressed: _exportMasterKey,
-                        )),
-                        const SizedBox(width: 8),
-                        Expanded(child: helpers.buildActionButton(
-                          label: 'Import key',
-                          icon: Icons.upload,
-                          secondary: true,
-                          onPressed: _importMasterKey,
-                        )),
-                      ]),
-                    ]),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(14, 10, 14, 12),
+                    child: Text(
+                      'One master key signs every app Applix builds, so the apps you already '
+                      'installed can always be updated. The key lives inside Applix and survives '
+                      'every update of Applix - but do not uninstall Applix, because that would '
+                      'remove the key and the existing apps could no longer be updated.',
+                      style: TextStyle(fontSize: 11, color: Colors.white38),
+                    ),
                   ),
                 ],
               ]),
@@ -686,35 +670,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: const Text('Invalid file. Expected Applix JSON export.', style: TextStyle(color: Colors.white)), backgroundColor: const Color(0xFFFF6B6B), duration: const Duration(seconds: 4)),
       );
-    }
-  }
-
-  /// Shares the master signing key so the user can back it up.
-  Future<void> _exportMasterKey() async {
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final path = await Generator.exportMasterKey();
-      if (path.isEmpty) {
-        messenger.showSnackBar(const SnackBar(content: Text('No master key yet.')));
-        return;
-      }
-      await Generator.shareFile(path: path, mimeType: 'application/x-pkcs12');
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Could not export the key: $e')));
-    }
-  }
-
-  /// Imports a master signing key from a file.
-  Future<void> _importMasterKey() async {
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final r = await FilePicker.platform.pickFiles(type: FileType.any);
-      if (r == null || r.files.single.path == null) return;
-      final message = await Generator.importMasterKey(r.files.single.path!);
-      messenger.showSnackBar(SnackBar(content: Text(message)));
-      await _loadKeyInfo();
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Could not import the key: $e')));
     }
   }
 

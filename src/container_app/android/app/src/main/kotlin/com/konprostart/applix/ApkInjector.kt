@@ -50,9 +50,9 @@ import java.util.zip.ZipOutputStream
 /**
  * Injects the app into the shell template and signs the result.
  *
- * The signature always uses the stable master key (KeystoreService) so that
- * an update of a generated app carries the same signature as the version
- * that is already installed.
+ * The signature always uses the master key of the container app
+ * (KeyManager, AndroidKeyStore) so that an update of a generated app carries
+ * the same signature as the version that is already installed.
  */
 class ApkInjector(private val context: Context) {
 
@@ -341,17 +341,21 @@ class ApkInjector(private val context: Context) {
     // ── APK v2 signing ──
 
     private fun applyV2Signature(unsigned: File, signed: File) {
-        val master = KeystoreService.loadOrCreate(context)
-        val privateKey = master.privateKey
-        val cert = master.certificate
-        // Strict check: the key must already be on disk. If it was just created,
-        // signing continues but the build log makes the fact visible, so a
-        // mismatch can never happen silently.
-        if (KeystoreService.keyExists(context)) {
-            log("Loaded existing master key from ${KeystoreService.masterKeyFile(context).absolutePath} with fingerprint ${master.fingerprint}")
-        } else {
-            log("WARNING: master key file was missing - a new one was created at ${KeystoreService.masterKeyFile(context).absolutePath} with fingerprint ${master.fingerprint}")
+        // The master key lives in the AndroidKeyStore of the container app. It is
+        // created once and never replaced, so every build signs with the same
+        // key and an update of a generated app is accepted by Android.
+        val keyStore = KeyStore.getInstance("AndroidKeyStore").also { it.load(null) }
+        if (!keyStore.containsAlias(KeyManager.KEY_ALIAS)) {
+            throw IllegalStateException(
+                "The signing key '${KeyManager.KEY_ALIAS}' is missing - it was removed from the " +
+                    "AndroidKeyStore. Apps that were built with it can no longer be updated."
+            )
         }
+        val privateKey = keyStore.getKey(KeyManager.KEY_ALIAS, null) as? PrivateKey
+            ?: throw IllegalStateException("The signing key cannot be read")
+        val cert = keyStore.getCertificate(KeyManager.KEY_ALIAS) as X509Certificate
+        // Log the signer so a signature problem is visible in the build log.
+        log("Signing with master key ${KeyManager.fingerprint()}")
 
         val apk = unsigned.readBytes()
         val eocdOffset = findEocd(apk)

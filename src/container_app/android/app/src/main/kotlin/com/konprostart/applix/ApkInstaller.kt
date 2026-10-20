@@ -363,18 +363,16 @@ class ApkInstaller(private val context: Context) {
             val archive = pm.getPackageArchiveInfo(apkFile.absolutePath, flags)
                 ?: return "The built APK cannot be read - it is not a valid package"
             val digests = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                archive.signingInfo?.apkContentsSigners?.map { KeystoreService.digest(it.toByteArray()) }
+                archive.signingInfo?.apkContentsSigners?.map { KeyManager.digestOf(it.toByteArray()) }
                     ?: emptyList()
             } else {
                 @Suppress("DEPRECATION")
-                archive.signatures?.map { KeystoreService.digest(it.toByteArray()) } ?: emptyList()
+                archive.signatures?.map { KeyManager.digestOf(it.toByteArray()) } ?: emptyList()
             }
             if (digests.isEmpty()) {
                 return "The built APK carries no signature"
             }
-            val master = KeystoreService.digest(
-                KeystoreService.certificate(context).encoded
-            )
+            val master = KeyManager.fingerprint()
             if (!digests.contains(master)) {
                 Log.e(TAG, "APK signature $digests does not match the master key $master")
                 return "The built APK is signed with a different key than Applix uses"

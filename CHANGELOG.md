@@ -10,6 +10,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.2.0] - 2026-10-20
+
+### Changed
+- **The signing goes back to the original iappyxOS mechanism.** The master key lives in the
+  AndroidKeyStore of Applix, it is created once and it is never replaced while it exists - the
+  same mechanism the project used from the start. All the extra layers (a keystore file in the
+  app storage, a copy in the Downloads folder, an import/export flow) are gone again.
+- The build log shows the fingerprint of the key that signed the app and the path of the file
+  that goes to the system, so it is visible that every build uses the same key.
+- The signature of the finished APK is read out of the APK with the platform parser and
+  compared with the master key before the install. A mismatch stops the install with a clear
+  message instead of letting Android report a broken package.
+- The number of bytes that reach the install session is verified before the session is
+  committed.
+- The package name of a project is logged and never changed by an edit, so an update always
+  installs over the existing app.
+
+### Fixed
+- The "update required" dialog explains where the signing key lives and that uninstalling
+  Applix removes it, and it shows the fingerprint of both the installed app and the current key.
+- Settings → Signing Key explains the same instead of offering a key export that cannot work
+  with a hardware backed key.
+
 ## [0.1.19] - 2026-10-20
 
 ### Fixed
@@ -377,7 +400,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.19...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Konprostart/Applix/releases/tag/v0.2.0
 [0.1.19]: https://github.com/Konprostart/Applix/releases/tag/v0.1.19
 [0.1.18]: https://github.com/Konprostart/Applix/releases/tag/v0.1.18
 [0.1.17]: https://github.com/Konprostart/Applix/releases/tag/v0.1.17

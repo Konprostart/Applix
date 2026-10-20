@@ -262,32 +262,6 @@ class MainActivity : FlutterActivity() {
                         result.error("FAILED", e.message, null)
                     }
                 }
-                // ── Master signing key: export / import ──
-                "exportMasterKey" -> {
-                    try {
-                        val file = KeystoreService.exportKey(this@MainActivity)
-                        if (file == null || !file.exists()) {
-                            result.error("NOT_FOUND", "No master key yet", null)
-                            return@setMethodCallHandler
-                        }
-                        result.success(mapOf("path" to file.absolutePath))
-                    } catch (e: Exception) {
-                        result.error("FAILED", e.message, null)
-                    }
-                }
-                "importMasterKey" -> {
-                    val path = call.argument<String>("path") ?: ""
-                    if (path.isBlank()) {
-                        result.error("INVALID", "path required", null)
-                        return@setMethodCallHandler
-                    }
-                    val message = KeystoreService.importKey(this@MainActivity, File(path))
-                    if (message.startsWith("Could not")) {
-                        result.error("FAILED", message, null)
-                    } else {
-                        result.success(message)
-                    }
-                }
                 // ── Preview bridge: TTS ──
                 "ttsSpeak" -> {
                     val text = call.arguments as? String ?: ""
