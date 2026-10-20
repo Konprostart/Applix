@@ -50,6 +50,26 @@
   --ax-slow: 280ms;
   --ax-ease: cubic-bezier(0.4, 0, 0.2, 1);
 
+  /* Aliases for the variable names the system prompt teaches.
+     Apps that use var(--primary) / var(--surface) / var(--text) get the same
+     values as the .ax-* system instead of falling back to "no color". */
+  --primary: var(--ax-primary);
+  --primary-light: var(--ax-primary);
+  --primary-dark: var(--ax-primary-press);
+  --secondary: var(--ax-accent, var(--ax-primary));
+  --bg: var(--ax-bg);
+  --surface: var(--ax-surface);
+  --surface-2: var(--ax-surface-2);
+  --text: var(--ax-text);
+  --text-secondary: var(--ax-text-dim);
+  --muted: var(--ax-text-faint);
+  --on-primary: var(--ax-on-primary);
+  --on-surface: var(--ax-text);
+  --on-bg: var(--ax-text);
+  --border: var(--ax-border);
+  --danger: var(--ax-danger);
+  --success: var(--ax-success);
+
   /* Safe areas - the shell writes the real device values at runtime.
      Without edge-to-edge they stay 0 and the layout is unaffected. */
   --ax-safe-top: 0px;
@@ -87,10 +107,6 @@ html {
 }
 
 body {
-  font-family: system-ui, Roboto, "Noto Sans", "Segoe UI", sans-serif;
-  line-height: 1.45;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
   overscroll-behavior-y: contain;
 }
 
@@ -104,6 +120,7 @@ video,
 canvas,
 svg {
   max-width: 100%;
+  height: auto;
 }
 
 button,

@@ -10,6 +10,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.17] - 2026-10-20
+
+### Fixed
+- **The signing key is back to one simple file.** The key is stored as a single keystore file
+  again (files/keys/applix_master.p12) instead of several custom files. If the file exists it is
+  always used - it is never replaced silently. If it cannot be read the build stops with a clear
+  message instead of signing with a new key. The key files of the previous version are migrated
+  automatically, so no app loses its signature.
+- **"Export key" works again.** The exported file is written to the share folder of the app, which
+  is the only place the file provider can share from - that is why the export failed before.
+- **Generated apps look like they did before.** The design system no longer overwrites the fonts,
+  the line height or the image size of an app, and it now also answers to the variable names the
+  system prompt teaches (--primary, --surface, --text, ...), so an app that mixes both systems
+  keeps its colors instead of losing them.
+- The system theme colors of the device are published under both variable names, so an app that
+  follows the "dynamic" style gets the same colors in the preview and in the installed app.
+
 ## [0.1.16] - 2026-10-19
 
 ### Fixed
@@ -334,7 +351,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.16...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.17...HEAD
+[0.1.17]: https://github.com/Konprostart/Applix/releases/tag/v0.1.17
 [0.1.16]: https://github.com/Konprostart/Applix/releases/tag/v0.1.16
 [0.1.15]: https://github.com/Konprostart/Applix/releases/tag/v0.1.15
 [0.1.14]: https://github.com/Konprostart/Applix/releases/tag/v0.1.14

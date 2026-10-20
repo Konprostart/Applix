@@ -550,6 +550,20 @@ public class ShellActivity extends ComponentActivity {
                     "r.style.setProperty('--ax-safe-bottom',i.bottom+'px');" +
                     "r.style.setProperty('--ax-safe-left',i.left+'px');" +
                     "r.style.setProperty('--ax-safe-right',i.right+'px');}" +
+                    // The system theme colors are published under both variable
+                    // names, so apps that use the ones from the spec and apps
+                    // that use the UI Kit ones get the same colors.
+                    "if(window.iappyxDevice){try{var t=JSON.parse(iappyxDevice.getThemeColors());" +
+                    "if(t){var set=function(a,b){if(t[b])r.style.setProperty(a,t[b]);};" +
+                    "set('--ax-primary','primary');set('--primary','primary');" +
+                    "set('--ax-primary-press','primaryDark');set('--primary-dark','primaryDark');" +
+                    "set('--ax-surface','surface');set('--surface','surface');" +
+                    "set('--ax-text','onSurface');set('--text','onSurface');" +
+                    "set('--ax-bg','background');set('--bg','background');" +
+                    "set('--ax-on-primary','onPrimary');set('--on-primary','onPrimary');" +
+                    "set('--ax-on-surface','onSurface');set('--on-surface','onSurface');" +
+                    "set('--ax-on-bg','onBackground');set('--on-bg','onBackground');" +
+                    "}}catch(e2){}}" +
                     "}catch(e){}})();", null);
                 // Check if launched by alarm (cold start)
                 Intent launchIntent = getIntent();
