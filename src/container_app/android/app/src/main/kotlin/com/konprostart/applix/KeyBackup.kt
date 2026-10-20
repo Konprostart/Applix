@@ -7,8 +7,7 @@ import android.content.Context
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import android.security.keystore.KeyGenParameterSpec
-import android.security.keystore.KeyProperties
+import android.security.keystore.KeyProtection
 import android.util.Log
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -49,17 +48,19 @@ object KeyBackup {
     private const val KEY_TYPE = "PKCS12"
 
     /** True when a backup record exists in the shared storage. */
-    fun exists(context: Context): Boolean = try {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
-        val resolver = context.contentResolver
-        val projection = arrayOf(MediaStore.Downloads._ID)
-        val selection = "${MediaStore.Downloads.DISPLAY_NAME}=?"
-        val args = arrayOf(RECORD_NAME)
-        resolver.query(
-            MediaStore.Downloads.EXTERNAL_CONTENT_URI, projection, selection, args, null
-        )?.use { it.moveToFirst() } ?: false
-    } catch (e: Exception) {
-        false
+    fun exists(context: Context): Boolean {
+        return try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
+            val resolver = context.contentResolver
+            val projection = arrayOf(MediaStore.Downloads._ID)
+            val selection = "${MediaStore.Downloads.DISPLAY_NAME}=?"
+            val args = arrayOf(RECORD_NAME)
+            resolver.query(
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI, projection, selection, args, null
+            )?.use { it.moveToFirst() } ?: false
+        } catch (e: Exception) {
+            false
+        }
     }
 
     /**
@@ -165,32 +166,18 @@ object KeyBackup {
                 ?: return false
             val chain = p12.getCertificateChain("applix") ?: return false
 
-            // Put the very same key back into the AndroidKeyStore.
+            // Put the very same key back into the AndroidKeyStore. The key was
+            // created with the standard parameters, so the imported entry needs
+            // no protection parameter of its own.
             val keyStore = KeyStore.getInstance(KEY_STORE)
             keyStore.load(null)
-            val spec = KeyGenParameterSpec.Builder(
-                KEY_ALIAS,
-                KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
-            )
-                .setKeySize(2048)
-                .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
-                .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
-                .setCertificateSubject(
-                    javax.security.auth.x500.X500Principal("CN=Applix, O=Konprostart, C=NL")
-                )
-                .setCertificateSerialNumber(java.math.BigInteger.ONE)
-                .setCertificateNotBefore(java.util.Calendar.getInstance().time)
-                .setCertificateNotAfter(
-                    java.util.Calendar.getInstance().apply {
-                        add(java.util.Calendar.YEAR, 25)
-                    }.time
-                )
-                .setUserAuthenticationRequired(false)
-                .build()
             keyStore.setEntry(
                 KEY_ALIAS,
                 KeyStore.PrivateKeyEntry(privateKey, chain),
-                spec
+                KeyProtection.Builder()
+                    .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
+                    .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
+                    .build()
             )
             Log.i(TAG, "Master key restored from the shared backup")
             true
