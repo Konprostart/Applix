@@ -512,7 +512,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // About
               _sectionTitle('About'),
               _card(children: [
-                _row('Version', '$kAppVersion (build $kAppBuildNumber)'),
+                _row('Version', '$kAppVersion (code $kAppVersionCode)'),
                 const Divider(height: 1, color: Color(0xFF0D0D1A)),
                 _row('Demo Templates', '${helpers.demoTemplates.where((t) => t.$1.isNotEmpty).length}'),
                 const Divider(height: 1, color: Color(0xFF0D0D1A)),

@@ -42,7 +42,14 @@ android {
         applicationId = "com.konprostart.applix"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
+        // The version code is derived from the semantic version, so it can never
+        // go back: Android refuses an update whose version code is lower than
+        // the installed one ("App not installed").
+        def semver = (flutter.versionName ?: "0.0.0").tokenize(".")
+        def major = semver.size() > 0 ? semver[0].toInteger() : 0
+        def minor = semver.size() > 1 ? semver[1].toInteger() : 0
+        def patch = semver.size() > 2 ? semver[2].toInteger() : 0
+        versionCode = major * 100000000 + minor * 100000 + patch
         versionName = flutter.versionName
         ndk {
             abiFilters 'arm64-v8a'

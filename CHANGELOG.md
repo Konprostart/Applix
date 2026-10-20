@@ -10,6 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.2.2] - 2026-10-20
+
+### Fixed
+- **Applix can be updated over the previous version again.** The version code of the app is now
+  derived from the semantic version (major * 100000000 + minor * 100000 + patch), so it always
+  grows. The build number that was used before was reset with the 0.2.0 release, and Android
+  refuses an update whose version code is lower than the installed one ("App not installed") -
+  that is why 0.2.0 and 0.2.1 could not be installed over 0.1.19.
+- CI now fails when the version of a release is lower than an already published one, so a
+  downgrade can never be published again.
+- The VERSION file holds a plain semantic version (0.2.2) - there is no separate build number
+  any more that could drift.
+
 ## [0.2.1] - 2026-10-20
 
 ### Fixed
@@ -414,7 +427,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/Konprostart/Applix/releases/tag/v0.2.2
 [0.2.1]: https://github.com/Konprostart/Applix/releases/tag/v0.2.1
 [0.2.0]: https://github.com/Konprostart/Applix/releases/tag/v0.2.0
 [0.1.19]: https://github.com/Konprostart/Applix/releases/tag/v0.1.19
