@@ -45,7 +45,7 @@ android {
         // The version code is derived from the semantic version, so it can never
         // go back: Android refuses an update whose version code is lower than
         // the installed one ("App not installed").
-        def semver = (flutter.versionName ?: "0.0.0").tokenize(".")
+        def semver = flutter.versionName.toString().tokenize(".")
         def major = semver.size() > 0 ? semver[0].toInteger() : 0
         def minor = semver.size() > 1 ? semver[1].toInteger() : 0
         def patch = semver.size() > 2 ? semver[2].toInteger() : 0
