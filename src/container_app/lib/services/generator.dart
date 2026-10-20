@@ -169,6 +169,9 @@ class Generator {
         content: const Text(
           'A different version of this app is already installed. '
           'To update it, the old version needs to be removed first.\n\n'
+          'This happens when the app was signed with an older Applix key. '
+          'Applix now uses one stable master key for every app it builds, '
+          'so this is the last time.\n\n'
           'Any data saved in the app will be deleted.',
           style: TextStyle(color: Colors.white70),
         ),
@@ -201,6 +204,18 @@ class Generator {
       );
     }
     return false;
+  }
+
+  /// Exports the master signing key (the file that signs every generated app).
+  static Future<String> exportMasterKey() async {
+    final result = await _ch.invokeMethod<Map>('exportMasterKey', {});
+    return result?['path'] as String? ?? '';
+  }
+
+  /// Imports a master signing key from a file.
+  static Future<String> importMasterKey(String path) async {
+    final result = await _ch.invokeMethod<String>('importMasterKey', {'path': path});
+    return result ?? 'The key was imported';
   }
 
   static Future<Map<String, dynamic>> getKeyInfo() async {

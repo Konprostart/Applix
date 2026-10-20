@@ -41,7 +41,7 @@ class AppGenerator(private val context: Context) {
         private const val TEMPLATE_ASSET_WEB = "flutter_assets/assets/shell_template_web.apk"
     }
 
-    private val injector = ApkInjector(KeyManager.KEY_ALIAS)
+    private val injector = ApkInjector(context)
     private val installer = ApkInstaller(context)
     private val workDir get() = File(context.filesDir, "applix_work")
     @Volatile private var building = false

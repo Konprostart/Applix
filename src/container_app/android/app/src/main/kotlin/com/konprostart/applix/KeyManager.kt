@@ -1,126 +1,72 @@
-/*
- * MIT License
- *
- * Copyright (c) 2026 iappyx
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
 
-// Manages the RSA-2048 signing key in Android Keystore for APK v2 signatures.
+// Manages the RSA-2048 signing key used for every app that Applix generates.
+//
+// The key itself lives in KeystoreService (a stable file in the private
+// storage of the app). This class is the thin, stable API around it that the
+// rest of the app uses.
 
 package com.konprostart.applix
 
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import android.security.keystore.KeyGenParameterSpec
-import android.security.keystore.KeyProperties
 import android.util.Log
-import java.security.KeyPairGenerator
-import java.security.KeyStore
-import java.security.MessageDigest
-import java.util.Calendar
 
 /**
  * Applix Key Manager
  *
- * Manages the signing key used for all generated APKs.
- *
- * The key lives in the Android Keystore — a hardware-backed secure enclave
- * on modern devices. The raw private key bytes never leave the chip.
- * We sign data by passing it to the Keystore and getting back the signature.
- *
- * The same key is used for all generated apps, which means:
- * - Apps can be updated (same signature required for updates)
- * - All generated apps are "trusted" by the same signer
- * - If the container app is uninstalled, the key is lost and generated apps
- *   can no longer be updated (but still run)
- *
- * Key is generated once on first run and persists indefinitely.
+ * All generated apps are signed with ONE master key, so:
+ * - an update of a generated app always has the same signature
+ * - all generated apps share the same signer
+ * - the key survives app updates and can be exported/imported by the user
  */
 object KeyManager {
 
     private const val TAG = "Applix"
+
+    /** Legacy alias of the key in the AndroidKeyStore. Kept for the migration
+     *  path - new apps are signed with the master key. */
     const val KEY_ALIAS = "applix_signing_key"
-    private const val KEY_STORE = "AndroidKeyStore"
 
     /**
-     * Ensure the signing key exists. Call this once on app startup.
-     * If the key already exists, does nothing.
-     * If not, generates a new RSA-2048 key pair in the secure enclave.
+     * Ensure the master signing key exists. Call this once on app startup.
+     * If the key already exists, nothing happens - it is never regenerated.
      */
     fun ensureKeyExists(context: Context) {
-        val keyStore = KeyStore.getInstance(KEY_STORE)
-        keyStore.load(null)
-
-        if (keyStore.containsAlias(KEY_ALIAS)) {
-            Log.i(TAG, "Signing key already exists")
-            return
+        try {
+            KeystoreService.loadOrCreate(context)
+        } catch (e: Exception) {
+            Log.e(TAG, "Could not prepare the master signing key: ${e.message}")
         }
-
-        Log.i(TAG, "Generating new signing key...")
-        generateKey()
-        Log.i(TAG, "Signing key generated and stored in Android Keystore")
     }
 
     /**
      * Returns true if the signing key exists.
      */
-    fun keyExists(): Boolean {
-        val keyStore = KeyStore.getInstance(KEY_STORE)
-        keyStore.load(null)
-        return keyStore.containsAlias(KEY_ALIAS)
-    }
+    fun keyExists(context: Context): Boolean = KeystoreService.keyExists(context)
 
     /**
-     * Delete the signing key. Use with caution —
+     * Delete the signing key. Use with caution -
      * existing generated apps can no longer be updated after this.
      */
-    fun deleteKey() {
-        val keyStore = KeyStore.getInstance(KEY_STORE)
-        keyStore.load(null)
-        if (keyStore.containsAlias(KEY_ALIAS)) {
-            keyStore.deleteEntry(KEY_ALIAS)
-            Log.i(TAG, "Signing key deleted")
-        }
-    }
+    fun deleteKey(context: Context) = KeystoreService.deleteKey(context)
 
     /**
      * Get the signing certificate for display (fingerprint, expiry).
      */
-    fun getCertificateInfo(): String {
-        val keyStore = KeyStore.getInstance(KEY_STORE)
-        keyStore.load(null)
-
-        if (!keyStore.containsAlias(KEY_ALIAS)) return "No key"
-
-        val cert = keyStore.getCertificate(KEY_ALIAS)
-        val fingerprint = cert.encoded.let {
-            val md = java.security.MessageDigest.getInstance("SHA-256")
-            md.digest(it).joinToString(":") { b -> "%02X".format(b) }
+    fun getCertificateInfo(context: Context): String {
+        val fingerprint = try {
+            KeystoreService.fingerprint(context)
+        } catch (e: Exception) {
+            return "No key"
         }
-
+        if (fingerprint.isEmpty()) return "No key"
         return "SHA-256: ${fingerprint.take(29)}..."
     }
 
     /**
-     * Check whether an installed app's signing certificate matches this device's key.
+     * Check whether an installed app's signing certificate matches this
+     * device's master key.
      * Returns: "not_installed", "same_signer", or "different_signer".
      */
     fun checkSignatureMatch(context: Context, packageName: String): String {
@@ -140,52 +86,15 @@ object KeyManager {
         }
         if (installedSigs.isEmpty()) return "not_installed"
 
-        val keyStore = KeyStore.getInstance(KEY_STORE)
-        keyStore.load(null)
-        if (!keyStore.containsAlias(KEY_ALIAS)) return "different_signer"
-        val localDigest = sigDigest(keyStore.getCertificate(KEY_ALIAS).encoded)
+        val localDigest = try {
+            KeystoreService.digest(KeystoreService.certificate(context).encoded)
+        } catch (e: Exception) {
+            return "different_signer"
+        }
 
         return if (installedSigs.contains(localDigest)) "same_signer" else "different_signer"
     }
 
-    private fun sigDigest(certBytes: ByteArray): String {
-        return MessageDigest.getInstance("SHA-256").digest(certBytes)
-            .joinToString(":") { "%02X".format(it) }
-    }
-
-    // ─────────────────────────────────────────────
-    // Private
-    // ─────────────────────────────────────────────
-
-    private fun generateKey() {
-        val validityEnd = Calendar.getInstance().apply {
-            add(Calendar.YEAR, 25) // 25-year validity, same as typical app signing keys
-        }
-
-        val keyGenSpec = KeyGenParameterSpec.Builder(
-            KEY_ALIAS,
-            KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
-        )
-            .setKeySize(2048)
-            .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
-            .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
-            .setCertificateSubject(
-                javax.security.auth.x500.X500Principal(
-                    "CN=Applix, O=Konprostart, C=NL"
-                )
-            )
-            .setCertificateSerialNumber(java.math.BigInteger.ONE)
-            .setCertificateNotBefore(Calendar.getInstance().time)
-            .setCertificateNotAfter(validityEnd.time)
-            // Don't require user authentication — the key is used in background
-            .setUserAuthenticationRequired(false)
-            .build()
-
-        val keyPairGenerator = KeyPairGenerator.getInstance(
-            KeyProperties.KEY_ALGORITHM_RSA,
-            KEY_STORE
-        )
-        keyPairGenerator.initialize(keyGenSpec)
-        keyPairGenerator.generateKeyPair()
-    }
+    private fun sigDigest(certBytes: ByteArray): String =
+        KeystoreService.digest(certBytes)
 }

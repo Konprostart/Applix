@@ -10,6 +10,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.1.15] - 2026-10-19
+
+### Fixed
+- **Generated apps keep their signature.** Every app that Applix builds is now signed with one
+  stable master key that lives in the private storage of the app. The key is created exactly once
+  and is never regenerated, so an update of a generated app always carries the same signature and
+  Android accepts it.
+  Before, the key lived in the AndroidKeyStore of Applix itself. That key is invalidated when
+  Applix is reinstalled with a different signature, when the app data is cleared or after a
+  device restore - and a new key was then generated silently. Every app built afterwards was
+  signed with a different key than before, which is exactly the "signed with a different key"
+  error that blocked updates of the apps users had already installed.
+- **The master key can be backed up.** Settings → Signing Key → Export key / Import key. Exporting
+  lets the user keep the key; importing it on a new phone (or after a restore) makes the apps
+  built with it updatable again.
+- The key is checked against the installed app before an update, and the "uninstall & replace"
+  dialog now explains that the app was signed with an older Applix key and that this is the last
+  time.
+
 ## [0.1.14] - 2026-10-19
 
 ### Fixed
@@ -294,7 +313,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.14...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.1.15...HEAD
+[0.1.15]: https://github.com/Konprostart/Applix/releases/tag/v0.1.15
 [0.1.14]: https://github.com/Konprostart/Applix/releases/tag/v0.1.14
 [0.1.13]: https://github.com/Konprostart/Applix/releases/tag/v0.1.13
 [0.1.12]: https://github.com/Konprostart/Applix/releases/tag/v0.1.12

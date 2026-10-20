@@ -24,6 +24,7 @@
 
 package com.konprostart.applix
 
+import android.content.Context
 import android.util.Log
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -46,7 +47,14 @@ import java.util.zip.ZipOutputStream
  * Key requirement: resources.arsc must be 4-byte aligned in the ZIP
  * (targeting Android R+ / API 30+)
  */
-class ApkInjector(private val keystoreAlias: String = "applix_signing_key") {
+/**
+ * Injects the app into the shell template and signs the result.
+ *
+ * The signature always uses the stable master key (KeystoreService) so that
+ * an update of a generated app carries the same signature as the version
+ * that is already installed.
+ */
+class ApkInjector(private val context: Context) {
 
     companion object {
         private const val TAG = "Applix"
@@ -333,10 +341,8 @@ class ApkInjector(private val keystoreAlias: String = "applix_signing_key") {
     // ── APK v2 signing ──
 
     private fun applyV2Signature(unsigned: File, signed: File) {
-        val ks = KeyStore.getInstance("AndroidKeyStore").also { it.load(null) }
-        val privateKey = ks.getKey(keystoreAlias, null) as? PrivateKey
-            ?: throw IllegalStateException("Key '$keystoreAlias' not found")
-        val cert = ks.getCertificate(keystoreAlias) as X509Certificate
+        val privateKey = KeystoreService.privateKey(context)
+        val cert = KeystoreService.certificate(context)
 
         val apk = unsigned.readBytes()
         val eocdOffset = findEocd(apk)
