@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Nothing yet.
+
+## [0.6.0] - 2026-10-21
+
+### Added
 - **Blueprint-first generation (Phase 5).** A compact planner call turns the
   request into a validated `AppPlan` (screens, entities, seed records, flows,
   acceptance checks). Generation then receives that plan as a binding spec, so
