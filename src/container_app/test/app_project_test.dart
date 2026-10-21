@@ -47,6 +47,25 @@ void main() {
       expect(project.entryHtml, isNot(contains('Summary')));
     });
 
+    test('recovers a multi-file project with raw line breaks in its strings',
+        () {
+      // Models often emit literal newlines inside JSON strings. That is
+      // invalid JSON, but the project is still usable after repair.
+      const response = '```json\n'
+          '{"applix":2,"entry":"index.html","files":{'
+          '"index.html":"<!doctype html>\n<html><body>'
+          '<script src=\\"src/app.js\\"></script></body></html>",'
+          '"src/app.js":"console.log(1);\n"}}'
+          '\n```';
+      final project = AppProject.parseModelOutput(response);
+      expect(project.isMultiFile, isTrue);
+      expect(project.entry, 'index.html');
+      expect(project.files['src/app.js'], 'console.log(1);\n');
+      expect(project.entryHtml, contains('<html><body>'));
+      expect(project.entryHtml, contains('src="src/app.js"'));
+      expect(project.validate(), isNull);
+    });
+
     test('a JSON object without files is ignored', () {
       final project = AppProject.parseModelOutput('{"a":1}');
       expect(project.files, isEmpty);

@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.9.3] - 2026-10-21
+
+### Fixed
+- **Multi-file project answers with raw line breaks now parse.** Models often
+  put literal newlines or tabs inside JSON strings. That is invalid JSON, and
+  the parser used to fall back to the raw response, which produced a broken
+  app. Control characters inside strings are now escaped before decoding.
+  Valid JSON is unchanged.
+
 ## [0.9.2] - 2026-10-21
 
 ### Fixed
