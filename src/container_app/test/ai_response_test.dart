@@ -45,12 +45,10 @@ void main() {
       expect(AiResponse.extractAppHtml(response), '');
     });
 
-    test('keeps a partly truncated document so the repair pass can retry it',
-        () {
+    test('rejects a truncated document with no closing html tag', () {
       final html = AiResponse.extractAppHtml(
-          '<!DOCTYPE html>\n<html><body><p>Cut off mid...</');
-      expect(html.startsWith('<html'), isFalse, reason: 'doctype survives');
-      expect(html.startsWith('<!DOCTYPE'), isTrue);
+          '<!DOCTYPE html>\n<html><body><p>Cut off mid...');
+      expect(html, '');
     });
   });
 }

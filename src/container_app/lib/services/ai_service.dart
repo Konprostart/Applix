@@ -5,6 +5,15 @@ import 'package:http/http.dart' as http;
 import '../models/ai_provider.dart';
 import 'openai_compatible.dart';
 
+/// The provider stopped because it hit the output limit. Treating that as a
+/// finished app silently ships a cut-off document, so callers must see it.
+class AiTruncatedException implements Exception {
+  final String message;
+  const AiTruncatedException(this.message);
+  @override
+  String toString() => message;
+}
+
 class AiService {
   /// Keeps a chat history bounded. Every message carries the whole app code,
   /// so an endless chat would grow the memory (and every request) without
@@ -14,6 +23,35 @@ class AiService {
     final first = messages.first;
     final tail = messages.sublist(messages.length - (max - 1));
     return [first, ...tail];
+  }
+
+  /// True when a provider finish/stop reason means the answer was cut off.
+  static bool isTruncatedFinishReason(String? reason) {
+    final value = (reason ?? '').trim().toLowerCase();
+    return value == 'length' ||
+        value == 'max_tokens' ||
+        value == 'max_output_tokens';
+  }
+
+  /// Message content from the OpenAI/OpenRouter shape. Some servers return a
+  /// list of content parts instead of a plain string.
+  static String contentFromMessage(Object? message) {
+    if (message is! Map) return '';
+    final content = message['content'];
+    if (content is String) return content.trim();
+    if (content is List) {
+      final parts = <String>[];
+      for (final part in content) {
+        if (part is String) {
+          parts.add(part);
+        } else if (part is Map) {
+          final text = part['text'];
+          if (text is String && text.trim().isNotEmpty) parts.add(text.trim());
+        }
+      }
+      return parts.join('\n').trim();
+    }
+    return '';
   }
 
   /// Generate a response from the AI provider.
@@ -188,14 +226,28 @@ class AiService {
     ).timeout(const Duration(seconds: 300));
 
     if (response.statusCode != 200) {
-      final error = jsonDecode(response.body);
-      throw Exception(error['error']?['message'] ?? 'API error ${response.statusCode}');
+      throw Exception(OpenAICompatible.parseApiError(
+          response.statusCode, response.body));
     }
 
     final data = jsonDecode(response.body);
-    final content = data['content'] as List?;
-    if (content == null || content.isEmpty) throw Exception('Empty response from API');
-    return content.first['text'] as String;
+    if (isTruncatedFinishReason(data['stop_reason']?.toString())) {
+      throw const AiTruncatedException(
+          'The AI response was cut off at the output limit before the app was '
+          'complete. Retry, or choose a model with a larger output limit.');
+    }
+    final content = data['content'];
+    if (content is List) {
+      final texts = <String>[];
+      for (final block in content) {
+        if (block is Map && block['type'] == 'text') {
+          final text = block['text'];
+          if (text is String && text.trim().isNotEmpty) texts.add(text.trim());
+        }
+      }
+      if (texts.isNotEmpty) return texts.join('\n');
+    }
+    throw Exception('The AI returned no text content.');
   }
 
   // ── OpenRouter ──
@@ -224,14 +276,25 @@ class AiService {
     ).timeout(const Duration(seconds: 300));
 
     if (response.statusCode != 200) {
-      final error = jsonDecode(response.body);
-      throw Exception(error['error']?['message'] ?? 'API error ${response.statusCode}');
+      throw Exception(OpenAICompatible.parseApiError(
+          response.statusCode, response.body));
     }
 
     final data = jsonDecode(response.body);
-    final choices = data['choices'] as List?;
-    if (choices == null || choices.isEmpty) throw Exception('Empty response from API');
-    return choices[0]['message']['content'] as String;
+    final choices = data['choices'];
+    if (choices is! List || choices.isEmpty) {
+      throw Exception('Empty response from API');
+    }
+    final first = choices.first;
+    if (first is! Map) throw Exception('Unexpected response from API');
+    if (isTruncatedFinishReason(first['finish_reason']?.toString())) {
+      throw const AiTruncatedException(
+          'The AI response was cut off at the output limit before the app was '
+          'complete. Retry, or choose a model with a larger output limit.');
+    }
+    final text = contentFromMessage(first['message']);
+    if (text.isNotEmpty) return text;
+    throw Exception('The AI returned no text content.');
   }
 
   // ── OpenAI-compatible (Ollama, LM Studio, vLLM, ...) ──
@@ -262,6 +325,20 @@ class AiService {
     if (response.statusCode != 200) {
       throw Exception(OpenAICompatible.parseApiError(response.statusCode, response.body));
     }
-    return OpenAICompatible.parseCompletion(response.body);
+    final data = jsonDecode(response.body);
+    final choices = data is Map ? data['choices'] : null;
+    if (choices is! List || choices.isEmpty) {
+      throw Exception('Empty response from API');
+    }
+    final first = choices.first;
+    if (first is! Map) throw Exception('Unexpected response from API');
+    if (isTruncatedFinishReason(first['finish_reason']?.toString())) {
+      throw const AiTruncatedException(
+          'The AI response was cut off at the output limit before the app was '
+          'complete. Retry, or choose a model with a larger output limit.');
+    }
+    final text = contentFromMessage(first['message']);
+    if (text.isNotEmpty) return text;
+    throw Exception('The AI returned no text content.');
   }
 }

@@ -96,9 +96,45 @@ void main() {
         ),
       ),
     ));
-    expect(find.text('Generating...'), findsOneWidget);
+    expect(find.textContaining('Generating...'), findsOneWidget);
     final button = tester.widget<ElevatedButton>(
         find.byKey(GenerateResultView.buildActionKey));
     expect(button.onPressed, isNull);
+  });
+
+  testWidgets('generating shows an elapsed timer and a cancel action',
+      (tester) async {
+    var cancelled = false;
+    await tester.pumpWidget(MaterialApp(
+      theme: ThemeData.dark(),
+      home: Scaffold(
+        body: GenerateResultView(
+          appName: 'Budget',
+          preview: const Center(child: Text('LIVE PREVIEW')),
+          code: '<html></html>',
+          generating: true,
+          generatingSince: DateTime.now().subtract(const Duration(seconds: 3)),
+          onCancel: () => cancelled = true,
+          onBack: () {},
+          onOpenPreview: () {},
+          onBuild: () {},
+          onRegenerate: () {},
+          onEditDetails: () {},
+        ),
+      ),
+    ));
+    expect(find.textContaining('Generating...'), findsOneWidget);
+    await tester.tap(find.byKey(GenerateResultView.cancelGenerationKey));
+    expect(cancelled, isTrue);
+  });
+
+  testWidgets('the live preview stays mounted on the Code tab',
+      (tester) async {
+    await tester.pumpWidget(_app());
+    await tester.tap(find.byKey(GenerateResultView.codeTabKey));
+    await tester.pumpAndSettle();
+    // IndexedStack keeps the preview widget in the tree so its WebView state
+    // (forms, scroll) survives tab switches.
+    expect(find.text('LIVE PREVIEW'), findsOneWidget);
   });
 }

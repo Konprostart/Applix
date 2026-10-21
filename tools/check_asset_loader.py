@@ -21,7 +21,6 @@ REQUIRED = [
     "WebViewAssetLoader",
     "addPathHandler(AssetOrigin.ASSETS_PATH",
     "shouldInterceptRequest",
-    "AssetOrigin.FALLBACK_URL",
     "AssetOrigin.APP_URL",
 ]
 
@@ -37,11 +36,19 @@ for name, path in SHELLS.items():
             errors.append(f"{name} shell is missing {token!r}")
     if 'loadUrl("file:///android_asset/app/index.html")' in text:
         errors.append(f"{name} shell still loads file:// directly")
+    if "AssetOrigin.FALLBACK_URL" in text:
+        errors.append(f"{name} shell still relies on the file:// fallback")
+    if "setAllowFileAccess(true)" in text:
+        errors.append(f"{name} shell enables file access")
+    if "setAllowFileAccess(false)" not in text:
+        errors.append(f"{name} shell does not explicitly disable file access")
 
 task = TASK_SERVICE.read_text(encoding="utf-8")
-for token in ["WebViewAssetLoader", "AssetOrigin.APP_URL", "AssetOrigin.FALLBACK_URL"]:
+for token in ["WebViewAssetLoader", "AssetOrigin.APP_URL"]:
     if token not in task:
         errors.append(f"TaskService is missing {token!r}")
+if "AssetOrigin.FALLBACK_URL" in task:
+    errors.append("TaskService still relies on the file:// fallback")
 
 origin = ORIGIN.read_text(encoding="utf-8")
 if "https://appassets.androidplatform.net" not in origin:

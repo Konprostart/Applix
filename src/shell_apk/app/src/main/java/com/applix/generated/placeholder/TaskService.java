@@ -112,7 +112,7 @@ public class TaskService extends Service {
                 s.setJavaScriptEnabled(true);
                 s.setDomStorageEnabled(true);
                 s.setDatabaseEnabled(true);
-                s.setAllowFileAccess(true);
+                s.setAllowFileAccess(false);
 
                 // Task control bridge (done signal)
                 webView.addJavascriptInterface(new Object() {
@@ -339,11 +339,16 @@ public class TaskService extends Service {
                 });
 
                 // Same secure origin as the foreground shell, so localStorage
-                // and IndexedDB see one origin. Falls back to file://.
+                // and IndexedDB see one origin.
                 if (assetExists("app/index.html")) {
                     webView.loadUrl(AssetOrigin.APP_URL);
                 } else {
-                    webView.loadUrl(AssetOrigin.FALLBACK_URL);
+                    Log.w(TAG, "Task " + taskId + ": app/index.html missing from assets");
+                    webView.loadData(
+                        "<html><body style='background:#0d0d1a;color:#eaeaea;"
+                            + "font-family:sans-serif;text-align:center'>"
+                            + "App data missing</body></html>",
+                        "text/html", "utf-8");
                 }
 
                 // Timeout

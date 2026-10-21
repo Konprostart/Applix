@@ -49,6 +49,17 @@ void main() {
       expect(codes, contains('font'));
     });
 
+    test('reads meta tags with reversed attributes and single quotes', () {
+      const html = "<html><head>"
+          "<meta content='width=device-width,initial-scale=1,viewport-fit=cover' name='viewport'>"
+          "<meta content='#0d0d1a' name='theme-color'>"
+          "</head><body><div class='ax-page'><button class='ax-btn'>a</button></div></body></html>";
+      final codes = UiAuditor.audit(html).map((v) => v.code).toSet();
+      expect(codes, isNot(contains('viewport')));
+      expect(codes, isNot(contains('viewport-fit')));
+      expect(codes, isNot(contains('theme-color')));
+    });
+
     test('empty html is not audited', () {
       expect(UiAuditor.audit(''), isEmpty);
     });

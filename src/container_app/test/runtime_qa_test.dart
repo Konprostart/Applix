@@ -43,17 +43,18 @@ void main() {
       expect(outcome.blocked, isTrue);
     });
 
-    test('does not block inconclusive or preview-only reports', () async {
+    test('does not block inconclusive reports', () async {
       final inconclusive = await RuntimeQa.verify(
           () async => RuntimeReport.inconclusive('no report'));
       expect(inconclusive.blocked, isFalse);
       expect(inconclusive.passed, isFalse);
+    });
 
+    test('blocks a real module resolution failure', () async {
       final modules = await RuntimeQa.verify(() async => _report(errors: [
             'Failed to resolve module specifier "./ui.js"',
           ]));
-      expect(modules.blocked, isFalse);
-      expect(modules.report!.previewLimitations, hasLength(1));
+      expect(modules.blocked, isTrue);
     });
 
     test('does not turn a verifier exception into a false failure', () async {

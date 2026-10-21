@@ -116,7 +116,6 @@ public class ShellActivity extends ComponentActivity {
     private android.widget.TextView offlineBanner;
     private String lastFailedUrl;
     private WebViewAssetLoader assetLoader;
-    private boolean triedFileFallback = false;
     private TextToSpeech tts;
     private volatile boolean ttsReady = false; // Bug #6: track TTS init
     private SensorManager sensorManager;
@@ -323,7 +322,11 @@ public class ShellActivity extends ComponentActivity {
         offlineBanner.setOnClickListener(v -> { offlineBanner.setVisibility(android.view.View.GONE); webView.reload(); });
 
         android.widget.FrameLayout root = new android.widget.FrameLayout(this);
-        root.setFitsSystemWindows(true);
+        // Safe area has exactly one source: when edge-to-edge is on, the
+        // system bars overlay the WebView and the UI Kit pads by the insets
+        // published from UiBridge. When it is off, the window already keeps
+        // content clear of the bars, so no extra padding is applied here.
+        root.setFitsSystemWindows(false);
         root.addView(webView, new android.widget.FrameLayout.LayoutParams(
             android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
             android.widget.FrameLayout.LayoutParams.MATCH_PARENT));
@@ -350,7 +353,6 @@ public class ShellActivity extends ComponentActivity {
         s.setDisplayZoomControls(false);
         applyDefensiveFileAccessFlags(s); // setAllow*FileURLs deprecated, defaults are already false on API 30+
         s.setMediaPlaybackRequiresUserGesture(false);
-        s.setAllowFileAccess(true); // needed for file:///android_asset/ loading
 
         webView.addJavascriptInterface(new StorageBridge(),      "iappyxStorage");
         webView.addJavascriptInterface(new UiBridge(this),        "iappyxUi");
@@ -459,29 +461,23 @@ public class ShellActivity extends ComponentActivity {
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                String scheme = request.getUrl().getScheme();
-                if (scheme == null) return false;
-                if (scheme.equals("http") || scheme.equals("https") || scheme.equals("file")) return false;
-                try {
-                    Intent intent = new Intent(Intent.ACTION_VIEW, request.getUrl());
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(intent);
-                } catch (Exception ignored) {}
+                if (request == null || request.getUrl() == null) return false;
+                String url = request.getUrl().toString();
+                if (AssetOrigin.isBlockedScheme(url)) return true;
+                if (AssetOrigin.isTrustedUrl(url)) return false;
+                // External pages must never load inside the app: the JavaScript
+                // bridge would be exposed to them. Open the system browser for
+                // main-frame navigations and block external frames entirely.
+                if (request.isForMainFrame()) openExternal(url);
                 return true;
             }
 
             @SuppressWarnings("deprecation")
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                Uri uri = Uri.parse(url);
-                String scheme = uri.getScheme();
-                if (scheme == null) return false;
-                if (scheme.equals("http") || scheme.equals("https") || scheme.equals("file")) return false;
-                try {
-                    Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(intent);
-                } catch (Exception ignored) {}
+                if (AssetOrigin.isBlockedScheme(url)) return true;
+                if (AssetOrigin.isTrustedUrl(url)) return false;
+                openExternal(url);
                 return true;
             }
 
@@ -515,16 +511,6 @@ public class ShellActivity extends ComponentActivity {
 
             private void handleWebViewError(WebView view, int errorCode, String description, String failingUrl) {
                 lastFailedUrl = failingUrl;
-
-                // Fallback: if the secure origin failed, retry once on file://.
-                if (AssetOrigin.shouldFallbackToFile(failingUrl, triedFileFallback)
-                        && assetExists(AssetOrigin.APP_ASSET_PATH)) {
-                    triedFileFallback = true;
-                    Log.w("Applix", "Asset origin failed, falling back to file://");
-                    view.loadUrl(AssetOrigin.FALLBACK_URL);
-                    return;
-                }
-
                 progressBar.setVisibility(android.view.View.GONE);
                 String safeDesc = description != null ? description.replace("'", "\\'") : "Unknown error";
                 view.loadData(
@@ -801,8 +787,22 @@ public class ShellActivity extends ComponentActivity {
      *  We still set them defensively for older Android versions; suppressed. */
     @SuppressWarnings("deprecation")
     private void applyDefensiveFileAccessFlags(WebSettings s) {
+        // Default is true before API 30, so this must be explicit.
+        s.setAllowFileAccess(false);
         s.setAllowFileAccessFromFileURLs(false);
         s.setAllowUniversalAccessFromFileURLs(false);
+    }
+
+    /** Opens a URL in the system browser instead of inside the app WebView. */
+    private void openExternal(String url) {
+        if (url == null || url.isEmpty()) return;
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        } catch (Exception ignored) {
+            // No handler (or a malformed URL): the tap is simply ignored.
+        }
     }
 
     /** Shared BLE notification dispatch — invoked by both API 33+ and pre-33
@@ -9007,13 +9007,19 @@ public class ShellActivity extends ComponentActivity {
         }
     }
 
-    /** Loads the app from the secure origin, or file:// if the asset is absent. */
+    /** Loads the app from the secure origin. */
     private void loadApp() {
         if (assetExists(AssetOrigin.APP_ASSET_PATH)) {
             webView.loadUrl(AssetOrigin.APP_URL);
         } else {
-            Log.w("Applix", "app/index.html missing from assets, using file:// fallback");
-            webView.loadUrl(AssetOrigin.FALLBACK_URL);
+            Log.w("Applix", "app/index.html missing from assets");
+            webView.loadData(
+                "<html><body style='background:#0d0d1a;color:#eaeaea;font-family:sans-serif;"
+                    + "display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center'>"
+                    + "<div><h2>App data missing</h2>"
+                    + "<p style='color:rgba(255,255,255,0.5);font-size:13px'>Reinstall the app.</p></div>"
+                    + "</body></html>",
+                "text/html", "utf-8");
         }
     }
 

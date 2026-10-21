@@ -108,6 +108,12 @@ html {
   scroll-behavior: smooth;
 }
 
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
 body {
   overscroll-behavior-y: contain;
   text-rendering: optimizeLegibility;
@@ -993,6 +999,11 @@ html body blockquote {
 }
 
 /* ---------------------------------------------------------- bottom nav */
+
+/* Scroll content must clear the fixed bottom navigation and the gesture bar. */
+body.ax-has-bottom-nav .ax-page {
+  padding-bottom: calc(72px + var(--ax-safe-bottom));
+}
 
 .ax-bottom-nav {
   position: fixed;

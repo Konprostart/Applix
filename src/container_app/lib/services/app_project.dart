@@ -4,6 +4,7 @@ import 'dart:convert';
 
 import 'dev_text_sanitizer.dart';
 import 'ai_response.dart';
+import 'json_repair.dart';
 
 /// A generated app as a project: an entry HTML file plus modules.
 ///
@@ -75,7 +76,8 @@ class AppProject {
         });
       }
       if (files.isNotEmpty) {
-        var entry = safePath((decoded['entry'] as String?) ?? 'index.html');
+        final rawEntry = decoded['entry'];
+        var entry = rawEntry is String ? safePath(rawEntry) : null;
         if (entry == null || !files.containsKey(entry)) {
           entry = _guessEntry(files);
         }
@@ -209,46 +211,60 @@ class AppProject {
       final map = _tryDecode(m.group(1)!);
       if (map != null) return map;
     }
-    // 2) Bare object: scan balanced braces starting at each '{'.
+    // 2) Bare object: only braces that can plausibly start a project. Scanning
+    // every '{' made a prose/JS-heavy answer quadratic on large responses.
     final limit = text.length > 200000 ? 200000 : text.length;
-    for (var i = 0; i < limit; i++) {
-      if (text[i] != '{') continue;
-      final end = _balancedEnd(text, i, limit);
+    final head = text.substring(0, limit);
+    final candidate =
+        RegExp(r'\{\s*"(?:applix|files|entry|name|routes)"');
+    for (final m in candidate.allMatches(head)) {
+      final end = _balancedEnd(text, m.start, limit);
       if (end < 0) continue;
-      final map = _tryDecode(text.substring(i, end));
+      final map = _tryDecode(text.substring(m.start, end));
       if (map != null) return map;
     }
     return null;
   }
 
   static Map<String, dynamic>? _tryDecode(String raw) {
-    var text = raw.trim();
+    final text = raw.trim();
     if (text.isEmpty) return null;
-    // Models add smart quotes and trailing commas to otherwise valid JSON.
-    text = text
-        .replaceAll('\u201c', '"')
-        .replaceAll('\u201d', '"')
-        .replaceAllMapped(RegExp(r',\s*([}\]])'), (m) => m.group(1)!);
+    // Strict first: a valid project must never be altered by the repair pass.
+    final strict = _decodeProject(text);
+    if (strict != null) return strict;
+
+    // Models add smart quotes and trailing commas to otherwise invalid JSON.
+    // The repair is string-aware: CSS/JS inside "files" is left byte-for-byte
+    // intact, so a valid `1fr,}` in a style string cannot lose its comma.
+    final repaired = _repairJson(text);
+    final fixed = _decodeProject(repaired);
+    if (fixed != null) return fixed;
+
+    // One more attempt after dropping prose inside the fence.
+    final first = text.indexOf('{');
+    final last = text.lastIndexOf('}');
+    if (first >= 0 && last > first) {
+      final sliced = text.substring(first, last + 1);
+      return _decodeProject(sliced) ?? _decodeProject(_repairJson(sliced));
+    }
+    return null;
+  }
+
+  static Map<String, dynamic>? _decodeProject(String text) {
     try {
       final decoded = jsonDecode(text);
       if (decoded is Map<String, dynamic> && decoded['files'] is Map) {
         return decoded;
       }
-    } catch (_) {
-      // One more attempt after dropping prose inside the fence.
-      final first = text.indexOf('{');
-      final last = text.lastIndexOf('}');
-      if (first >= 0 && last > first) {
-        try {
-          final decoded = jsonDecode(text.substring(first, last + 1));
-          if (decoded is Map<String, dynamic> && decoded['files'] is Map) {
-            return decoded;
-          }
-        } catch (_) {}
-      }
-    }
+    } catch (_) {}
     return null;
   }
+
+  /// Repairs smart-quoted delimiters and trailing commas outside JSON strings.
+  ///
+  /// Smart quotes that are part of user-visible copy stay untouched, which is
+  /// why this cannot be a global replaceAll.
+  static String _repairJson(String text) => JsonRepair.simplify(text);
 
   /// Index just past the matching `}`, or -1. Quotes and escapes are honoured.
   static int _balancedEnd(String text, int start, int limit) {

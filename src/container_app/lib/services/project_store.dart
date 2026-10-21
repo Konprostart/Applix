@@ -242,31 +242,191 @@ class ProjectStore {
   /// the preview show exactly what the installed app shows.
   static String inlineProjectFiles(String html, Map<String, String> files) {
     if (files.isEmpty) return html;
+    final cache = <String, String>{};
     var out = html;
-    files.forEach((name, content) {
-      final escaped = RegExp.escape(name);
-      // <link rel="stylesheet" href="style.css"> -> <style>...</style>
-      out = out.replaceAllMapped(
-        RegExp('<link[^>]*href=["\']$escaped["\'][^>]*>', caseSensitive: false),
-        (m) => '<style>\n$content\n</style>',
-      );
-      // <script src="script.js"></script> -> <script>...</script>.
-      // type="module" is preserved (module semantics stay intact; relative
-      // imports inside the module still need the built app's real origin).
-      out = out.replaceAllMapped(
-        RegExp('<script([^>]*)src=["\']$escaped["\']([^>]*)>\s*</script>', caseSensitive: false),
-        (m) {
-          final attrs = '${m.group(1) ?? ''}${m.group(2) ?? ''}';
-          final isModule = attrs.toLowerCase().contains('type="module"') ||
-              attrs.toLowerCase().contains("type='module'");
-          return isModule
-              ? '<script type="module">\n$content\n</script>'
-              : '<script>\n$content\n</script>';
-        },
-      );
-    });
+
+    // <link rel="stylesheet" href="./style.css?v=2"> -> <style>...</style>
+    out = out.replaceAllMapped(
+      RegExp(r'<link\b[^>]*>', caseSensitive: false),
+      (m) {
+        final tag = m.group(0)!;
+        final rel = _attr(tag, 'rel');
+        final href = _attr(tag, 'href');
+        if (rel == null ||
+            !RegExp(r'(^|\s)stylesheet(\s|$)', caseSensitive: false)
+                .hasMatch(rel) ||
+            href == null) {
+          return tag;
+        }
+        final key = _resolveFileRef(href, 'index.html', files);
+        if (key == null) return tag;
+        return '<style data-applix-file="$key">\n'
+            '${_escapeStyle(files[key]!)}\n</style>';
+      },
+    );
+
+    // <script src="./app.js"></script> -> inline script. Module imports are
+    // rewritten recursively to data: URLs so they resolve without the APK's
+    // real origin.
+    out = out.replaceAllMapped(
+      RegExp(r'<script\b([^>]*)>\s*</script>',
+          caseSensitive: false, dotAll: true),
+      (m) {
+        final attrs = m.group(1) ?? '';
+        final src = _attr(attrs, 'src');
+        if (src == null) return m.group(0)!;
+        final key = _resolveFileRef(src, 'index.html', files);
+        if (key == null) return m.group(0)!;
+        final isModule = RegExp(
+                r'''type\s*=\s*(?:"module"|'module')''',
+                caseSensitive: false)
+            .hasMatch(attrs);
+        var code = files[key]!;
+        if (isModule) {
+          code = _rewriteModuleSpecifiers(
+              code, key, files, cache, <String>{});
+        }
+        final cleanAttrs = attrs.replaceAll(
+          RegExp(r'''\s+src\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)''',
+              caseSensitive: false),
+          '',
+        );
+        return '<script$cleanAttrs>\n${_escapeScript(code)}\n</script>';
+      },
+    );
+
+    // Inline module blocks already in index.html also need their relative
+    // imports rewritten (e.g. `import { toast } from './applix-ui.js'`).
+    out = out.replaceAllMapped(
+      RegExp(
+          r'''<script\b([^>]*type\s*=\s*(["'])module\2[^>]*)>([\s\S]*?)</script>''',
+          caseSensitive: false),
+      (m) {
+        final attrs = m.group(1) ?? '';
+        final code = _rewriteModuleSpecifiers(
+            m.group(3) ?? '', 'index.html', files, cache, <String>{});
+        return '<script$attrs>\n${_escapeScript(code)}\n</script>';
+      },
+    );
     return out;
   }
+
+  static String? _attr(String tag, String name) {
+    final re = RegExp(
+      '(?:^|\\s)${RegExp.escape(name)}\\s*=\\s*'
+      '(?:"([^"]*)"|\'([^\']*)\'|([^\\s>]+))',
+      caseSensitive: false,
+    );
+    final m = re.firstMatch(tag);
+    if (m == null) return null;
+    return m.group(1) ?? m.group(2) ?? m.group(3);
+  }
+
+  static bool _isRelativeSpecifier(String spec) {
+    return spec.startsWith('./') ||
+        spec.startsWith('../') ||
+        spec.startsWith('/');
+  }
+
+  static String? _resolveFileRef(
+      String ref, String fromKey, Map<String, String> files) {
+    var path = ref.trim();
+    if (path.isEmpty) return null;
+    final lower = path.toLowerCase();
+    if (lower.startsWith('http://') ||
+        lower.startsWith('https://') ||
+        lower.startsWith('data:') ||
+        lower.startsWith('blob:') ||
+        lower.startsWith('//') ||
+        lower.startsWith('#')) {
+      return null;
+    }
+    path = path.split('#').first.split('?').first;
+    if (path.isEmpty) return null;
+    if (!path.startsWith('/')) {
+      final slash = fromKey.lastIndexOf('/');
+      final dir = slash >= 0 ? fromKey.substring(0, slash) : '';
+      path = dir.isEmpty ? path : '$dir/$path';
+    }
+    path = _normalizeRelative(path);
+    return files.containsKey(path) ? path : null;
+  }
+
+  static String _normalizeRelative(String path) {
+    final out = <String>[];
+    for (final segment in path.replaceAll('\\', '/').split('/')) {
+      if (segment.isEmpty || segment == '.') continue;
+      if (segment == '..') {
+        if (out.isNotEmpty) out.removeLast();
+        continue;
+      }
+      out.add(segment);
+    }
+    return out.join('/');
+  }
+
+  static String _rewriteModuleSpecifiers(
+    String code,
+    String fromKey,
+    Map<String, String> files,
+    Map<String, String> cache,
+    Set<String> stack,
+  ) {
+    var out = code.replaceAllMapped(
+      RegExp(r'''((?:\bfrom\s*|\bimport\s*)(["']))([^"']+)(\2)'''),
+      (m) {
+        final spec = m.group(3)!;
+        if (!_isRelativeSpecifier(spec)) return m.group(0)!;
+        final key = _resolveFileRef(spec, fromKey, files);
+        if (key == null) return m.group(0)!;
+        final url = _moduleDataUrl(key, files, cache, stack);
+        return '${m.group(1)}"$url"';
+      },
+    );
+    out = out.replaceAllMapped(
+      RegExp(r'''(\bimport\s*\(\s*)(["'])([^"']+)(\2)(\s*\))'''),
+      (m) {
+        final spec = m.group(3)!;
+        if (!_isRelativeSpecifier(spec)) return m.group(0)!;
+        final key = _resolveFileRef(spec, fromKey, files);
+        if (key == null) return m.group(0)!;
+        final url = _moduleDataUrl(key, files, cache, stack);
+        return '${m.group(1)}"$url"${m.group(5)}';
+      },
+    );
+    return out;
+  }
+
+  static String _moduleDataUrl(
+    String key,
+    Map<String, String> files,
+    Map<String, String> cache,
+    Set<String> stack,
+  ) {
+    final cached = cache[key];
+    if (cached != null) return cached;
+    final content = files[key] ?? '';
+    // Cycles cannot be represented as nested data: URLs without infinite
+    // recursion. Leave the raw module in that rare case.
+    if (stack.contains(key)) {
+      return 'data:text/javascript;base64,'
+          '${base64Encode(utf8.encode(content))}';
+    }
+    stack.add(key);
+    final rewritten =
+        _rewriteModuleSpecifiers(content, key, files, cache, stack);
+    stack.remove(key);
+    final url =
+        'data:text/javascript;base64,${base64Encode(utf8.encode(rewritten))}';
+    cache[key] = url;
+    return url;
+  }
+
+  static String _escapeScript(String code) => code.replaceAll(
+      RegExp(r'</script', caseSensitive: false), r'<\/script');
+
+  static String _escapeStyle(String css) => css.replaceAll(
+      RegExp(r'</style', caseSensitive: false), r'<\/style');
 
   /// Project file paths (flat or nested like `src/app.js`) must stay inside
   /// the project folder. Each segment is sanitised; traversal is rejected.

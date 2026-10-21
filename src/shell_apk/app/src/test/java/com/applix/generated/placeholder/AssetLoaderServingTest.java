@@ -53,9 +53,10 @@ public class AssetLoaderServingTest {
     }
 
     @Test
-    public void doesNotInterceptTheFileFallback() {
+    public void doesNotInterceptFileUrls() {
         assertNull("the loader must not claim file:// URLs",
-                newLoader().shouldInterceptRequest(Uri.parse(AssetOrigin.FALLBACK_URL)));
+                newLoader().shouldInterceptRequest(
+                        Uri.parse("file:///android_asset/app/index.html")));
     }
 
     private static String readAll(InputStream in) throws Exception {

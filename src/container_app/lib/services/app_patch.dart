@@ -32,6 +32,7 @@ library;
 import 'dart:convert';
 
 import 'app_project.dart';
+import 'json_repair.dart';
 
 class PatchOutcome {
   final AppProject? project;
@@ -235,9 +236,19 @@ If a safe patch is impossible, return the complete app as usual.''';
   }
 
   static Map<String, dynamic>? _tryDecode(String raw) {
+    final text = raw.trim();
+    final strict = _decodePatch(text);
+    if (strict != null) return strict;
+    // Same string-aware repair as app_project: smart quotes/trailing commas
+    // are fixed without touching CSS/JS strings inside the patch.
+    return _decodePatch(JsonRepair.simplify(text));
+  }
+
+  static Map<String, dynamic>? _decodePatch(String text) {
     try {
-      final decoded = jsonDecode(raw.trim());
-      if (decoded is Map<String, dynamic> && decoded.containsKey('applix_patch')) {
+      final decoded = jsonDecode(text);
+      if (decoded is Map<String, dynamic> &&
+          decoded.containsKey('applix_patch')) {
         return decoded;
       }
     } catch (_) {}

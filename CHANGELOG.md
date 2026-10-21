@@ -10,6 +10,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.9.1] - 2026-10-21
+
+### Changed
+- **Preview-first generation.** The first complete app is shown as soon as the
+  model returns it. Bridge repair and UI polish run in the background and are
+  applied only when the user taps Apply, instead of blocking the first result
+  behind up to four LLM calls.
+- **Cancel and elapsed time.** The generating overlay now shows a live timer and
+  a Cancel action, both on the form indicator and over the result preview.
+- **Preview parity.** Relative stylesheet/script references, query/hash
+  suffixes and relative ES-module imports are rewritten (modules to data: URLs)
+  so a multi-file app previews exactly as it installs. The preview uses a
+  per-app origin instead of a shared `https://localhost/`.
+- The Preview action reads the in-memory project files, so "Use This" edits are
+  previewed instead of stale files from disk.
+
+### Fixed
+- Truncated model answers (`finish_reason`/`stop_reason` `length`) are reported
+  as a real error instead of being silently shipped as a finished app.
+- JSON repair is strict-first and string-aware: commas and quotes inside CSS/JS
+  strings are no longer altered, smart quotes are repaired only as delimiters,
+  and a non-string `entry` no longer throws.
+- The runtime probe treats module-resolution and `net::ERR_FILE_NOT_FOUND`
+  failures as fatal instead of ignoring them as preview-only noise.
+- `UiAuditor` reads `<meta>` tags independent of attribute order and quoting,
+  removing false positives.
+- Console messages arriving after the preview is disposed no longer call
+  `setState`.
+- The AI preview fix extracts fenced HTML from the reply.
+
+### Security
+- WebView file access is disabled and the `file://` fallback removed in both
+  shells and in background tasks.
+- External pages can no longer load inside the app WebView (which would expose
+  the JavaScript bridge): main-frame navigations open in the system browser and
+  external frames are blocked.
+- Safe-area padding has one source: insets are published only in edge-to-edge
+  mode, and the UI Kit plus every starter reset the default body margin.
+
 ## [0.9.0] - 2026-10-21
 
 ### Added

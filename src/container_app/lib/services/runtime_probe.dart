@@ -98,9 +98,9 @@ class RuntimeReport {
   /// Errors that mean the app will not work for the user.
   List<String> get fatalErrors => errors.where((e) => !_isBenign(e) && !_isPreviewLimitation(e)).toList();
 
-  /// Preview-only failures: ES module files are inlined into the preview, so
-  /// relative imports cannot resolve there even though the installed app can
-  /// load them from its real origin.
+  /// Kept for callers that still read it. The preview now rewrites relative
+  /// module imports, so a module failure is a real app failure, not a
+  /// preview-only limitation.
   List<String> get previewLimitations =>
       errors.where(_isPreviewLimitation).toList();
 
@@ -131,17 +131,12 @@ class RuntimeReport {
     final e = error.toLowerCase();
     return e.contains('resizeobserver loop') ||
         e.contains('favicon') ||
-        e.contains('net::err_file_not_found') ||
-        e.contains('abortError'.toLowerCase());
+        e.contains('aborterror');
   }
 
-  static bool _isPreviewLimitation(String error) {
-    final e = error.toLowerCase();
-    return e.contains('failed to resolve module specifier') ||
-        e.contains('importing a module script failed') ||
-        e.contains('cannot use import statement outside a module') ||
-        e.contains('failed to fetch dynamically imported module');
-  }
+  /// A module resolution error is fatal in the preview now that project files
+  /// are inlined and relative specifiers are rewritten.
+  static bool _isPreviewLimitation(String error) => false;
 }
 
 class RuntimeProbe {

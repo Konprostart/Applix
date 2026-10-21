@@ -169,14 +169,44 @@ void main() {
       expect(out, isNot(contains('src="script.js"')));
     });
 
-    test('a module script keeps module semantics when inlined', () {
+    test('a module script keeps module semantics and rewrites imports', () {
       final out = ProjectStore.inlineProjectFiles(
         '<script type="module" src="src/app.js"></script>',
-        {'src/app.js': 'import "./x.js";'},
+        {
+          'src/app.js': 'import { x } from "./x.js";',
+          'src/x.js': 'export const x = 1;',
+        },
       );
       expect(out, contains('<script type="module">'));
-      expect(out, contains('import "./x.js"'));
       expect(out, isNot(contains('src="src/app.js"')));
+      // The relative import is resolved to an inline data: URL.
+      expect(out, contains('data:text/javascript;base64,'));
+      expect(out, isNot(contains('"./x.js"')));
+    });
+
+    test('external module specifiers are left alone', () {
+      final out = ProjectStore.inlineProjectFiles(
+        '<script type="module" src="src/app.js"></script>',
+        {'src/app.js': 'import { x } from "https://cdn.example.com/x.js";'},
+      );
+      expect(out, contains('https://cdn.example.com/x.js'));
+    });
+
+    test('inline module blocks keep module semantics and rewrite imports', () {
+      final out = ProjectStore.inlineProjectFiles(
+        '<script type="module">import "./ui.js";</script>',
+        {'ui.js': 'export const x = 1;'},
+      );
+      expect(out, contains('data:text/javascript;base64,'));
+      expect(out, isNot(contains('import "./ui.js"')));
+    });
+
+    test('a stylesheet href with a query string is inlined', () {
+      final out = ProjectStore.inlineProjectFiles(
+        '<link rel="stylesheet" href="style.css?v=3">',
+        {'style.css': 'body{color:red}'},
+      );
+      expect(out, contains('body{color:red}'));
     });
 
     test('dollar signs in the file are kept as they are', () {

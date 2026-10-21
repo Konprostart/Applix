@@ -105,14 +105,27 @@ class UiAuditor {
     return issues;
   }
 
+  /// Content of `<meta name="name">`, independent of attribute order and of
+  /// single/double quotes. The old matcher only understood `name="..."` before
+  /// `content` and produced false positives for reversed or unquoted attributes.
   static String _metaContent(String lowerHtml, String name) {
-    final idx = lowerHtml.indexOf('name="$name"');
-    if (idx == -1) return '';
-    final contentIdx = lowerHtml.indexOf('content=', idx);
-    if (contentIdx == -1) return '';
-    var end = lowerHtml.indexOf('>', contentIdx);
-    if (end == -1) end = lowerHtml.length;
-    return lowerHtml.substring(contentIdx, end);
+    for (final tag in RegExp(r'<meta\b[^>]*>').allMatches(lowerHtml)) {
+      final raw = tag.group(0)!;
+      final metaName = _attrValue(raw, 'name');
+      if (metaName != null && metaName.toLowerCase() == name.toLowerCase()) {
+        return _attrValue(raw, 'content') ?? '';
+      }
+    }
+    return '';
+  }
+
+  static String? _attrValue(String tag, String attr) {
+    final re = RegExp(
+      '(?:^|\\s)${RegExp.escape(attr)}\\s*=\\s*'
+      '(?:"([^"]*)"|\'([^\']*)\'|([^\\s>]+))',
+    );
+    final m = re.firstMatch(tag);
+    return m?.group(1) ?? m?.group(2) ?? m?.group(3);
   }
 
   /// Formats the violations for an AI repair prompt.

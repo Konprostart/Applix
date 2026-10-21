@@ -17,11 +17,6 @@ public class AssetOriginTest {
     }
 
     @Test
-    public void fallbackIsTheLegacyFileUrl() {
-        assertEquals("file:///android_asset/app/index.html", AssetOrigin.FALLBACK_URL);
-    }
-
-    @Test
     public void urlForKeepsTheAssetsPrefix() {
         assertEquals("https://appassets.androidplatform.net/assets/app/main.js",
                 AssetOrigin.urlFor("app/main.js"));
@@ -39,10 +34,29 @@ public class AssetOriginTest {
     }
 
     @Test
-    public void fallsBackOnlyOnceAndOnlyForTheAppOrigin() {
-        assertTrue(AssetOrigin.shouldFallbackToFile(AssetOrigin.APP_URL, false));
-        assertFalse(AssetOrigin.shouldFallbackToFile(AssetOrigin.APP_URL, true));
-        assertFalse(AssetOrigin.shouldFallbackToFile("https://example.com", false));
-        assertFalse(AssetOrigin.shouldFallbackToFile(null, false));
+    public void trustsOnlyTheAppOriginAndInMemoryUrls() {
+        assertTrue(AssetOrigin.isTrustedUrl(AssetOrigin.APP_URL));
+        assertTrue(AssetOrigin.isTrustedUrl("about:blank"));
+        assertTrue(AssetOrigin.isTrustedUrl("data:text/html,x"));
+        assertTrue(AssetOrigin.isTrustedUrl("blob:https://appassets.androidplatform.net/1"));
+        assertFalse(AssetOrigin.isTrustedUrl("https://example.com/app.js"));
+        assertFalse(AssetOrigin.isTrustedUrl("file:///android_asset/app/index.html"));
+        assertFalse(AssetOrigin.isTrustedUrl(null));
+    }
+
+    @Test
+    public void externalHttpIsEverythingButTheAppOrigin() {
+        assertTrue(AssetOrigin.isExternalHttp("https://example.com"));
+        assertTrue(AssetOrigin.isExternalHttp("http://example.com"));
+        assertFalse(AssetOrigin.isExternalHttp(AssetOrigin.APP_URL));
+        assertFalse(AssetOrigin.isExternalHttp("mailto:a@b.com"));
+        assertFalse(AssetOrigin.isExternalHttp(null));
+    }
+
+    @Test
+    public void fileSchemeIsBlocked() {
+        assertTrue(AssetOrigin.isBlockedScheme("file:///android_asset/app/index.html"));
+        assertFalse(AssetOrigin.isBlockedScheme(AssetOrigin.APP_URL));
+        assertFalse(AssetOrigin.isBlockedScheme(null));
     }
 }

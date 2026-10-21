@@ -35,11 +35,14 @@ class GenerateResultView extends StatefulWidget {
   static const previewActionKey = Key('result-action-preview');
   static const buildActionKey = Key('result-action-build');
   static const regenerateActionKey = Key('result-action-regenerate');
+  static const cancelGenerationKey = Key('result-action-cancel');
 
   final String appName;
   final Widget preview;
   final String code;
   final bool generating;
+  final DateTime? generatingSince;
+  final VoidCallback? onCancel;
   final VoidCallback onBack;
   final VoidCallback onOpenPreview;
   final VoidCallback onBuild;
@@ -58,6 +61,8 @@ class GenerateResultView extends StatefulWidget {
     required this.onRegenerate,
     required this.onEditDetails,
     this.generating = false,
+    this.generatingSince,
+    this.onCancel,
     this.aboveActions,
   });
 
@@ -67,6 +72,7 @@ class GenerateResultView extends StatefulWidget {
 
 class _GenerateResultViewState extends State<GenerateResultView> {
   int _tab = 0;
+  bool _codeBuilt = false;
 
   @override
   Widget build(BuildContext context) {
@@ -74,45 +80,77 @@ class _GenerateResultViewState extends State<GenerateResultView> {
       _header(),
       _tabs(),
       Expanded(
-        child: _tab == 0
-            ? Padding(
-                key: GenerateResultView.previewPaneKey,
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-                child: Stack(children: [
-                  Positioned.fill(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: widget.preview,
-                    ),
+        // IndexedStack keeps the live WebView mounted while the Code tab is
+        // open. Rebuilding it on every tab switch reset forms and scroll.
+        child: IndexedStack(
+          index: _tab,
+          children: [
+            Padding(
+              key: GenerateResultView.previewPaneKey,
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              child: Stack(children: [
+                Positioned.fill(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: widget.preview,
                   ),
-                  if (widget.generating)
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xE60A0A14),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Center(
-                          child: Column(mainAxisSize: MainAxisSize.min, children: [
-                            SizedBox(
-                              width: 28, height: 28,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3, color: Color(0xFF6C8CFF)),
-                            ),
-                            SizedBox(height: 12),
-                            Text('Generating...',
-                                style: TextStyle(fontSize: 13, color: Colors.white70)),
-                          ]),
-                        ),
-                      ),
-                    ),
-                ]),
-              )
-            : _codePane(),
+                ),
+                if (widget.generating) _generatingOverlay(),
+              ]),
+            ),
+            if (_codeBuilt) _codePane() else const SizedBox.shrink(),
+          ],
+        ),
       ),
       if (widget.aboveActions != null) widget.aboveActions!,
       _actions(),
     ]);
+  }
+
+  Widget _generatingOverlay() {
+    final since = widget.generatingSince;
+    return Positioned.fill(
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xE60A0A14),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Center(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(
+                  strokeWidth: 3, color: Color(0xFF6C8CFF)),
+            ),
+            const SizedBox(height: 12),
+            StreamBuilder<int>(
+              stream: since == null
+                  ? null
+                  : Stream<int>.periodic(
+                      const Duration(seconds: 1), (tick) => tick + 1),
+              builder: (context, _) {
+                final elapsed = since == null
+                    ? 0
+                    : DateTime.now().difference(since).inSeconds;
+                return Text('Generating... ${elapsed}s',
+                    style: const TextStyle(
+                        fontSize: 13, color: Colors.white70));
+              },
+            ),
+            if (widget.onCancel != null) ...[
+              const SizedBox(height: 6),
+              TextButton(
+                key: GenerateResultView.cancelGenerationKey,
+                onPressed: widget.onCancel,
+                child: const Text('Cancel',
+                    style: TextStyle(fontSize: 12, color: Color(0xFFFF6B6B))),
+              ),
+            ],
+          ]),
+        ),
+      ),
+    );
   }
 
   Widget _header() {
@@ -184,7 +222,10 @@ class _GenerateResultViewState extends State<GenerateResultView> {
         button: true,
         child: GestureDetector(
           key: key,
-          onTap: () => setState(() => _tab = index),
+          onTap: () => setState(() {
+            _tab = index;
+            if (index == 1) _codeBuilt = true;
+          }),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(vertical: 10),

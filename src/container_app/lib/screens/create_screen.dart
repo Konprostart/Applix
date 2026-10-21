@@ -22,6 +22,7 @@
 
 /// Screen for creating new apps via AI prompt, web URL, or demo template.
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -127,6 +128,10 @@ class CreateScreenState extends State<CreateScreen> {
   String? _selectedHtml; // HTML selected via "Use This"
   final _formScrollController = ScrollController();
   List<BridgeIssue> _bridgeIssues = [];
+  bool _backgroundBusy = false;
+  String _backgroundStage = '';
+  String? _pendingImprovedHtml;
+  String? _pendingImprovementNote;
 
   @override
   void initState() {
@@ -198,6 +203,10 @@ class CreateScreenState extends State<CreateScreen> {
     _aiGenerating = false;
     _selectedHtml = null;
     _bridgeIssues = [];
+    _backgroundBusy = false;
+    _backgroundStage = '';
+    _pendingImprovedHtml = null;
+    _pendingImprovementNote = null;
     _followUpController.clear();
 
     if (app.iconConfig.isNotEmpty) {
@@ -260,6 +269,11 @@ class CreateScreenState extends State<CreateScreen> {
       _aiGenerating = false;
       _selectedHtml = null;
       _extraFiles = {};
+      _bridgeIssues = [];
+      _backgroundBusy = false;
+      _backgroundStage = '';
+      _pendingImprovedHtml = null;
+      _pendingImprovementNote = null;
       _showSetup = false;
       _generationError = null;
       _runtimeCheckedHtml = null;
@@ -396,6 +410,10 @@ class CreateScreenState extends State<CreateScreen> {
       _bridgeIssues = [];
       _generationError = null;
       _showSetup = false;
+      _backgroundBusy = false;
+      _backgroundStage = '';
+      _pendingImprovedHtml = null;
+      _pendingImprovementNote = null;
     });
 
     try {
@@ -417,7 +435,10 @@ class CreateScreenState extends State<CreateScreen> {
         );
         plan = AppPlan.parse(planResponse);
         if (plan != null && plan.isEmpty) plan = null;
-      } catch (_) {
+      } catch (e) {
+        // The plan is a quality hint, not a hard dependency: continue with the
+        // full request instead of failing, but leave a trace for debugging.
+        debugPrint('Planner step skipped: $e');
         plan = null;
       }
       if (!mounted || thisGenId != _genId) return;
@@ -465,18 +486,14 @@ class CreateScreenState extends State<CreateScreen> {
             'another model in Settings.');
       }
 
-      var cleaned = project.entryHtml;
       _conversation.add(ChatMessage(
           role: 'assistant',
-          content: project.isMultiFile ? response.trim() : cleaned));
+          content: project.isMultiFile ? response.trim() : project.entryHtml));
       _trimConversation();
-      setState(() => _aiGenerating = false);
-      cleaned = await _repairBridgeIssues(cleaned, thisGenId);
-      if (!mounted || thisGenId != _genId) return;
-      cleaned = await _polishUi(cleaned, thisGenId);
-      if (!mounted || thisGenId != _genId) return;
-      _useProject(project, cleaned);
-      await _verifyGenerated(cleaned, project.files, thisGenId);
+      // Show the first complete app immediately. Bridge repair and UI polish
+      // run in the background and are applied only when the user asks for the
+      // improved version.
+      _showProjectAndEnhance(project, project.entryHtml, thisGenId);
     } catch (e) {
       if (!mounted || thisGenId != _genId) return;
       setState(() {
@@ -515,6 +532,10 @@ class CreateScreenState extends State<CreateScreen> {
       _followUpController.clear();
       _aiGenerating = true; _genStartTime = DateTime.now();
       _generationError = null;
+      _backgroundBusy = false;
+      _backgroundStage = '';
+      _pendingImprovedHtml = null;
+      _pendingImprovementNote = null;
     });
 
     try {
@@ -576,21 +597,20 @@ class CreateScreenState extends State<CreateScreen> {
               'no complete app. Retry, or ask again with a smaller change.');
         }
       }
-      var cleaned = project.entryHtml;
       _conversation.add(ChatMessage(
           role: 'assistant',
-          content: project.isMultiFile ? response.trim() : cleaned));
+          content:
+              project.isMultiFile ? response.trim() : project.entryHtml));
       _trimConversation();
-      setState(() => _aiGenerating = false);
-      if (cleaned.trim().startsWith('<')) {
-        cleaned = await _repairBridgeIssues(cleaned, thisGenId);
-        if (!mounted || thisGenId != _genId) return;
-        cleaned = await _polishUi(cleaned, thisGenId);
-        if (!mounted || thisGenId != _genId) return;
-        _useProject(project, cleaned);
-        await _verifyGenerated(cleaned, project.files, thisGenId);
+      if (project.entryHtml.trim().startsWith('<')) {
+        _showProjectAndEnhance(project, project.entryHtml, thisGenId);
       } else {
-        setState(() => _bridgeIssues = []);
+        setState(() {
+          _aiGenerating = false;
+          _genStartTime = null;
+          _bridgeIssues = [];
+        });
+        _useProject(project, project.entryHtml);
       }
     } catch (e) {
       if (!mounted || thisGenId != _genId) return;
@@ -641,6 +661,8 @@ class CreateScreenState extends State<CreateScreen> {
       _showSetup = false;
       _runtimeCheckedHtml = null;
       _runtimeReport = null;
+      _pendingImprovedHtml = null;
+      _pendingImprovementNote = null;
     });
     _refreshBridgeIssues(clean);
     _snack('HTML loaded. Preview or build below.');
@@ -669,6 +691,8 @@ class CreateScreenState extends State<CreateScreen> {
       _showSetup = false;
       _runtimeCheckedHtml = null;
       _runtimeReport = null;
+      _pendingImprovedHtml = null;
+      _pendingImprovementNote = null;
     });
     _refreshBridgeIssues(clean);
     _snack(project.isMultiFile
@@ -699,8 +723,83 @@ class CreateScreenState extends State<CreateScreen> {
     if (mounted) setState(() => _bridgeIssues = issues);
   }
 
+  void _showProjectAndEnhance(
+      AppProject project, String html, int genId) {
+    if (!mounted || genId != _genId) return;
+    _useProject(project, html);
+    if (!mounted || genId != _genId) return;
+    setState(() {
+      _aiGenerating = false;
+      _genStartTime = null;
+    });
+    unawaited(_enhanceGenerated(project, html, genId));
+  }
+
+  /// Bridge repair and UI polish used to run before the first preview. They are
+  /// optional improvements, so run them in the background and let the user
+  /// apply the result when it is actually better.
+  Future<void> _enhanceGenerated(
+      AppProject project, String firstHtml, int genId) async {
+    if (!mounted || genId != _genId) return;
+    setState(() {
+      _backgroundBusy = true;
+      _backgroundStage = 'Checking bridge calls...';
+    });
+    try {
+      var current = await _repairBridgeIssues(firstHtml, genId, background: true);
+      if (!mounted || genId != _genId) return;
+      if (!current.trim().startsWith('<')) current = firstHtml;
+      setState(() => _backgroundStage = 'Polishing UI...');
+      final polished = await _polishUi(current, genId, background: true);
+      if (!mounted || genId != _genId) return;
+      if (polished.trim().startsWith('<')) current = polished;
+      if (current.trim() != firstHtml.trim()) {
+        setState(() {
+          _pendingImprovedHtml = current;
+          _pendingImprovementNote =
+              'Bridge calls and UI polish are ready to apply.';
+        });
+      }
+    } catch (_) {
+      // Background polish is optional; the first complete app is already shown.
+    } finally {
+      if (mounted && genId == _genId) {
+        setState(() {
+          _backgroundBusy = false;
+          _backgroundStage = '';
+        });
+      }
+    }
+  }
+
+  void _applyPendingImprovement() {
+    final html = _pendingImprovedHtml;
+    if (html == null) return;
+    _useProject(_currentProject(), html);
+  }
+
+  void _dismissPendingImprovement() {
+    setState(() {
+      _pendingImprovedHtml = null;
+      _pendingImprovementNote = null;
+    });
+  }
+
+  void _cancelGeneration() {
+    setState(() {
+      _genId++;
+      _aiGenerating = false;
+      _genStartTime = null;
+      _backgroundBusy = false;
+      _backgroundStage = '';
+      _pendingImprovedHtml = null;
+      _pendingImprovementNote = null;
+    });
+  }
+
   /// One automatic repair pass when the AI uses undocumented bridge calls.
-  Future<String> _repairBridgeIssues(String html, int genId) async {
+  Future<String> _repairBridgeIssues(String html, int genId,
+      {bool background = false}) async {
     BridgeLinter linter;
     try {
       linter = await BridgeLinter.load();
@@ -709,33 +808,50 @@ class CreateScreenState extends State<CreateScreen> {
     }
     final issues = linter.lint(html);
     if (issues.isEmpty) {
-      if (mounted && genId == _genId) setState(() => _bridgeIssues = []);
+      if (!background && mounted && genId == _genId) {
+        setState(() => _bridgeIssues = []);
+      }
       return html;
     }
     if (!mounted || genId != _genId) return html;
-    setState(() {
-      _bridgeIssues = issues;
-      _aiGenerating = true;
-      _genStartTime = DateTime.now();
-    });
+    if (!background) {
+      setState(() {
+        _bridgeIssues = issues;
+        _aiGenerating = true;
+        _genStartTime = DateTime.now();
+      });
+    }
     final provider = _activeProvider;
     if (provider == null || !provider.isConfigured) {
-      setState(() => _aiGenerating = false);
+      if (!background && mounted && genId == _genId) {
+        setState(() => _aiGenerating = false);
+      }
       return html;
     }
     try {
-      if (_conversation.isEmpty) {
-        _conversation.add(ChatMessage(role: 'assistant', content: html));
+      final messages = background
+          ? <ChatMessage>[
+              ChatMessage(role: 'assistant', content: html),
+              ChatMessage(
+                role: 'user',
+                content: BridgeLinter.buildRepairMessage(issues),
+              ),
+            ]
+          : _conversation;
+      if (!background) {
+        if (_conversation.isEmpty) {
+          _conversation.add(ChatMessage(role: 'assistant', content: html));
+        }
+        _conversation.add(ChatMessage(
+          role: 'user',
+          content: BridgeLinter.buildRepairMessage(issues),
+        ));
       }
-      _conversation.add(ChatMessage(
-        role: 'user',
-        content: BridgeLinter.buildRepairMessage(issues),
-      ));
       final systemPrompt = await PromptBuilder.getSystemPrompt();
       final response = await AiService.generate(
         provider: provider,
         systemPrompt: systemPrompt,
-        messages: _conversation,
+        messages: messages,
       );
       final repaired = _stripMarkdownFences(response);
       final remaining = repaired.trim().startsWith('<')
@@ -744,6 +860,7 @@ class CreateScreenState extends State<CreateScreen> {
       final improved = repaired.trim().startsWith('<') &&
           remaining.length < issues.length;
       if (!mounted || genId != _genId) return html;
+      if (background) return improved ? repaired : html;
       if (improved) {
         _conversation.add(ChatMessage(role: 'assistant', content: repaired));
       }
@@ -753,7 +870,7 @@ class CreateScreenState extends State<CreateScreen> {
       });
       return improved ? repaired : html;
     } catch (_) {
-      if (mounted && genId == _genId) {
+      if (!background && mounted && genId == _genId) {
         setState(() => _aiGenerating = false);
       }
       return html;
@@ -763,16 +880,19 @@ class CreateScreenState extends State<CreateScreen> {
   /// One automatic polish pass: fixes the things that make a generated app
   /// look like a web page (missing UI Kit classes, no touch targets, no theme
   /// color, content under the status bar, ...).
-  Future<String> _polishUi(String html, int genId) async {
+  Future<String> _polishUi(String html, int genId,
+      {bool background = false}) async {
     final issues = UiAuditor.audit(html);
     if (issues.isEmpty) return html;
     if (!mounted || genId != _genId) return html;
     final provider = _activeProvider;
     if (provider == null || !provider.isConfigured) return html;
-    setState(() {
-      _aiGenerating = true;
-      _genStartTime = DateTime.now();
-    });
+    if (!background) {
+      setState(() {
+        _aiGenerating = true;
+        _genStartTime = DateTime.now();
+      });
+    }
     try {
       final messages = <ChatMessage>[
         ChatMessage(role: 'user', content: 'Current app code:\n```html\n$html\n```'),
@@ -788,14 +908,16 @@ class CreateScreenState extends State<CreateScreen> {
       if (!polished.trim().startsWith('<')) return html;
       // Never replace working UI with a rewrite that fixes fewer audit rules.
       if (UiAuditor.audit(polished).length >= issues.length) return html;
-      if (mounted && genId == _genId) {
+      if (!background && mounted && genId == _genId) {
         _conversation.add(ChatMessage(role: 'assistant', content: polished));
       }
       return polished;
     } catch (_) {
       return html;
     } finally {
-      if (mounted && genId == _genId) setState(() => _aiGenerating = false);
+      if (!background && mounted && genId == _genId) {
+        setState(() => _aiGenerating = false);
+      }
     }
   }
 
@@ -924,18 +1046,6 @@ class CreateScreenState extends State<CreateScreen> {
 
   /// Runs automatically once a generation finishes, so a broken app is known
   /// before the user taps Build. The build gate reuses this result.
-  Future<void> _verifyGenerated(
-      String html, Map<String, String> files, int genId) async {
-    if (!html.trimLeft().startsWith('<')) return;
-    final report = await _runRuntimeCheckFor(html, files);
-    if (!mounted || genId != _genId || report == null) return;
-    setState(() {
-      _runtimeCheckedHtml = html;
-      _runtimeReport = report;
-    });
-    if (report.fatal) await _showRuntimeFailure(report);
-  }
-
   Future<void> _showRuntimeFailure(RuntimeReport report) async {
     if (!mounted) return;
     final details = report.blank
@@ -976,10 +1086,13 @@ class CreateScreenState extends State<CreateScreen> {
       return;
     }
     final issues = await _lintBridge(html);
-    final projectFiles = _editingId != null
-        ? await ProjectStore.readProject(
-            appId: _editingId!, packageName: _existingPackageName)
-        : Map<String, String>.from(_extraFiles);
+    // Prefer the in-memory project: "Use This" / edits keep changes out of the
+    // saved project until Build, so reading from disk would preview stale files.
+    var projectFiles = Map<String, String>.from(_extraFiles);
+    if (projectFiles.isEmpty && _editingId != null) {
+      projectFiles = await ProjectStore.readProject(
+          appId: _editingId!, packageName: _existingPackageName);
+    }
     if (!mounted) return;
     setState(() => _bridgeIssues = issues);
     await Navigator.push(
@@ -1546,6 +1659,8 @@ class CreateScreenState extends State<CreateScreen> {
       ),
       code: html,
       generating: _aiGenerating,
+      generatingSince: _genStartTime,
+      onCancel: _cancelGeneration,
       onBack: () => _confirmExit(
           _editingId != null ? () => widget.onViewMyApps?.call() : _reset),
       onOpenPreview: () { _openPreview(); },
@@ -1565,11 +1680,19 @@ class CreateScreenState extends State<CreateScreen> {
 
   Widget _resultExtras() {
     final hasChat = _genMethod == 'api' && _conversation.isNotEmpty;
-    if (_generationError == null && !hasChat) return const SizedBox.shrink();
+    final hasPending = _pendingImprovedHtml != null;
+    if (_generationError == null &&
+        !hasChat &&
+        !_backgroundBusy &&
+        !hasPending) {
+      return const SizedBox.shrink();
+    }
     return Container(
       color: const Color(0xFF0D0D1A),
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
+        if (_backgroundBusy && !_aiGenerating) _backgroundStatusCard(),
+        if (hasPending && !_aiGenerating) _pendingImprovementCard(),
         if (_generationError != null) _generationErrorCard(compact: true),
         if (hasChat && !_aiGenerating)
           Padding(
@@ -1599,6 +1722,68 @@ class CreateScreenState extends State<CreateScreen> {
               ),
             ]),
           ),
+      ]),
+    );
+  }
+
+  Widget _backgroundStatusCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141421),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF2A2A44)),
+      ),
+      child: Row(children: [
+        const SizedBox(
+          width: 14,
+          height: 14,
+          child:
+              CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF6C8CFF)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            _backgroundStage.isEmpty ? 'Improving app...' : _backgroundStage,
+            style: const TextStyle(fontSize: 12, color: Colors.white70),
+          ),
+        ),
+        TextButton(
+          onPressed: _cancelGeneration,
+          child: const Text('Cancel', style: TextStyle(fontSize: 12)),
+        ),
+      ]),
+    );
+  }
+
+  Widget _pendingImprovementCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF12231A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF3BA55D)),
+      ),
+      child: Row(children: [
+        const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF3BA55D)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            _pendingImprovementNote ?? 'Improved version ready.',
+            style: const TextStyle(fontSize: 12, color: Colors.white70),
+          ),
+        ),
+        TextButton(
+          onPressed: _dismissPendingImprovement,
+          child: const Text('Dismiss', style: TextStyle(fontSize: 12)),
+        ),
+        TextButton(
+          onPressed: _applyPendingImprovement,
+          child:
+              const Text('Apply', style: TextStyle(fontSize: 12, color: Color(0xFF3BA55D))),
+        ),
       ]),
     );
   }
@@ -2245,11 +2430,7 @@ class CreateScreenState extends State<CreateScreen> {
                   style: const TextStyle(fontSize: 12, color: Colors.white38)),
               const Spacer(),
               GestureDetector(
-                onTap: () => setState(() {
-                  _genId++;
-                  _aiGenerating = false;
-                  _genStartTime = null;
-                }),
+                onTap: _cancelGeneration,
                 child: const Text('Cancel', style: TextStyle(fontSize: 12, color: Color(0xFFFF6B6B))),
               ),
             ]),

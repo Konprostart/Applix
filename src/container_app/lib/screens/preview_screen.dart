@@ -30,8 +30,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../models/ai_provider.dart';
+import '../services/ai_response.dart';
 import '../services/ai_service.dart';
 import '../services/prompt_builder.dart';
+import '../services/preview_origin.dart';
 import '../services/project_store.dart';
 import '../services/settings_service.dart';
 import '../services/ui_kit.dart';
@@ -711,7 +713,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
   Future<void> _loadPreview() async {
     final html = await _prepareHtml();
     if (!mounted) return;
-    _controller.loadHtmlString(_injectScripts(html), baseUrl: 'https://localhost/');
+    _controller.loadHtmlString(
+      _injectScripts(html),
+      baseUrl: PreviewOrigin.baseUrl(html, widget.projectFiles),
+    );
     if (widget.verifyOnly) {
       _verifyTimer = Timer(const Duration(milliseconds: 700), _checkRuntime);
     }
@@ -794,8 +799,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
           ),
         ],
       );
-      final fixed = response.trim();
-      if (!fixed.startsWith('<')) {
+      final fixed = AiResponse.extractAppHtml(response);
+      if (fixed.isEmpty) {
         messenger.showSnackBar(const SnackBar(
           content: Text('The AI did not return a valid HTML file.'),
           backgroundColor: Color(0xFF1A1A2E),
@@ -810,7 +815,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
       widget.onHtmlFixed?.call(fixed);
       final prepared = await _prepareHtml(fixed);
       if (!mounted) return;
-      _controller.loadHtmlString(_injectScripts(prepared), baseUrl: 'https://localhost/');
+      _controller.loadHtmlString(
+        _injectScripts(prepared),
+        baseUrl: PreviewOrigin.baseUrl(prepared, widget.projectFiles),
+      );
     } catch (e) {
       if (mounted) setState(() => _fixing = false);
       messenger.showSnackBar(SnackBar(
@@ -821,6 +829,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   void _onConsoleMessage(JavaScriptMessage msg) {
+    if (!mounted) return;
     try {
       final data = jsonDecode(msg.message);
       setState(() {
@@ -1075,7 +1084,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
               if (!mounted) return;
               _controller.loadHtmlString(
                 _injectScripts(html),
-                baseUrl: 'https://localhost/',
+                baseUrl: PreviewOrigin.baseUrl(html, widget.projectFiles),
               );
             },
           ),

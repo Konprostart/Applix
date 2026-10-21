@@ -36,22 +36,21 @@ class AiResponse {
     final lower2 = s.toLowerCase();
     final doctype = lower2.indexOf('<!doctype');
     final htmlTag = lower2.indexOf('<html');
-    var start = -1;
-    if (doctype >= 0 && (htmlTag < 0 || doctype <= htmlTag)) {
-      start = doctype;
-    } else if (htmlTag >= 0) {
-      start = htmlTag;
-    }
+    // Prefer the doctype even when prose earlier mentioned `<html>` — that
+    // mention used to make the parser start inside a sentence.
+    final start = doctype >= 0 ? doctype : htmlTag;
     if (start >= 0) s = s.substring(start);
 
     // 3) Hard stop at the real document end. Everything after `</html>` is
     //    chat prose ("Summary of changes made...") - drop it.
     final l3 = s.toLowerCase();
     final end = l3.lastIndexOf('</html>');
-    if (end >= 0) s = s.substring(0, end + '</html>'.length);
+    // A missing closing tag means the provider stopped at max_tokens or the
+    // connection died. Never accept a truncated document as a finished app.
+    if (end < 0) return '';
+    s = s.substring(0, end + '</html>'.length).trim();
 
-    s = s.trim();
-    // 4) Only an actual document counts.
+    // 4) Only an actual, complete document counts.
     final l4 = s.toLowerCase();
     if (!l4.startsWith('<!doctype') && !l4.startsWith('<html')) return '';
     return s;

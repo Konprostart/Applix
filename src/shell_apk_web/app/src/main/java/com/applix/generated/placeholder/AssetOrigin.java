@@ -9,8 +9,7 @@ package com.applix.generated.placeholder;
  * same-origin assets and a working Content-Security-Policy. The bridge
  * (addJavascriptInterface) does not depend on the origin and stays untouched.
  *
- * When anything goes wrong with asset interception, the shell falls back to
- * {@link #FALLBACK_URL}, which is the pre-0.3 behaviour.
+ * There is no file:// fallback: file access is disabled entirely.
  */
 public final class AssetOrigin {
 
@@ -22,9 +21,6 @@ public final class AssetOrigin {
 
     /** The injected app entry point on the secure origin. */
     public static final String APP_URL = ORIGIN + ASSETS_PATH + "app/index.html";
-
-    /** The legacy location inside the APK, used only as a fallback. */
-    public static final String FALLBACK_URL = "file:///android_asset/app/index.html";
 
     /** Asset path (relative to the assets/ folder) of the app entry point. */
     public static final String APP_ASSET_PATH = "app/index.html";
@@ -45,10 +41,25 @@ public final class AssetOrigin {
     }
 
     /**
-     * True when a failed main-frame load should be retried on file://.
-     * Only an app-origin failure qualifies, and only once per page load.
+     * True for URLs the WebView may load itself: the app's own asset origin,
+     * in-memory blobs/data URLs and about:blank.
      */
-    public static boolean shouldFallbackToFile(String failingUrl, boolean alreadyTried) {
-        return !alreadyTried && isAppOrigin(failingUrl);
+    public static boolean isTrustedUrl(String url) {
+        if (url == null) return false;
+        if (url.equals("about:blank")) return true;
+        if (url.startsWith("data:") || url.startsWith("blob:")) return true;
+        return url.startsWith(ORIGIN + "/") || url.equals(ORIGIN);
+    }
+
+    /** True when an http(s) URL points somewhere other than the app origin. */
+    public static boolean isExternalHttp(String url) {
+        if (url == null) return false;
+        boolean http = url.startsWith("http://") || url.startsWith("https://");
+        return http && !isTrustedUrl(url);
+    }
+
+    /** file:// is never loadable: file access is disabled on the WebView. */
+    public static boolean isBlockedScheme(String url) {
+        return url != null && url.startsWith("file://");
     }
 }

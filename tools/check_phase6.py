@@ -85,13 +85,13 @@ for needle in ("RuntimeProbe.bootstrap", "verifyOnly", "_checkRuntime",
 
 for needle in ("AppPatch.applyToProject", "AppPatch.instruction",
                "_runRuntimeCheck", "_showRuntimeFailure", "RuntimeQa.verify",
-               "_verifyGenerated", "GenerateResultView", "_hasResult",
-               "_generationError", "_describeGenerationError"):
+               "_enhanceGenerated", "_showProjectAndEnhance", "GenerateResultView",
+               "_hasResult", "_generationError", "_describeGenerationError"):
     if needle not in create:
         errors.append(f"create_screen.dart is missing {needle!r}")
 
 for needle in ("class GenerateResultView", "previewTabKey", "codeTabKey",
-               "actionsKey", "int _tab = 0", "_tab == 0", "Regenerate",
+               "actionsKey", "int _tab = 0", "IndexedStack", "Regenerate",
                "Build APK"):
     if needle not in result:
         errors.append(f"generate_result_view.dart is missing {needle!r}")

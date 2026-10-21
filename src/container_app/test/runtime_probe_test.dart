@@ -37,12 +37,17 @@ void main() {
       expect(report.fatalErrors, hasLength(1));
     });
 
-    test('ignores benign resize and resource noise', () {
+    test('ignores benign resize noise', () {
       final report = RuntimeReport.fromJson(_json(errors: [
         'ResizeObserver loop completed with undelivered notifications.',
-        'net::ERR_FILE_NOT_FOUND',
       ]));
       expect(report.fatal, isFalse);
+    });
+
+    test('a missing project file is fatal, not hidden as noise', () {
+      final report = RuntimeReport.fromJson(
+          _json(errors: ['net::ERR_FILE_NOT_FOUND']));
+      expect(report.fatal, isTrue);
     });
 
     test('fails on a blank screen', () {
@@ -60,13 +65,12 @@ void main() {
       expect(report.fatal, isFalse);
     });
 
-    test('treats module resolution as a preview limitation, not a crash', () {
+    test('treats module resolution as a real crash', () {
       final report = RuntimeReport.fromJson(_json(errors: [
         'Failed to resolve module specifier "./ui.js"',
       ]));
-      expect(report.fatal, isFalse);
-      expect(report.previewLimitations, hasLength(1));
-      expect(report.summary, contains('after install'));
+      expect(report.fatal, isTrue);
+      expect(report.fatalErrors, hasLength(1));
     });
 
     test('inconclusive is never fatal', () {

@@ -25,6 +25,7 @@ import android.webkit.JavascriptInterface;
 public class UiBridge {
 
     private final ShellActivity act;
+    private volatile boolean edgeToEdge = false;
 
     UiBridge(ShellActivity act) {
         this.act = act;
@@ -58,6 +59,7 @@ public class UiBridge {
 
     @JavascriptInterface
     public void setEdgeToEdge(boolean enabled) {
+        this.edgeToEdge = enabled;
         act.runOnUiThread(() -> {
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -100,10 +102,13 @@ public class UiBridge {
         });
     }
 
-    /** Insets of the system bars in CSS pixels. */
+    /** Insets of the system bars in CSS pixels. Zero unless edge-to-edge is on. */
     @JavascriptInterface
     public String getInsets() {
         try {
+            if (!edgeToEdge) {
+                return "{\"top\":0,\"bottom\":0,\"left\":0,\"right\":0}";
+            }
             final float density = act.getResources().getDisplayMetrics().density;
             int top = 0, bottom = 0, left = 0, right = 0;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {

@@ -34,7 +34,6 @@ public class ShellActivity extends Activity {
     private WebView webView;
     private SwipeRefreshLayout swipeRefresh;
     private WebViewAssetLoader assetLoader;
-    private boolean triedFileFallback = false;
     private ProgressBar progressBar;
     private TextView offlineBanner;
     private ValueCallback<Uri[]> pendingFileCallback;
@@ -99,7 +98,9 @@ public class ShellActivity extends Activity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-        settings.setAllowFileAccess(true);
+        settings.setAllowFileAccess(false);
+        settings.setAllowFileAccessFromFileURLs(false);
+        settings.setAllowUniversalAccessFromFileURLs(false);
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         settings.setDatabaseEnabled(true);
@@ -122,8 +123,9 @@ public class ShellActivity extends Activity {
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 String scheme = request.getUrl().getScheme();
                 if (scheme == null) return false;
-                // Keep http/https/file in WebView
-                if ("http".equals(scheme) || "https".equals(scheme) || "file".equals(scheme)) {
+                // The web shell shows the target website itself: keep http/https
+                // in the WebView. file:// is never loadable.
+                if ("http".equals(scheme) || "https".equals(scheme)) {
                     return false;
                 }
                 // Route tel:, mailto:, geo:, sms:, market:// etc. to system
@@ -135,12 +137,6 @@ public class ShellActivity extends Activity {
 
             @Override
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                if (AssetOrigin.shouldFallbackToFile(failingUrl, triedFileFallback)
-                        && assetExists(AssetOrigin.APP_ASSET_PATH)) {
-                    triedFileFallback = true;
-                    view.loadUrl(AssetOrigin.FALLBACK_URL);
-                    return;
-                }
                 if (!isNetworkAvailable()) {
                     offlineBanner.setVisibility(View.VISIBLE);
                 }
@@ -205,7 +201,10 @@ public class ShellActivity extends Activity {
         if (assetExists(AssetOrigin.APP_ASSET_PATH)) {
             webView.loadUrl(AssetOrigin.APP_URL);
         } else {
-            webView.loadUrl(AssetOrigin.FALLBACK_URL);
+            webView.loadData(
+                "<html><body style='background:#0d0d1a;color:#eaeaea;"
+                    + "font-family:sans-serif;text-align:center'>App data missing</body></html>",
+                "text/html", "utf-8");
         }
     }
 
