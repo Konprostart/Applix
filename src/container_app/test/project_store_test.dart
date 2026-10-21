@@ -84,8 +84,10 @@ void main() {
         content: 'x',
       );
       final files = await ProjectStore.listFiles(appId: 'app1', packageName: 'applix.demo1');
-      expect(files.length, 1);
-      expect((files.first['name'] as String).contains('/'), isFalse);
+      // Traversal is rejected outright, not sanitised into the project.
+      expect(files, isEmpty);
+      final dir = await ProjectStore.projectDir(appId: 'app1', packageName: 'applix.demo1');
+      expect(File('${dir.parent.path}/evil.js').existsSync(), isFalse);
     });
 
     test('nested paths are stored and returned for the build', () async {
