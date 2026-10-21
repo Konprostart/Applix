@@ -8,8 +8,8 @@ android {
         applicationId "com.applix.generated.placeholderx.xxxxxxxx"
         minSdk 26
         targetSdk 34
-        versionCode 600000
-        versionName "0.6.0"
+        versionCode 700000
+        versionName "0.7.0"
     }
     buildTypes {
         release {

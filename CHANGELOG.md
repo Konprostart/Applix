@@ -10,6 +10,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.7.0] - 2026-10-21
+
+### Added
+- **Runtime verification before build (Phase 6).** Generated apps are loaded in
+  a hidden WebView with the same bridge shim and UI kit as the preview. A probe
+  records uncaught errors, unhandled rejections and `console.error` output, and
+  reads the rendered page after boot. A fatal error or a truly blank screen
+  stops the build with the actual error instead of shipping a white screen.
+  Preview-only ES module resolution is reported as a note, not a failure.
+- **Targeted updates.** Follow-ups now ask the model for a small JSON patch
+  (`applix_patch`) with `replace`, `insert_after` and `delete` edits, plus
+  optional whole-file replacements. `AppPatch` validates every `find` string
+  (exact and unique), applies it to the in-memory project, and falls back to a
+  full answer only when no safe patch exists. Unchanged code is never rewritten.
+- `PATCH MODE` section in the system prompt/SPEC, `AppPatch` and `RuntimeProbe`
+  services, unit tests for both, and the `tools/check_phase6.py` CI guard.
+
+### Changed
+- The preview and the runtime verifier share the same injected shim, so an app
+  that passes verification behaves the same when previewed.
+- The duplicate multi-file paragraph in the prompt was removed; the output-shape
+  rule now appears once.
+
+### Fixed
+- Follow-ups against a loaded app include the current project when the chat has
+  no earlier code, so a patch has exact `find` anchors to work with.
+
 ## [0.6.0] - 2026-10-21
 
 ### Added
