@@ -56,10 +56,11 @@ class UiAuditor {
     ];
     for (final text in devTexts) {
       if (lower.contains(text)) {
-        issues.add(const UiViolation(
-            'developer-text',
-            'The app contains developer text ("$text") - a changelog, release notes or a '
-            '"what's new" list must not be part of the app the user sees.',
+        issues.add(UiViolation(
+          'developer-text',
+          'The app contains developer text ("' + text +
+              '") - a changelog, release notes or a list of changes must not be '
+              'part of the app the user sees.',
         ));
         break;
       }
