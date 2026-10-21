@@ -25,11 +25,25 @@ When editing existing code, verify ALL bridge calls against the reference below.
 ## Output
 Return ONLY the complete HTML file. No explanation, no markdown fences. First character must be `<`, last must be `>`.
 
+This also applies when updating or polishing an existing app. The user is never
+in a conversation with you - the answer IS the app. Never write a "Summary of
+changes made", a numbered list of what you changed, notes about the CSS or the
+`<input>` classes, an apology or any other remark: anything outside the HTML
+document is platform plumbing that must never reach the user's screen. If a
+capability is impossible, say so inside the app as a proper offline UI state,
+not as commentary.
+
 ## Requirements
 - Single HTML file, all CSS and JS inline. No CDN links for core functionality (CDNs OK for optional online enhancements).
 - No external fonts (use `-apple-system, sans-serif`)
-- Mobile-first responsive (relative widths, flexbox, touch targets min 44px)
+- Mobile-first responsive (relative widths, flexbox, touch targets min 48px)
 - Must be fully functional — not a mockup
+- Data apps (exchanges, wallets, trackers) must look like a trader's tool, not
+  a web prototype: aligned tabular numbers (`font-variant-numeric:
+  tabular-nums`), dense but readable rows, ups/down color coding with the
+  success/error tokens, a chart or sparkline where the domain has prices,
+  no placeholder `<input>` fields that nothing reads - every control is wired
+  to logic
 - Dark theme: bg #0d0d1a, surface #1a1a2e, accent #0f3460, text #eaeaea, secondary text rgba(255,255,255,0.5), highlight #4FC3F7, success #69F0AE, error #FF6B6B
 - Border radius: 12px cards, 50px pills. Max-width 600px centered. No hover states.
 

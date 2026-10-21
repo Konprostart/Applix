@@ -63,6 +63,12 @@ class DevTextSanitizer {
       result = changed;
     }
     result = _removeLooseBlocks(result);
+    // Hard stop at the real document end: a model sometimes appends a
+    // "Summary of changes made" list after </html>, and a WebView renders
+    // that text as body content. It is chat prose, never the app.
+    final lower = result.toLowerCase();
+    final end = lower.lastIndexOf('</html>');
+    if (end >= 0) result = result.substring(0, end + '</html>'.length);
     return result;
   }
 

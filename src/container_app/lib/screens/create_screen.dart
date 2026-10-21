@@ -50,6 +50,7 @@ import '../services/error_helper.dart';
 import 'flows/create_helpers.dart' as h;
 import 'showcase_screen.dart';
 import '../services/dev_text_sanitizer.dart';
+import '../services/ai_response.dart';
 
 class CreateScreen extends StatefulWidget {
   final VoidCallback? onAppSaved;
@@ -303,14 +304,12 @@ class CreateScreenState extends State<CreateScreen> {
     if (result != null) setState(() => _iconConfig = result);
   }
 
-  String _stripMarkdownFences(String text) {
-    var s = text.trim();
-    final m = RegExp(r'^```(?:html)?\s*\n?([\s\S]*?)\n?\s*```$').firstMatch(s);
-    if (m != null) s = m.group(1)!.trim();
-    final i = s.indexOf('<');
-    if (i > 0) s = s.substring(i);
-    return s;
-  }
+  /// Extracts the app document out of the model's response, dropping every
+  /// word the model wrote around it ("Here is your app", fences, and the
+  /// "Summary of changes made" lists it appends after </html> - the WebView
+  /// would render them as body text).
+  String _stripMarkdownFences(String text) =>
+      AiResponse.extractAppHtml(text);
 
   Future<DateTime?> _getExistingCreatedAt(String id) async {
     try { return (await AppStorage.loadAll()).firstWhere((a) => a.id == id).createdAt; }
