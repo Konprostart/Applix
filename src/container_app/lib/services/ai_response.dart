@@ -14,7 +14,6 @@ class AiResponse {
   static String extractAppHtml(String text) {
     var s = text.trim();
     if (s.isEmpty) return '';
-    final lower = s.toLowerCase();
 
     // 1) The response may contain several fenced blocks (notes, logs, ...).
     //    The app is the first fence that starts like an HTML document.
