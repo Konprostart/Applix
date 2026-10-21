@@ -33,6 +33,18 @@ void main() {
         '.ax-toast__action',
         '.ax-anim-in',
         '.ax-press',
+        '.ax-icon',
+        '.ax-icon-btn',
+        '.ax-select',
+        '.ax-check',
+        '.ax-radio',
+        '.ax-search',
+        '.ax-stepper',
+        '.ax-chart__bars',
+        '.ax-bar',
+        '.ax-sparkline',
+        '.ax-donut',
+        '.ax-stat-row',
       ]) {
         expect(css, contains(selector), reason: 'missing $selector');
       }
@@ -42,7 +54,7 @@ void main() {
     });
 
     test('the module exports the documented helpers and is self-contained', () {
-      expect(js, contains('export const UI_KIT_VERSION = 1;'));
+      expect(js, contains('export const UI_KIT_VERSION = 2;'));
       for (final fn in [
         'toast',
         'openSheet',
@@ -51,6 +63,11 @@ void main() {
         'mountBottomNav',
         'mountSegmented',
         'stagger',
+        'icon',
+        'mountIcons',
+        'sparkline',
+        'barChart',
+        'donut',
       ]) {
         expect(js, contains('export function $fn('), reason: 'missing $fn');
       }
@@ -79,6 +96,9 @@ void main() {
       expect(prompt, contains('mountBottomNav'));
       expect(prompt, contains('confirmDialog'));
       expect(prompt, contains('Never build bottom navigation'));
+      expect(prompt, contains('sparkline'));
+      expect(prompt, contains('barChart'));
+      expect(prompt, contains('mountIcons'));
     });
   });
 
@@ -94,7 +114,7 @@ void main() {
         AppProject.singleFile('<html><body>x</body></html>').manifestJson(),
       ) as Map<String, dynamic>;
       final kit = manifest['uiKit'] as Map<String, dynamic>;
-      expect(kit['version'], 1);
+      expect(kit['version'], 2);
       expect(kit['css'], 'applix-ui.css');
       expect(kit['js'], 'applix-ui.js');
     });

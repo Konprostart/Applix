@@ -26,7 +26,7 @@ class AppProject {
   static const format = 2;
 
   /// The shared design system shipped with every app (Phase 3).
-  static const uiKitVersion = 1;
+  static const uiKitVersion = 2;
   static const uiKitCss = 'applix-ui.css';
   static const uiKitJs = 'applix-ui.js';
 

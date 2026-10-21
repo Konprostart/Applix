@@ -20,6 +20,8 @@
   --ax-primary-2: #8B5CF6;
   --ax-primary-press: #5A79E8;
   --ax-on-primary: #FFFFFF;
+  --ax-on-surface: var(--ax-text);
+  --ax-on-bg: var(--ax-text);
   --ax-danger: #FF6B6B;
   --ax-success: #3DD68C;
   --ax-warning: #FFB86B;
@@ -36,8 +38,8 @@
   --text-secondary: var(--ax-text-dim);
   --muted: var(--ax-text-faint);
   --on-primary: var(--ax-on-primary);
-  --on-surface: var(--ax-text);
-  --on-bg: var(--ax-text);
+  --on-surface: var(--ax-on-surface);
+  --on-bg: var(--ax-on-bg);
   --border: var(--ax-border);
   --danger: var(--ax-danger);
   --success: var(--ax-success);
@@ -1128,6 +1130,237 @@ html body blockquote {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+/* ------------------------------------------------------------ icons (v2) */
+
+.ax-icon {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  display: inline-block;
+  vertical-align: -4px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ax-icon--sm { width: 18px; height: 18px; vertical-align: -3px; }
+.ax-icon--lg { width: 28px; height: 28px; vertical-align: -6px; }
+.ax-icon--xl { width: 40px; height: 40px; vertical-align: -8px; }
+
+.ax-icon-btn {
+  width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--ax-radius-pill);
+  background: transparent;
+  color: var(--ax-text);
+  padding: 0;
+  cursor: pointer;
+}
+
+.ax-icon-btn:active { background: rgba(255, 255, 255, 0.08); }
+
+/* ------------------------------------------------------------ forms (v2) */
+
+.ax-field { display: grid; gap: 6px; }
+
+.ax-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--ax-text-dim);
+}
+
+.ax-help {
+  font-size: 0.72rem;
+  color: var(--ax-text-faint);
+}
+
+.ax-select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 42px 0 var(--ax-4);
+  border-radius: var(--ax-radius);
+  border: 1px solid var(--ax-border);
+  background-color: var(--ax-surface-2);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A0A3B1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 18px;
+  color: var(--ax-text);
+  font: inherit;
+  font-size: 1rem;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.ax-select:focus {
+  outline: none;
+  border-color: var(--ax-primary);
+  box-shadow: 0 0 0 3px rgba(108, 140, 255, 0.18);
+}
+
+.ax-check,
+.ax-radio {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-content: center;
+  border: 1.5px solid var(--ax-border-strong);
+  border-radius: 6px;
+  background: var(--ax-surface-2);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: background var(--ax-fast) var(--ax-ease), border-color var(--ax-fast) var(--ax-ease);
+}
+
+.ax-radio { border-radius: 50%; }
+
+.ax-check::after {
+  content: "";
+  width: 11px;
+  height: 6px;
+  border-left: 2px solid var(--ax-on-primary);
+  border-bottom: 2px solid var(--ax-on-primary);
+  transform: rotate(-45deg) translateY(-1px) scale(0);
+  transition: transform var(--ax-fast) var(--ax-ease);
+}
+
+.ax-check:checked,
+.ax-check[aria-checked="true"] {
+  background: var(--ax-primary);
+  border-color: var(--ax-primary);
+}
+
+.ax-check:checked::after,
+.ax-check[aria-checked="true"]::after {
+  transform: rotate(-45deg) translateY(-1px) scale(1);
+}
+
+.ax-radio::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ax-primary);
+  transform: scale(0);
+  transition: transform var(--ax-fast) var(--ax-ease);
+}
+
+.ax-radio:checked { border-color: var(--ax-primary); }
+.ax-radio:checked::after { transform: scale(1); }
+
+.ax-check-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ax-3);
+  min-height: 44px;
+  cursor: pointer;
+  color: var(--ax-text);
+}
+
+.ax-check-row span { flex: 1; }
+
+.ax-search { position: relative; }
+
+.ax-search .ax-input { padding-left: 44px; }
+
+.ax-search__icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ax-text-faint);
+  pointer-events: none;
+  display: inline-flex;
+}
+
+.ax-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ax-2);
+  padding: 4px;
+  border-radius: var(--ax-radius-pill);
+  border: 1px solid var(--ax-border);
+  background: var(--ax-surface);
+}
+
+.ax-stepper button {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--ax-radius-pill);
+  background: var(--ax-surface-2);
+  color: var(--ax-text);
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ax-stepper button:active { background: var(--ax-elevated); }
+
+.ax-stepper__value {
+  min-width: 36px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------ charts (v2) */
+
+.ax-chart { display: grid; gap: var(--ax-2); width: 100%; }
+
+.ax-chart__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  width: 100%;
+  height: 120px;
+}
+
+.ax-bar {
+  flex: 1;
+  min-width: 4px;
+  border-radius: 6px 6px 2px 2px;
+  background: linear-gradient(180deg, var(--ax-primary), var(--ax-primary-2));
+  opacity: 0.9;
+  transition: opacity var(--ax-fast) var(--ax-ease);
+}
+
+.ax-bar:active { opacity: 1; }
+
+.ax-chart__labels {
+  display: flex;
+  gap: 6px;
+  color: var(--ax-text-faint);
+  font-size: 0.68rem;
+}
+
+.ax-chart__label { flex: 1; text-align: center; }
+
+.ax-sparkline {
+  width: 100%;
+  height: 64px;
+  overflow: visible;
+  color: var(--ax-primary);
+}
+
+.ax-donut { display: block; }
+
+.ax-stat-row { display: flex; gap: var(--ax-3); }
+.ax-stat { flex: 1; min-width: 0; }
+.ax-stat__value { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
+.ax-stat__label { font-size: 0.72rem; color: var(--ax-text-faint); }
 
 /* --------------------------------------------------------- motion helpers */
 

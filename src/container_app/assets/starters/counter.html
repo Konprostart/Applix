@@ -6,18 +6,18 @@
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Counter</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,sans-serif;background:#0d0d1a;color:#eaeaea;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;user-select:none}
+body{font-family:system-ui,Roboto,sans-serif;background:var(--ax-bg);color:var(--ax-text);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;user-select:none}
 h1{font-size:1.2rem;font-weight:600;color:rgba(255,255,255,.6)}
 .count{font-size:6rem;font-weight:700;letter-spacing:-2px;line-height:1}
 .buttons{display:flex;gap:20px}
 .btn{width:72px;height:72px;border-radius:50%;border:none;font-size:2rem;cursor:pointer;transition:.1s;display:flex;align-items:center;justify-content:center}
 .btn:active{transform:scale(.92)}
-.btn-minus{background:#1a1a2e;color:#fff}
-.btn-plus{background:#0f3460;color:#fff}
+.btn-minus{background:var(--ax-surface);color:#fff}
+.btn-plus{background:var(--ax-primary-press);color:#fff}
 .reset{background:none;border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:8px 20px;color:rgba(255,255,255,.4);font-size:.8rem;cursor:pointer;margin-top:8px}
 .footer{position:fixed;bottom:16px;font-size:.7rem;color:rgba(255,255,255,.2)}
 </style></head><body>

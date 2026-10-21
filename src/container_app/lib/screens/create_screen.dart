@@ -52,6 +52,7 @@ import 'showcase_screen.dart';
 import '../services/dev_text_sanitizer.dart';
 import '../services/ai_response.dart';
 import '../services/app_project.dart';
+import '../services/app_plan.dart';
 
 class CreateScreen extends StatefulWidget {
   final VoidCallback? onAppSaved;
@@ -372,11 +373,44 @@ class CreateScreenState extends State<CreateScreen> {
     setState(() {
       _genMethod = 'api';
       _aiGenerating = true; _genStartTime = DateTime.now();
-      _conversation = [ChatMessage(role: 'user', content: 'App name: $name\nDescription: $desc')];
+      _conversation = [];
       _bridgeIssues = [];
     });
 
     try {
+      AppPlan? plan;
+      try {
+        final plannerPrompt = await PromptBuilder.getPlannerPrompt();
+        final planResponse = await AiService.generate(
+          provider: provider,
+          systemPrompt: plannerPrompt,
+          messages: [
+            ChatMessage(
+              role: 'user',
+              content: await PromptBuilder.buildPlannerRequest(
+                appName: name,
+                description: desc,
+              ),
+            ),
+          ],
+        );
+        plan = AppPlan.parse(planResponse);
+        if (plan != null && plan.isEmpty) plan = null;
+      } catch (_) {
+        plan = null;
+      }
+      if (!mounted || thisGenId != _genId) return;
+
+      final request = await PromptBuilder.buildRequest(
+        appName: name,
+        description: desc,
+        plan: plan,
+      );
+      if (!mounted || thisGenId != _genId) return;
+      setState(() {
+        _conversation = [ChatMessage(role: 'user', content: request)];
+      });
+
       final systemPrompt = await PromptBuilder.getSystemPrompt();
       final response = await AiService.generate(
         provider: provider,

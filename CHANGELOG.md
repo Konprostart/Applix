@@ -8,7 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing yet.
+- **Blueprint-first generation (Phase 5).** A compact planner call turns the
+  request into a validated `AppPlan` (screens, entities, seed records, flows,
+  acceptance checks). Generation then receives that plan as a binding spec, so
+  apps cover every screen and start with believable data instead of an empty
+  shell. Planner failures are non-blocking.
+- **UI Kit v2.** Icons (`icon`, `mountIcons`), charts (`sparkline`, `barChart`,
+  `donut`), form controls (`.ax-select`, `.ax-check`, `.ax-radio`, `.ax-search`,
+  `.ax-stepper`, `.ax-label`, `.ax-icon-btn`) and a wider type of data layouts.
+- **Quality bar in the prompt.** Explicit rules for seed data, wired controls,
+  CRUD, persistence, navigation, feedback, charts, no placeholder copy and a
+  self-review pass against the plan.
+- CI guard `tools/check_phase5.py` and tests for plan parsing, the planner
+  prompt and the starter kit contract.
+
+### Changed
+- In-app API generation now sends the full design contract and request, not just
+  the app name and description. This was the largest quality gap between the
+  manual prompt flow and one-tap generation.
+- The prompt has one design truth: `system-ui`/Roboto, kit `--ax-*` tokens,
+  a 720px content column, and multi-file projects for non-trivial apps.
+- Style presets now customise kit tokens instead of reintroducing a legacy
+  palette, and no longer mention `-apple-system` or hardcoded hex colours.
+- Todo and Notes starters were rebuilt on the kit with realistic seed data,
+  search/filters, delete confirmation and persistence; all starters use kit
+  tokens, safe-area viewports and the Android font stack.
 
 ## [0.5.0] - 2026-10-21
 

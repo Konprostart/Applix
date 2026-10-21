@@ -6,19 +6,19 @@
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Timer</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,sans-serif;background:#0d0d1a;color:#eaeaea;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px;user-select:none}
+body{font-family:system-ui,Roboto,sans-serif;background:var(--ax-bg);color:var(--ax-text);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px;user-select:none}
 h1{font-size:1.2rem;color:rgba(255,255,255,.5)}
 .time{font-size:5.5rem;font-weight:300;letter-spacing:2px;font-variant-numeric:tabular-nums}
 .buttons{display:flex;gap:16px}
 .btn{padding:14px 28px;border:none;border-radius:50px;font-size:1rem;cursor:pointer;transition:.1s}
 .btn:active{opacity:.7}
-.start{background:#0f3460;color:#fff}
-.pause{background:#1a1a2e;color:#fff}
-.reset{background:#1a1a2e;color:#fff}
+.start{background:var(--ax-primary-press);color:#fff}
+.pause{background:var(--ax-surface);color:#fff}
+.reset{background:var(--ax-surface);color:#fff}
 .laps{max-height:200px;overflow-y:auto;width:240px}
 .lap{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem;color:rgba(255,255,255,.6)}
 .footer{position:fixed;bottom:16px;font-size:.7rem;color:rgba(255,255,255,.2)}
@@ -41,8 +41,8 @@ function fmt(ms){
 function tick(){elapsed=Date.now()-start;document.getElementById('time').textContent=fmt(elapsed)}
 function toggle(){
   if(running){clearInterval(timer);running=false;document.getElementById('startBtn').textContent='Resume';document.getElementById('startBtn').style.background='#1a3060'}
-  else{start=Date.now()-elapsed;timer=setInterval(tick,10);running=true;document.getElementById('startBtn').textContent='Pause';document.getElementById('startBtn').style.background='#0f3460';document.getElementById('lapBtn').disabled=false}
+  else{start=Date.now()-elapsed;timer=setInterval(tick,10);running=true;document.getElementById('startBtn').textContent='Pause';document.getElementById('startBtn').style.background='var(--ax-primary-press)';document.getElementById('lapBtn').disabled=false}
 }
 function addLap(){if(!running)return;laps.unshift(fmt(elapsed));var el=document.getElementById('laps');el.innerHTML=laps.map(function(l,i){return '<div class="lap"><span>Lap '+(laps.length-i)+'</span><span>'+l+'</span></div>'}).join('')}
-function resetTimer(){clearInterval(timer);running=false;elapsed=0;laps=[];document.getElementById('time').textContent='00:00.00';document.getElementById('startBtn').textContent='Start';document.getElementById('startBtn').style.background='#0f3460';document.getElementById('lapBtn').disabled=true;document.getElementById('laps').innerHTML=''}
+function resetTimer(){clearInterval(timer);running=false;elapsed=0;laps=[];document.getElementById('time').textContent='00:00.00';document.getElementById('startBtn').textContent='Start';document.getElementById('startBtn').style.background='var(--ax-primary-press)';document.getElementById('lapBtn').disabled=true;document.getElementById('laps').innerHTML=''}
 </script></body></html>

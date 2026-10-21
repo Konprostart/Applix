@@ -6,20 +6,20 @@
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Calculator</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,sans-serif;background:#0d0d1a;color:#eaeaea;min-height:100vh;display:flex;flex-direction:column}
+body{font-family:system-ui,Roboto,sans-serif;background:var(--ax-bg);color:var(--ax-text);min-height:100vh;display:flex;flex-direction:column}
 .display{flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding:24px 20px 16px;text-align:right}
 .expr{font-size:.9rem;color:rgba(255,255,255,.4);min-height:20px;margin-bottom:4px;word-break:break-all}
 .result{font-size:3.2rem;font-weight:300;letter-spacing:-1px;word-break:break-all}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#0a0a12}
 .k{padding:0;border:none;font-size:1.4rem;cursor:pointer;display:flex;align-items:center;justify-content:center;height:80px;transition:.08s;font-family:inherit}
 .k:active{opacity:.6}
-.k.op{background:#0f3460;color:#fff}
+.k.op{background:var(--ax-primary-press);color:#fff}
 .k.eq{background:#e94560;color:#fff}
-.k.fn{background:#1a1a2e;color:rgba(255,255,255,.7)}
+.k.fn{background:var(--ax-surface);color:rgba(255,255,255,.7)}
 .k.num{background:#16213e;color:#fff}
 .footer{text-align:center;padding:8px;font-size:.65rem;color:rgba(255,255,255,.15)}
 </style></head><body>

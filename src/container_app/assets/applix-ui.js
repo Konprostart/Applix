@@ -12,7 +12,7 @@
 // helpers only build markup with .ax-* classes, so app CSS can still override
 // everything. No bridge calls: the kit works before the native bridge is ready.
 
-export const UI_KIT_VERSION = 1;
+export const UI_KIT_VERSION = 2;
 
 const el = (tag, className = '', text = '') => {
   const node = document.createElement(tag);
@@ -250,6 +250,166 @@ export function stagger(selector, root = document) {
   return nodes;
 }
 
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+const ICONS = {
+  home: 'M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z',
+  list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+  chart: 'M4 20V10M10 20V4M16 20v-6M2 20h20',
+  plus: 'M12 5v14M5 12h14',
+  search: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35',
+  check: 'M20 6 9 17l-5-5',
+  trash: 'M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6',
+  back: 'M19 12H5M12 19l-7-7 7-7',
+  chevron: 'm9 18 6-6-6-6',
+  clock: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2',
+  calendar: 'M3 5h18v16H3zM8 3v4M16 3v4M3 10h18',
+  bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0',
+  user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
+  wallet: 'M3 7h18v13H3zM3 7l2-4h14l2 4M16 13h2',
+  heart: 'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z',
+  close: 'M18 6 6 18M6 6l12 12',
+  settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',
+};
+
+function svgEl(tag, attrs = {}) {
+  const node = document.createElementNS(SVG_NS, tag);
+  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value));
+  return node;
+}
+
+/** Inline SVG icon (stroke style, currentColor). name: see ICONS. */
+export function icon(name, { size = 22, className = 'ax-icon' } = {}) {
+  const svg = svgEl('svg', {
+    class: className,
+    viewBox: '0 0 24 24',
+    width: size,
+    height: size,
+    'aria-hidden': 'true',
+    focusable: 'false',
+  });
+  const path = svgEl('path', { d: ICONS[name] || ICONS.chevron });
+  svg.appendChild(path);
+  return svg;
+}
+
+/** Replaces <span data-ax-icon="home"></span> with inline SVG icons. */
+export function mountIcons(root = document) {
+  const nodes = Array.from(root.querySelectorAll('[data-ax-icon]'));
+  nodes.forEach((node) => {
+    const svg = icon(node.dataset.axIcon, {
+      size: Number(node.dataset.axSize) || 22,
+      className: node.className ? `ax-icon ${node.className}` : 'ax-icon',
+    });
+    node.replaceWith(svg);
+  });
+  return nodes.length;
+}
+
+function numeric(values) {
+  return (Array.isArray(values) ? values : []).map(Number).filter(Number.isFinite);
+}
+
+/** SVG sparkline for a series of numbers. */
+export function sparkline(values, { width = 280, height = 64, stroke = 'var(--ax-primary)', fill = true } = {}) {
+  const nums = numeric(values);
+  const svg = svgEl('svg', {
+    class: 'ax-sparkline',
+    viewBox: `0 0 ${width} ${height}`,
+    width,
+    height,
+    preserveAspectRatio: 'none',
+    'aria-hidden': 'true',
+  });
+  if (nums.length < 2) return svg;
+  const min = Math.min(...nums);
+  const max = Math.max(...nums);
+  const span = max - min || 1;
+  const step = width / (nums.length - 1);
+  const points = nums.map((value, index) => {
+    const x = index * step;
+    const y = height - ((value - min) / span) * (height - 10) - 5;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  if (fill) {
+    svg.appendChild(svgEl('polygon', {
+      points: `0,${height} ${points.join(' ')} ${width},${height}`,
+      fill: 'currentColor',
+      opacity: '0.12',
+      stroke: 'none',
+    }));
+  }
+  svg.appendChild(svgEl('polyline', {
+    points: points.join(' '),
+    fill: 'none',
+    stroke,
+    'stroke-width': '2.5',
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+  }));
+  return svg;
+}
+
+/** Simple bar chart. values: numbers; labels: optional strings. */
+export function barChart(values, { labels = [], height = 120, format } = {}) {
+  const nums = numeric(values);
+  const wrap = el('div', 'ax-chart');
+  const bars = el('div', 'ax-chart__bars');
+  bars.style.height = `${height}px`;
+  const max = Math.max(...nums, 1);
+  nums.forEach((value, index) => {
+    const bar = el('div', 'ax-bar');
+    const pct = Math.max(2, Math.round((value / max) * 100));
+    bar.style.height = `${pct}%`;
+    const shown = format ? format(value) : String(value);
+    bar.title = labels[index] ? `${labels[index]}: ${shown}` : shown;
+    if (labels[index]) bar.setAttribute('aria-label', bar.title);
+    bars.appendChild(bar);
+  });
+  wrap.appendChild(bars);
+  if (labels.length) {
+    const row = el('div', 'ax-chart__labels');
+    labels.forEach((label) => row.appendChild(el('span', 'ax-chart__label', label)));
+    wrap.appendChild(row);
+  }
+  return wrap;
+}
+
+/** Donut progress 0..100 with a centered label. */
+export function donut(value, { size = 96, strokeWidth = 10, label = '', tone = 'var(--ax-primary)' } = {}) {
+  const pct = Math.max(0, Math.min(100, Number(value) || 0));
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const svg = svgEl('svg', {
+    class: 'ax-donut',
+    viewBox: `0 0 ${size} ${size}`,
+    width: size,
+    height: size,
+    role: 'img',
+    'aria-label': label || `${Math.round(pct)}%`,
+  });
+  svg.appendChild(svgEl('circle', {
+    cx: size / 2, cy: size / 2, r: radius,
+    fill: 'none', stroke: 'var(--ax-border)', 'stroke-width': strokeWidth,
+  }));
+  svg.appendChild(svgEl('circle', {
+    cx: size / 2, cy: size / 2, r: radius,
+    fill: 'none', stroke: tone, 'stroke-width': strokeWidth,
+    'stroke-linecap': 'round',
+    'stroke-dasharray': `${(circumference * pct) / 100} ${circumference}`,
+    transform: `rotate(-90 ${size / 2} ${size / 2})`,
+  }));
+  if (label) {
+    const text = svgEl('text', {
+      x: '50%', y: '50%', 'text-anchor': 'middle', 'dominant-baseline': 'central',
+      fill: 'var(--ax-text)', 'font-size': size * 0.2, 'font-weight': '700',
+    });
+    text.textContent = label;
+    svg.appendChild(text);
+  }
+  return svg;
+}
+
 export default {
   version: UI_KIT_VERSION,
   toast,
@@ -259,4 +419,9 @@ export default {
   mountBottomNav,
   mountSegmented,
   stagger,
+  icon,
+  mountIcons,
+  sparkline,
+  barChart,
+  donut,
 };

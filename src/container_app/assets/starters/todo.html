@@ -6,67 +6,202 @@
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0B0B12">
 <title>Todo</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,sans-serif;background:#0d0d1a;color:#eaeaea;min-height:100vh}
-header{padding:20px 20px 12px;border-bottom:1px solid #1a1a2e}
-h1{font-size:1.4rem;font-weight:700}
-.subtitle{font-size:.8rem;color:rgba(255,255,255,.4);margin-top:2px}
-.input-row{display:flex;gap:8px;padding:16px 20px;border-bottom:1px solid #1a1a2e}
-input{flex:1;background:#1a1a2e;border:none;border-radius:10px;padding:12px 14px;color:#fff;font-size:1rem;outline:none}
-input::placeholder{color:rgba(255,255,255,.3)}
-button.add{background:#0f3460;border:none;border-radius:10px;padding:12px 16px;color:#fff;font-size:1.2rem;cursor:pointer}
-.list{padding:8px 20px}
-.item{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06)}
-.item:last-child{border-bottom:none}
-.check{width:22px;height:22px;border-radius:50%;border:2px solid #0f3460;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:.15s}
-.item.done .check{background:#0f3460;border-color:#0f3460}
-.item.done .check::after{content:'✓';color:#fff;font-size:.75rem}
-.item.done .text{text-decoration:line-through;color:rgba(255,255,255,.3)}
-.text{flex:1;font-size:.95rem}
-.del{background:none;border:none;color:rgba(255,255,255,.2);font-size:1.1rem;cursor:pointer;padding:4px 8px}
-.empty{text-align:center;color:rgba(255,255,255,.3);padding:40px;font-size:.9rem}
-.footer{padding:12px 20px;font-size:.75rem;color:rgba(255,255,255,.3);text-align:center}
-</style></head><body>
-<header><h1>Todo</h1><div class="subtitle" id="sub">0 tasks</div></header>
-<div class="input-row">
-  <input id="inp" type="text" placeholder="Add a task..." autocomplete="off">
-  <button class="add" onclick="add()">+</button>
+  body { font-family: system-ui, Roboto, sans-serif; background: var(--ax-bg); color: var(--ax-text); }
+  .todo-head { display: flex; align-items: center; justify-content: space-between; gap: var(--ax-3); }
+  .todo-add { display: flex; gap: var(--ax-2); }
+  .todo-add .ax-input { flex: 1; }
+  .todo-filters { display: flex; gap: var(--ax-2); overflow-x: auto; padding-bottom: var(--ax-2); }
+  .todo-list { margin-top: var(--ax-3); }
+  .todo-list .ax-row { align-items: flex-start; }
+  .todo-title { transition: color var(--ax-fast) var(--ax-ease); }
+  .todo-title.done { color: var(--ax-text-faint); text-decoration: line-through; }
+  .todo-actions { display: flex; align-items: center; gap: var(--ax-1); }
+  .todo-del { width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: var(--ax-radius-pill); background: transparent; color: var(--ax-text-faint); }
+  .todo-del:active { background: rgba(255,255,255,.08); color: var(--ax-danger); }
+  .todo-foot { display: flex; justify-content: space-between; align-items: center; margin-top: var(--ax-4); }
+</style></head>
+<body>
+<div class="ax-appbar">
+  <div>
+    <div class="ax-appbar__title">Todo</div>
+    <div class="ax-appbar__sub" id="sub">Loading…</div>
+  </div>
+  <span class="ax-badge" id="badge">0</span>
 </div>
-<div class="list" id="list"></div>
-<div class="footer">⚡ Applix</div>
+
+<div class="ax-page">
+  <div class="ax-card">
+    <div class="todo-head">
+      <div>
+        <div class="ax-section-title">Today</div>
+        <div class="ax-muted" style="font-size:.8rem">Small steps, kept visible.</div>
+      </div>
+    </div>
+    <div class="todo-add" style="margin-top:var(--ax-3)">
+      <input class="ax-input" id="inp" type="text" placeholder="Add a task…" autocomplete="off" enterkeyhint="done">
+      <button class="ax-btn" id="add" aria-label="Add task">Add</button>
+    </div>
+    <div class="todo-filters" style="margin-top:var(--ax-3)">
+      <button class="ax-chip ax-chip--active" data-filter="all">All</button>
+      <button class="ax-chip" data-filter="open">Open</button>
+      <button class="ax-chip" data-filter="done">Done</button>
+    </div>
+  </div>
+
+  <div class="todo-list" id="list"></div>
+  <div class="todo-foot" id="foot" hidden>
+    <button class="ax-btn ax-btn--ghost ax-btn--small" id="clear">Clear completed</button>
+    <span class="ax-muted" id="left"></span>
+  </div>
+</div>
+
 <script>
-var todos=[];
-function save(){iappyx.save('todos',JSON.stringify(todos))}
-function render(){
-  var list=document.getElementById('list');
-  var done=todos.filter(function(t){return t.done}).length;
-  document.getElementById('sub').textContent=todos.length+' tasks, '+done+' done';
-  if(!todos.length){list.innerHTML='<div class="empty">No tasks yet. Add one above!</div>';return}
-  list.innerHTML=todos.map(function(t,i){
-    return '<div class="item'+(t.done?' done':'')+'">'+
-      '<div class="check" onclick="toggle('+i+')"></div>'+
-      '<div class="text">'+t.text+'</div>'+
-      '<button class="del" onclick="del('+i+')">✕</button>'+
-    '</div>'
-  }).join('');
+var KEY = 'todos_v2';
+var SEED = [
+  { id: 1, text: 'Review the launch checklist', done: false },
+  { id: 2, text: 'Book a dentist appointment', done: false },
+  { id: 3, text: 'Send the Q2 invoice', done: true }
+];
+var todos = [];
+var filter = 'all';
+
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
 }
-function add(){
-  var inp=document.getElementById('inp');
-  var text=inp.value.trim();
-  if(!text)return;
-  todos.push({text:text,done:false});
-  inp.value='';save();render();
+
+function persist() {
+  if (typeof iappyx === 'undefined') return;
+  try { iappyx.save(KEY, JSON.stringify(todos)); } catch (e) {}
 }
-function toggle(i){todos[i].done=!todos[i].done;save();render()}
-function del(i){todos.splice(i,1);save();render()}
-document.getElementById('inp').addEventListener('keydown',function(e){if(e.key==='Enter')add()});
-function init(){
-  if(typeof iappyx==='undefined'){setTimeout(init,50);return;}
-  todos=JSON.parse(iappyx.load('todos')||'[]');
+
+function toast(message) {
+  if (typeof iappyx !== 'undefined' && iappyx.ui) iappyx.ui.toast(message);
+}
+
+function render() {
+  var open = todos.filter(function (t) { return !t.done; }).length;
+  var done = todos.length - open;
+  document.getElementById('sub').textContent = open + ' open · ' + done + ' done';
+  document.getElementById('badge').textContent = String(open);
+  document.getElementById('left').textContent = todos.length + ' total';
+
+  var visible = todos.filter(function (t) {
+    return filter === 'all' || (filter === 'open' ? !t.done : t.done);
+  });
+
+  var list = document.getElementById('list');
+  if (!visible.length) {
+    list.innerHTML = '<div class="ax-empty">' +
+      '<div class="ax-empty__icon">✓</div>' +
+      '<div class="ax-empty__title">' + (todos.length ? 'Nothing here' : 'All clear') + '</div>' +
+      '<div class="ax-muted">' + (todos.length ? 'Change the filter to see other tasks.' : 'Add your first task above and it will stay saved.') + '</div>' +
+      '</div>';
+  } else {
+    list.innerHTML = '<div class="ax-list">' + visible.map(function (t) {
+      return '<div class="ax-row" data-id="' + t.id + '">' +
+        '<button class="ax-check" role="checkbox" aria-checked="' + t.done + '" data-action="toggle" aria-label="Toggle task"></button>' +
+        '<div class="ax-row__body">' +
+          '<div class="ax-row__title todo-title' + (t.done ? ' done' : '') + '">' + esc(t.text) + '</div>' +
+        '</div>' +
+        '<div class="todo-actions">' +
+          '<button class="todo-del" data-action="delete" aria-label="Delete task">' +
+            '<svg class="ax-icon ax-icon--sm" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>' +
+          '</button>' +
+        '</div>' +
+      '</div>';
+    }).join('') + '</div>';
+  }
+
+  document.getElementById('foot').hidden = done === 0;
+  document.querySelectorAll('[data-filter]').forEach(function (chip) {
+    chip.classList.toggle('ax-chip--active', chip.dataset.filter === filter);
+  });
+}
+
+function add() {
+  var input = document.getElementById('inp');
+  var text = input.value.trim();
+  if (!text) return;
+  todos.unshift({ id: Date.now(), text: text, done: false });
+  input.value = '';
+  filter = 'all';
+  persist();
+  render();
+  toast('Task added');
+}
+
+function remove(id) {
+  todos = todos.filter(function (t) { return t.id !== id; });
+  persist();
+  render();
+  toast('Task deleted');
+}
+
+function confirmDelete(id) {
+  var task = todos.find(function (t) { return t.id === id; });
+  if (!task) return;
+  if (typeof iappyx === 'undefined' || !iappyx.ui) { remove(id); return; }
+  var cb = 'confirm_' + Date.now();
+  window._iappyxCb = window._iappyxCb || {};
+  window._iappyxCb[cb] = function (ok) { if (ok === true) remove(id); };
+  iappyx.ui.confirm('Delete task?', task.text, cb);
+}
+
+function toggle(id) {
+  var task = todos.find(function (t) { return t.id === id; });
+  if (!task) return;
+  task.done = !task.done;
+  persist();
+  render();
+  if (task.done) toast('Done');
+}
+
+document.getElementById('list').addEventListener('click', function (event) {
+  var action = event.target.closest('[data-action]');
+  if (!action) return;
+  var row = action.closest('[data-id]');
+  if (!row) return;
+  var id = Number(row.dataset.id);
+  if (action.dataset.action === 'toggle') toggle(id);
+  if (action.dataset.action === 'delete') confirmDelete(id);
+});
+
+document.querySelectorAll('[data-filter]').forEach(function (chip) {
+  chip.addEventListener('click', function () {
+    filter = chip.dataset.filter;
+    render();
+  });
+});
+
+document.getElementById('add').addEventListener('click', add);
+document.getElementById('inp').addEventListener('keydown', function (event) {
+  if (event.key === 'Enter') add();
+});
+document.getElementById('clear').addEventListener('click', function () {
+  todos = todos.filter(function (t) { return !t.done; });
+  persist();
+  render();
+  toast('Completed tasks cleared');
+});
+
+function init() {
+  if (typeof iappyx === 'undefined') { setTimeout(init, 50); return; }
+  try {
+    var raw = iappyx.load(KEY);
+    todos = raw ? JSON.parse(raw) : SEED.slice();
+    if (!Array.isArray(todos)) todos = SEED.slice();
+  } catch (e) {
+    todos = SEED.slice();
+  }
+  persist();
   render();
 }
-window.addEventListener('load',function(){setTimeout(init,100)});
-</script></body></html>
+window.addEventListener('load', function () { setTimeout(init, 100); });
+</script>
+</body></html>

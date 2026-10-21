@@ -5,26 +5,26 @@
 -->
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Compass</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,sans-serif;background:#0d0d1a;color:#eaeaea;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px}
+body{font-family:system-ui,Roboto,sans-serif;background:var(--ax-bg);color:var(--ax-text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px}
 h1{font-size:20px;margin-bottom:4px}
 .sub{font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:24px}
 .compass-wrap{position:relative;width:280px;height:280px;margin-bottom:24px}
-.compass-ring{width:280px;height:280px;border-radius:50%;border:3px solid #1a1a2e;position:relative;transition:transform 0.3s ease-out}
+.compass-ring{width:280px;height:280px;border-radius:50%;border:3px solid var(--ax-surface);position:relative;transition:transform 0.3s ease-out}
 .compass-ring svg{width:100%;height:100%}
-.needle{position:absolute;top:50%;left:50%;width:4px;height:120px;margin-left:-2px;margin-top:-120px;background:linear-gradient(to bottom,#ff6b6b 50%,#eaeaea 50%);border-radius:2px;transform-origin:bottom center;z-index:2}
-.center-dot{position:absolute;top:50%;left:50%;width:12px;height:12px;margin:-6px;background:#4fc3f7;border-radius:50%;z-index:3}
-.heading-display{font-size:64px;font-weight:700;color:#4fc3f7;margin-bottom:4px}
+.needle{position:absolute;top:50%;left:50%;width:4px;height:120px;margin-left:-2px;margin-top:-120px;background:linear-gradient(to bottom,var(--ax-danger) 50%,var(--ax-text) 50%);border-radius:2px;transform-origin:bottom center;z-index:2}
+.center-dot{position:absolute;top:50%;left:50%;width:12px;height:12px;margin:-6px;background:var(--ax-primary);border-radius:50%;z-index:3}
+.heading-display{font-size:64px;font-weight:700;color:var(--ax-primary);margin-bottom:4px}
 .direction{font-size:24px;color:rgba(255,255,255,0.7);margin-bottom:24px}
-.info{background:#1a1a2e;border-radius:12px;padding:16px;width:100%;max-width:320px}
+.info{background:var(--ax-surface);border-radius:12px;padding:16px;width:100%;max-width:320px}
 .info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
 .info-row:last-child{border:none}
 .info-label{color:rgba(255,255,255,0.4);font-size:13px}
 .info-val{font-size:13px;font-weight:600}
-.btn{background:#4fc3f7;color:#0d0d1a;border:none;border-radius:50px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;width:100%;max-width:320px;margin-top:16px}
+.btn{background:var(--ax-primary);color:var(--ax-bg);border:none;border-radius:50px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;width:100%;max-width:320px;margin-top:16px}
 .btn:active{opacity:0.8}
 </style></head><body>
 <h1>Compass</h1>
@@ -36,8 +36,8 @@ h1{font-size:20px;margin-bottom:4px}
 <div class="compass-wrap">
   <div class="compass-ring" id="ring">
     <svg viewBox="0 0 280 280">
-      <circle cx="140" cy="140" r="130" fill="none" stroke="#1a1a2e" stroke-width="2"/>
-      <text x="140" y="28" text-anchor="middle" fill="#ff6b6b" font-size="18" font-weight="700">N</text>
+      <circle cx="140" cy="140" r="130" fill="none" stroke="var(--ax-surface)" stroke-width="2"/>
+      <text x="140" y="28" text-anchor="middle" fill="var(--ax-danger)" font-size="18" font-weight="700">N</text>
       <text x="258" y="145" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="16">E</text>
       <text x="140" y="262" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="16">S</text>
       <text x="22" y="145" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="16">W</text>

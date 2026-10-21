@@ -28,10 +28,14 @@ REQUIRED_CSS = [
     ".ax-segmented", ".ax-segmented__item--active", ".ax-table", ".ax-num",
     ".ax-sheet__title", ".ax-sheet__body", ".ax-sheet__actions",
     ".ax-toast__action", ".ax-anim-in", ".ax-press", "prefers-reduced-motion",
+    ".ax-icon", ".ax-icon-btn", ".ax-select", ".ax-check", ".ax-radio",
+    ".ax-search", ".ax-stepper", ".ax-chart__bars", ".ax-bar", ".ax-sparkline",
+    ".ax-donut", ".ax-stat-row",
 ]
 REQUIRED_JS = [
     "UI_KIT_VERSION", "toast", "openSheet", "confirmDialog",
     "mountTabs", "mountBottomNav", "mountSegmented", "stagger",
+    "icon", "mountIcons", "sparkline", "barChart", "donut",
 ]
 
 errors: list[str] = []
@@ -84,7 +88,8 @@ if 'assets["applix-ui.js"]' not in generator:
     errors.append("AppGenerator does not ship applix-ui.js next to index.html")
 
 for needle in ("applix-ui.js", "applix-ui.css", "mountBottomNav", "mountTabs",
-               "confirmDialog", "stagger"):
+               "confirmDialog", "stagger", "sparkline", "barChart", "donut",
+               "mountIcons", ".ax-select"):
     if needle not in prompt:
         errors.append(f"system_prompt.md does not document {needle}")
 

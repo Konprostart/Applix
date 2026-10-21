@@ -6,93 +6,229 @@
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0B0B12">
 <title>Notes</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,sans-serif;background:#0d0d1a;color:#eaeaea;min-height:100vh;margin:0}
-.screen{display:flex;flex-direction:column;min-height:100vh;transition:.15s}
-.screen.hidden{display:none}
-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #1a1a2e;flex-shrink:0}
-h1{font-size:1.3rem;font-weight:700}
-.btn{background:#0f3460;border:none;border-radius:8px;padding:8px 14px;color:#fff;font-size:.85rem;cursor:pointer}
-.btn.ghost{background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.15)}
-.list{padding:12px}
-.note-card{background:#1a1a2e;border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer}
-.note-card:active{opacity:.7}
-.note-title{font-weight:600;font-size:.95rem;margin-bottom:4px}
-.note-preview{font-size:.8rem;color:rgba(255,255,255,.4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.note-date{font-size:.7rem;color:rgba(255,255,255,.25);margin-top:6px}
-.editor-body{flex:1;display:flex;flex-direction:column;padding:12px 16px;gap:10px}
-#note-title-inp{background:#1a1a2e;border:none;border-radius:8px;padding:12px;color:#fff;font-size:1.1rem;font-weight:600;outline:none;flex-shrink:0}
-#note-body-inp{flex:1;background:transparent;border:none;color:#eaeaea;font-size:.95rem;resize:none;outline:none;font-family:inherit;line-height:1.7;min-height:200px}
-.empty{text-align:center;color:rgba(255,255,255,.3);padding:60px 20px;font-size:.9rem}
-.footer{padding:10px;text-align:center;font-size:.7rem;color:rgba(255,255,255,.2);flex-shrink:0}
-</style></head><body>
+  body { font-family: system-ui, Roboto, sans-serif; background: var(--ax-bg); color: var(--ax-text); }
+  .screen { min-height: 100vh; padding-bottom: calc(96px + var(--ax-safe-bottom)); }
+  .screen.hidden { display: none; }
+  .note-card { cursor: pointer; }
+  .note-card:active { transform: scale(.995); }
+  .note-title { font-weight: 700; }
+  .note-preview { color: var(--ax-text-dim); font-size: .85rem; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .note-date { color: var(--ax-text-faint); font-size: .7rem; margin-top: var(--ax-2); }
+  .editor-head { display: flex; align-items: center; justify-content: space-between; gap: var(--ax-2); }
+  .editor-body { display: flex; flex-direction: column; gap: var(--ax-3); padding: var(--ax-4); min-height: calc(100vh - 72px); }
+  #note-title-inp { background: transparent; border: 0; color: var(--ax-text); font-size: 1.5rem; font-weight: 800; padding: var(--ax-2) 0; }
+  #note-body-inp { flex: 1; min-height: 45vh; background: transparent; border: 0; color: var(--ax-text); font: inherit; font-size: 1rem; line-height: 1.7; resize: none; }
+  #note-title-inp:focus, #note-body-inp:focus { outline: none; }
+  .fab-add { position: fixed; right: var(--ax-5); bottom: calc(var(--ax-6) + var(--ax-safe-bottom)); }
+</style></head>
+<body>
 <div class="screen" id="list-screen">
-  <header><h1>Notes</h1><button class="btn" onclick="newNote()">+ New</button></header>
-  <div class="list" id="note-list"></div>
-  <div class="footer">⚡ Applix</div>
+  <div class="ax-appbar">
+    <div>
+      <div class="ax-appbar__title">Notes</div>
+      <div class="ax-appbar__sub" id="sub">Loading…</div>
+    </div>
+  </div>
+  <div class="ax-page">
+    <div class="ax-search">
+      <span class="ax-search__icon">
+        <svg class="ax-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      </span>
+      <input class="ax-input" id="search" type="search" placeholder="Search notes…" autocomplete="off">
+    </div>
+    <div id="note-list" style="margin-top:var(--ax-3)"></div>
+  </div>
+  <button class="ax-fab fab-add" id="new" aria-label="New note">+</button>
 </div>
+
 <div class="screen hidden" id="edit-screen">
-  <header>
-    <button class="btn ghost" onclick="closeNote()">← Back</button>
-    <button class="btn ghost" onclick="deleteNote()">Delete</button>
-  </header>
+  <div class="ax-appbar">
+    <button class="ax-btn ax-btn--ghost ax-btn--small" id="back">← Back</button>
+    <div class="editor-head">
+      <button class="ax-btn ax-btn--ghost ax-btn--small" id="delete">Delete</button>
+    </div>
+  </div>
   <div class="editor-body">
-    <input type="text" id="note-title-inp" placeholder="Title">
-    <textarea id="note-body-inp" placeholder="Start writing..."></textarea>
+    <input type="text" id="note-title-inp" placeholder="Title" autocomplete="off">
+    <textarea id="note-body-inp" placeholder="Start writing…"></textarea>
+    <div class="ax-muted" id="saved" style="font-size:.72rem"></div>
   </div>
 </div>
+
 <script>
-var notes=[], current=-1;
-function save(){iappyx.save('notes',JSON.stringify(notes))}
-function renderList(){
-  var el=document.getElementById('note-list');
-  if(!notes.length){el.innerHTML='<div class="empty">No notes yet.<br>Tap + New to start.</div>';return}
-  el.innerHTML=notes.slice().reverse().map(function(n,ri){
-    var i=notes.length-1-ri;
-    return '<div class="note-card" onclick="openNote('+i+')">'+
-      '<div class="note-title">'+(n.title||'Untitled')+'</div>'+
-      '<div class="note-preview">'+(n.body||'No content')+'</div>'+
-      '<div class="note-date">'+new Date(n.updated).toLocaleDateString()+'</div>'+
+var KEY = 'notes_v2';
+var SEED = [
+  {
+    id: 1,
+    title: 'Weekend groceries',
+    body: 'Oat milk\nSourdough\nTomatoes\nCoffee beans',
+    updated: Date.now() - 1000 * 60 * 60 * 3
+  },
+  {
+    id: 2,
+    title: 'Launch checklist',
+    body: 'Screenshots for the store listing\nTest the offline flow\nAsk Mina to review copy',
+    updated: Date.now() - 1000 * 60 * 60 * 26
+  },
+  {
+    id: 3,
+    title: 'Book idea',
+    body: 'A field guide to small, useful apps — one page per idea, with a sketch and three real use cases.',
+    updated: Date.now() - 1000 * 60 * 60 * 24 * 4
+  }
+];
+var notes = [];
+var current = null;
+var query = '';
+
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+function persist() {
+  if (typeof iappyx === 'undefined') return;
+  try { iappyx.save(KEY, JSON.stringify(notes)); } catch (e) {}
+}
+
+function toast(message) {
+  if (typeof iappyx !== 'undefined' && iappyx.ui) iappyx.ui.toast(message);
+}
+
+function when(ts) {
+  var diff = Date.now() - ts;
+  var day = 1000 * 60 * 60 * 24;
+  if (diff < day) return 'Today';
+  if (diff < day * 2) return 'Yesterday';
+  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function renderList() {
+  var visible = notes.slice().sort(function (a, b) { return b.updated - a.updated; })
+    .filter(function (n) {
+      if (!query) return true;
+      return (n.title + ' ' + n.body).toLowerCase().indexOf(query) >= 0;
+    });
+
+  document.getElementById('sub').textContent = notes.length
+    ? notes.length + (notes.length === 1 ? ' note' : ' notes')
+    : 'Nothing captured yet';
+
+  var list = document.getElementById('note-list');
+  if (!visible.length) {
+    list.innerHTML = '<div class="ax-empty">' +
+      '<div class="ax-empty__icon">✎</div>' +
+      '<div class="ax-empty__title">' + (notes.length ? 'No matches' : 'No notes yet') + '</div>' +
+      '<div class="ax-muted">' + (notes.length ? 'Try a different search.' : 'Tap + to capture a thought. It stays on your device.') + '</div>' +
+      '</div>';
+    return;
+  }
+
+  list.innerHTML = '<div class="ax-list">' + visible.map(function (n) {
+    var body = (n.body || '').replace(/\n/g, ' ');
+    return '<div class="ax-row ax-row--tap note-card" data-id="' + n.id + '">' +
+      '<div class="ax-row__icon">' +
+        '<svg class="ax-icon" viewBox="0 0 24 24"><path d="M7 3h10a2 2 0 0 1 2 2v16l-7-4-7 4V5a2 2 0 0 1 2-2z"/></svg>' +
+      '</div>' +
+      '<div class="ax-row__body">' +
+        '<div class="ax-row__title note-title">' + esc(n.title || 'Untitled') + '</div>' +
+        '<div class="note-preview">' + esc(body || 'No content') + '</div>' +
+        '<div class="note-date">' + when(n.updated) + '</div>' +
+      '</div>' +
+      '<div class="ax-row__chevron">›</div>' +
     '</div>';
-  }).join('');
+  }).join('') + '</div>';
 }
-function newNote(){
-  notes.push({title:'',body:'',updated:Date.now()});
-  save(); openNote(notes.length-1);
-}
-function openNote(i){
-  current=i;
-  document.getElementById('note-title-inp').value=notes[i].title;
-  document.getElementById('note-body-inp').value=notes[i].body;
+
+function openNote(id) {
+  current = notes.find(function (n) { return n.id === id; });
+  if (!current) return;
+  document.getElementById('note-title-inp').value = current.title || '';
+  document.getElementById('note-body-inp').value = current.body || '';
+  document.getElementById('saved').textContent = 'Edited ' + when(current.updated);
   document.getElementById('list-screen').classList.add('hidden');
   document.getElementById('edit-screen').classList.remove('hidden');
-  // Delay focus so screen transition completes first
-  setTimeout(function(){
-    var t=document.getElementById('note-title-inp');
-    t.focus(); t.setSelectionRange(t.value.length,t.value.length);
-  },200);
+  setTimeout(function () {
+    var input = document.getElementById('note-title-inp');
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  }, 150);
 }
-function closeNote(){
-  notes[current].title=document.getElementById('note-title-inp').value.trim()||'Untitled';
-  notes[current].body=document.getElementById('note-body-inp').value;
-  notes[current].updated=Date.now();
-  save(); renderList();
-  document.getElementById('edit-screen').classList.add('hidden');
-  document.getElementById('list-screen').classList.remove('hidden');
+
+function saveCurrent() {
+  if (!current) return;
+  current.title = document.getElementById('note-title-inp').value.trim();
+  current.body = document.getElementById('note-body-inp').value;
+  current.updated = Date.now();
+  persist();
 }
-function deleteNote(){
-  notes.splice(current,1); save();
+
+function closeNote() {
+  saveCurrent();
+  current = null;
   document.getElementById('edit-screen').classList.add('hidden');
   document.getElementById('list-screen').classList.remove('hidden');
   renderList();
+  toast('Note saved');
 }
-function init(){
-  if(typeof iappyx==='undefined'){setTimeout(init,50);return;}
-  notes=JSON.parse(iappyx.load('notes')||'[]');
+
+function newNote() {
+  var note = { id: Date.now(), title: '', body: '', updated: Date.now() };
+  notes.unshift(note);
+  persist();
+  openNote(note.id);
+}
+
+function deleteNote() {
+  if (!current) return;
+  var id = current.id;
+  var remove = function () {
+    notes = notes.filter(function (n) { return n.id !== id; });
+    persist();
+    current = null;
+    document.getElementById('edit-screen').classList.add('hidden');
+    document.getElementById('list-screen').classList.remove('hidden');
+    renderList();
+    toast('Note deleted');
+  };
+  if (typeof iappyx === 'undefined' || !iappyx.ui) { remove(); return; }
+  var cb = 'confirm_' + Date.now();
+  window._iappyxCb = window._iappyxCb || {};
+  window._iappyxCb[cb] = function (ok) { if (ok === true) remove(); };
+  iappyx.ui.confirm('Delete note?', 'This cannot be undone.', cb);
+}
+
+document.getElementById('note-list').addEventListener('click', function (event) {
+  var row = event.target.closest('[data-id]');
+  if (row) openNote(Number(row.dataset.id));
+});
+document.getElementById('search').addEventListener('input', function (event) {
+  query = event.target.value.trim().toLowerCase();
+  renderList();
+});
+document.getElementById('new').addEventListener('click', newNote);
+document.getElementById('back').addEventListener('click', closeNote);
+document.getElementById('delete').addEventListener('click', deleteNote);
+document.getElementById('note-title-inp').addEventListener('input', saveCurrent);
+document.getElementById('note-body-inp').addEventListener('input', saveCurrent);
+
+function init() {
+  if (typeof iappyx === 'undefined') { setTimeout(init, 50); return; }
+  try {
+    var raw = iappyx.load(KEY);
+    notes = raw ? JSON.parse(raw) : SEED.slice();
+    if (!Array.isArray(notes)) notes = SEED.slice();
+  } catch (e) {
+    notes = SEED.slice();
+  }
+  persist();
   renderList();
 }
-window.addEventListener('load',function(){setTimeout(init,100)});
-</script></body></html>
+window.addEventListener('load', function () { setTimeout(init, 100); });
+</script>
+</body></html>

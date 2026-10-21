@@ -30,6 +30,7 @@ flutter:
     - assets/shell_template.apk
     - assets/shell_template_web.apk
     - assets/system_prompt.md
+    - assets/planner_prompt.md
     - assets/bridge_index.json
     - assets/ic_launcher.png
     - assets/applix-ui.css

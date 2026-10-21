@@ -369,80 +369,71 @@ class Settings {
     switch (preset) {
       case 'material':
         return '''
-## CSS Style: Material Design
-Apply these Material Design styles to ALL generated apps:
-- `font-family: Roboto, 'Noto Color Emoji', sans-serif` instead of -apple-system (emoji fallback required)
-- `touch-action: manipulation` on all interactive elements (eliminates 300ms tap delay)
-- Minimum touch targets: 48px height for buttons and tappable elements
-- Buttons: subtle elevation with `box-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.4)`, active state `box-shadow: 0 3px 6px rgba(0,0,0,0.3)` with `transform: translateY(-1px)`
-- Add CSS ripple effect on buttons: use `position:relative;overflow:hidden` with `:active::after` pseudo-element (radial gradient flash, 300ms)
-- Input fields: bottom border style (2px solid transparent, focus: 2px solid #4FC3F7) with smooth transition
-- Cards: `box-shadow: 0 2px 4px rgba(0,0,0,0.2)` elevation
-- All transitions: `transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1)`
-- Rounded corners: 12px for cards, 24px for action buttons (pill shape)
+## CSS Style: Material
+Layer these Material touches on top of the Applix UI Kit - keep every .ax-* class:
+- Typography: `font-family: system-ui, Roboto, 'Noto Color Emoji', sans-serif`
+- `touch-action: manipulation` on interactive elements
+- Keep 48px minimum touch targets
+- Buttons: use `.ax-btn` and add elevation `box-shadow: var(--ax-shadow-2)`; active state `var(--ax-shadow-3)` with `transform: translateY(-1px)`
+- Inputs: keep `.ax-input`; focus ring uses `--ax-primary`
+- Cards: `.ax-card` with `box-shadow: var(--ax-shadow-2)`
+- Transitions: `var(--ax-fast) var(--ax-ease)`
+- Corners: `--ax-radius` for cards, `--ax-radius-pill` for action buttons
+- Never hardcode colours; use `--ax-*` tokens only
 ''';
       case 'glassmorphic':
         return '''
 ## CSS Style: Glassmorphic
-Apply these glassmorphic styles to ALL generated apps:
-- Cards/surfaces: `background: rgba(255,255,255,0.05); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08)`
-- Buttons: `background: rgba(15,52,96,0.6); backdrop-filter: blur(8px); border: 1px solid rgba(79,195,247,0.2)`
-- Active buttons: `background: rgba(15,52,96,0.9)` with no transform
-- Input fields: `background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1)` focus: `border-color: rgba(79,195,247,0.4)`
-- Subtle glow effects: `box-shadow: 0 0 20px rgba(79,195,247,0.05)` on cards
-- `font-family: -apple-system, sans-serif` (keep default)
-- `touch-action: manipulation` on all interactive elements
-- All transitions: `transition: all 200ms ease`
-- Rounded corners: 16px for cards, 12px for buttons
+Layer these glass effects on top of the Applix UI Kit - keep every .ax-* class:
+- Surfaces: `background: color-mix(in srgb, var(--ax-surface) 74%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--ax-border-strong)`
+- Buttons: translucent `--ax-primary` with a soft `--ax-shadow-2`; no transform on active
+- Inputs: translucent `--ax-surface-2` with `--ax-border`; focus ring `--ax-primary`
+- Subtle accent glow: `box-shadow: 0 0 24px color-mix(in srgb, var(--ax-primary) 18%, transparent)` on hero cards
+- Typography: `system-ui, Roboto, sans-serif`
+- `touch-action: manipulation` on interactive elements
+- Rounded corners: `--ax-radius-lg` for cards, `--ax-radius` for buttons
+- Never hardcode colours; use `--ax-*` tokens only
 ''';
       case 'minimal':
         return '''
 ## CSS Style: Minimal
-Apply these minimal styles to ALL generated apps:
-- Ultra-clean design with maximum whitespace
-- Cards/surfaces: `background: #1a1a2e; border: 1px solid rgba(255,255,255,0.06)` — no shadows, no blur
-- Buttons: `background: transparent; border: 1px solid rgba(255,255,255,0.15); color: #eaeaea` — outline only
-- Primary action button: `border-color: #4FC3F7; color: #4FC3F7`
-- Active buttons: `background: rgba(255,255,255,0.05)`
-- Input fields: border-bottom only, 1px solid rgba(255,255,255,0.15), no background
-- `font-family: -apple-system, sans-serif`
-- `touch-action: manipulation` on all interactive elements
-- Font weight: use 300 (light) for body text, 500 for headings
-- Generous padding: 20px inside cards, 12px between elements
-- All transitions: `transition: all 100ms ease`
-- Rounded corners: 8px for cards, 8px for buttons (subtle)
+Layer this minimal treatment on top of the Applix UI Kit - keep every .ax-* class:
+- Maximum whitespace; fewer borders, no gradients, no blur
+- Cards: `background: var(--ax-surface); border: 1px solid var(--ax-border); box-shadow: none`
+- Buttons: `.ax-btn--ghost` as the default; primary action keeps `.ax-btn`
+- Inputs: `.ax-input` with a 1px `--ax-border` bottom border and transparent background
+- Typography: `system-ui, Roboto, sans-serif`; weight 300 for body, 600 for headings
+- Padding: `var(--ax-5)` inside cards, `var(--ax-3)` between elements
+- Transitions: `var(--ax-fast) var(--ax-ease)`
+- Rounded corners: `--ax-radius-sm`
+- Never hardcode colours; use `--ax-*` tokens only
 ''';
       case 'dynamic':
         return '''
 ## CSS Style: Dynamic (Material You)
-This app MUST use the device's dynamic theme colors from Android 12+ Material You.
-In the bridge init (`onReady`), call `JSON.parse(iappyx.device.getThemeColors())` to get:
+Drive the Applix UI Kit tokens from the device theme - keep every .ax-* class.
+In `onReady`, call `JSON.parse(iappyx.device.getThemeColors())` to get:
 `{primary, primaryLight, primaryDark, secondary, tertiary, neutral, neutralLight, neutralDark, background, surface, isDark, dynamic}`
-
-Set CSS variables on `:root` from these values:
+and map them onto the kit tokens:
 ```javascript
 var t = JSON.parse(iappyx.device.getThemeColors());
 var s = document.documentElement.style;
-s.setProperty('--primary', t.primary);
-s.setProperty('--primary-light', t.primaryLight);
-s.setProperty('--primary-dark', t.primaryDark);
-s.setProperty('--secondary', t.secondary);
-s.setProperty('--bg', t.background);
-s.setProperty('--surface', t.surface);
-s.setProperty('--text', t.neutralLight);
-s.setProperty('--text-secondary', t.neutral);
-s.setProperty('--on-primary', t.onPrimary);
-s.setProperty('--on-surface', t.onSurface);
-s.setProperty('--on-bg', t.onBackground);
+s.setProperty('--ax-primary', t.primary);
+s.setProperty('--ax-primary-press', t.primaryDark);
+s.setProperty('--ax-primary-2', t.secondary);
+s.setProperty('--ax-bg', t.background);
+s.setProperty('--ax-surface', t.surface);
+s.setProperty('--ax-surface-2', t.surface);
+s.setProperty('--ax-text', t.isDark ? t.neutralLight : t.neutralDark);
+s.setProperty('--ax-text-dim', t.neutral);
+s.setProperty('--ax-on-primary', t.onPrimary);
+s.setProperty('--ax-on-surface', t.onSurface);
 ```
-
-Then use CSS variables throughout: `background: var(--bg)`, `color: var(--text)`, buttons: `background: var(--primary-dark); color: var(--on-primary)`, accent: `var(--primary)`, cards: `background: var(--surface); color: var(--on-surface)`, body text: `color: var(--on-bg)`.
-Always use `var(--on-primary)` for text on primary-colored buttons, `var(--on-surface)` for text on cards — these guarantee readable contrast.
-Do NOT hardcode #0d0d1a, #1a1a2e, #0f3460, #4FC3F7 — use the CSS variables instead.
-- `touch-action: manipulation` on all interactive elements
-- All transitions: `transition: all 150ms ease`
-- Rounded corners: 12px for cards, 12px for buttons
-- Do NOT override native checkbox, radio, toggle/switch styling
+- Use `--ax-*` tokens everywhere; never hardcode background, text or accent colours
+- `touch-action: manipulation` on interactive elements
+- Transitions: `var(--ax-fast) var(--ax-ease)`
+- Corners: `--ax-radius` for cards and buttons
+- Use `.ax-check` / `.ax-radio` / `.ax-switch`; do not fall back to unstyled native controls
 ''';
       default:
         return '';

@@ -44,7 +44,7 @@ class UiAuditor {
 
     if (!lower.contains('name="theme-color"') && !lower.contains("name='theme-color'")) {
       issues.add(const UiViolation('theme-color',
-          'Add <meta name="theme-color" content="#0d0d1a"> so the system bars match the app.'));
+          'Add <meta name="theme-color" content="#0B0B12"> so the system bars match the app.'));
     }
 
     if (lower.contains('-apple-system') && !lower.contains('system-ui')) {

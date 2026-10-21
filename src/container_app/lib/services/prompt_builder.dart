@@ -24,9 +24,11 @@
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'settings_service.dart';
+import 'app_plan.dart';
 
 class PromptBuilder {
   static String? _defaultPrompt;
+  static String? _defaultPlannerPrompt;
 
   static Future<String> getSystemPrompt() async {
     // Check for custom prompt first
@@ -119,64 +121,107 @@ class PromptBuilder {
 - Style: $styleLabel
 - Build the whole UI from the Applix UI Kit classes: .ax-page (page layout), .ax-appbar
   (top bar), .ax-card, .ax-list + .ax-row (list rows), .ax-btn (buttons), .ax-fab,
-  .ax-input + .ax-field (inputs), .ax-chip, .ax-switch, .ax-empty (empty state),
-  .ax-skeleton (loading state), .ax-toast (messages), .ax-sheet (bottom sheet), .ax-stat
+  .ax-input + .ax-field (inputs), .ax-select, .ax-check, .ax-radio, .ax-search,
+  .ax-stepper, .ax-chip, .ax-switch, .ax-empty (empty state), .ax-skeleton
+  (loading state), .ax-toast (messages), .ax-sheet (bottom sheet), .ax-stat,
+  .ax-table, .ax-chart, .ax-sparkline, .ax-donut, .ax-icon
+- Import icons, charts and overlays from './applix-ui.js' (icon, mountIcons,
+  sparkline, barChart, donut, toast, openSheet, confirmDialog, mountTabs,
+  mountBottomNav, mountSegmented, stagger) instead of hand-writing them
 - Never invent your own colour or spacing system - use the --ax-* design tokens
 - Single column, 16px side padding, 48px minimum touch targets, no horizontal scrolling
 - Type scale: 1.6rem headings, 1rem body, 0.8rem labels
 - Every screen needs a top bar, a real empty state and a loading state
-- Use iappyx.ui.toast(...) for transient messages instead of custom floating divs
+- Start with 3-8 realistic seed records and persist every mutation; no dead controls
+- Every data app gets a real chart (sparkline/barChart/donut) and .ax-num numbers
 - The app is called "$appName" - the title bar shows that name''';
   }
 
+  static String _designContractFor(String appName, String stylePreset) =>
+      _designContract(appName, stylePreset);
+
+  /// Planner system prompt. Kept tiny so planning is fast and cheap.
+  static Future<String> getPlannerPrompt() async {
+    _defaultPlannerPrompt ??= await rootBundle.loadString('assets/planner_prompt.md');
+    return _defaultPlannerPrompt!;
+  }
+
+  static Future<String> buildPlannerRequest({
+    required String appName,
+    required String description,
+  }) async {
+    return 'App name: $appName\nDescription: $description';
+  }
+
+  /// Builds the user-facing generation request without the system prompt.
+  /// Used by in-app API generation (the system prompt is sent separately) and by
+  /// [buildPrompt] for the manual copy/paste flow.
+  static Future<String> buildRequest({
+    required String appName,
+    required String description,
+    String? existingHtml,
+    AppPlan? plan,
+    String? styleCss,
+  }) async {
+    final versionTag = _todayVersionTag();
+    final stylePreset = await Settings.getCssStylePreset();
+    final css = styleCss ?? Settings.getCssForPreset(stylePreset);
+    final contract = _designContractFor(appName, stylePreset);
+    final isUpdate = existingHtml != null && existingHtml.trim().startsWith('<');
+    final buf = StringBuffer();
+    buf.writeln(contract);
+    if (css.isNotEmpty) {
+      buf.writeln();
+      buf.writeln(css);
+    }
+    if (plan != null && !plan.isEmpty) {
+      buf.writeln();
+      buf.writeln(plan.toPromptBlock());
+    }
+    buf.writeln();
+
+    if (isUpdate) {
+      buf.writeln('APP UPDATE REQUEST:');
+      buf.writeln('App name: $appName');
+      buf.writeln('Description: $description');
+      buf.writeln();
+      buf.writeln('Here is the current app code:');
+      buf.writeln('```html');
+      buf.writeln(existingHtml);
+      buf.writeln('```');
+      buf.writeln();
+      buf.writeln('Update this app based on the description. Preserve all existing functionality unless the description explicitly asks to change it. Return the complete updated app (single HTML file or multi-file JSON project, matching the existing shape).');
+    } else {
+      buf.writeln('APP REQUEST:');
+      buf.writeln('App name: $appName');
+      buf.writeln('Description: $description');
+      buf.writeln();
+      buf.writeln('Generate a complete, fully functional app matching this description. Apply every technical requirement from the instructions above. Use realistic seed data, wire every control, persist state, and self-review before answering.');
+    }
+    buf.writeln();
+    buf.writeln('REMINDER (Applix system prompt $versionTag): every `iappyx.*` method you use must be verified against the Bridge reference above. If you are uncertain whether a method exists, it does not - pick one that IS listed. Also re-verify calls already present in existing code.');
+    return buf.toString();
+  }
+
+  /// Full prompt for the manual copy/paste flow: system prompt + request.
   static Future<String> buildPrompt({
     required String appName,
     required String description,
     String? existingHtml,
+    AppPlan? plan,
   }) async {
     var systemPrompt = await getSystemPrompt();
     final versionTag = _todayVersionTag();
     systemPrompt = systemPrompt.replaceAll('{{VERSION_TAG}}', versionTag);
     final stylePreset = await Settings.getCssStylePreset();
     final styleCss = Settings.getCssForPreset(stylePreset);
-    if (styleCss.isNotEmpty) systemPrompt += '\n\n$styleCss';
-    final contract = _designContract(appName, stylePreset);
-    if (existingHtml != null && existingHtml.trim().startsWith('<')) {
-      return '''$systemPrompt
-
----
-
-$contract
-
----
-
-APP UPDATE REQUEST:
-App name: $appName
-Description: $description
-
-Here is the current app code:
-```html
-$existingHtml
-```
-
-Update this app based on the description. Preserve all existing functionality unless the description explicitly asks to change it. Return the complete updated HTML.
-
-REMINDER (Applix system prompt $versionTag): the code above may contain `iappyx.*` calls that were hallucinated by an earlier AI generation and silently fail at runtime. Before returning the updated HTML, re-verify EVERY `iappyx.*` call — both the ones already in the code and any new ones you add — against the Bridge reference at the top of this prompt. If a call does not match a method in the reference, replace it with the correct method or remove the feature. Do not preserve a wrong call just because it is already in the file.''';
-    }
-    return '''$systemPrompt
-
----
-
-$contract
-
----
-
-APP REQUEST:
-App name: $appName
-Description: $description
-
-Generate a complete, fully functional app matching this description. Apply all technical requirements from the instructions above.
-
-REMINDER (Applix system prompt $versionTag): every `iappyx.*` method you use must be verified against the Bridge reference above. If you are uncertain whether a method exists, it does not — pick one that IS listed.''';
+    final request = await buildRequest(
+      appName: appName,
+      description: description,
+      existingHtml: existingHtml,
+      plan: plan,
+      styleCss: styleCss,
+    );
+    return '$systemPrompt\n\n---\n\n$request';
   }
 }
