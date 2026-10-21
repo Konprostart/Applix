@@ -63,6 +63,14 @@ android {
                 : signingConfigs.debug
         }
     }
+
+    testOptions {
+        // ApkInjector logs through android.util.Log; without this the unit
+        // tests crash with "Method not mocked" instead of running.
+        unitTests {
+            returnDefaultValues = true
+        }
+    }
 }
 
 dependencies {
