@@ -78,9 +78,11 @@ import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import androidx.webkit.WebViewAssetLoader;
 
 import androidx.activity.ComponentActivity;
 import androidx.activity.result.ActivityResultLauncher;
@@ -113,6 +115,8 @@ public class ShellActivity extends ComponentActivity {
     private android.widget.ProgressBar progressBar;
     private android.widget.TextView offlineBanner;
     private String lastFailedUrl;
+    private WebViewAssetLoader assetLoader;
+    private boolean triedFileFallback = false;
     private TextToSpeech tts;
     private volatile boolean ttsReady = false; // Bug #6: track TTS init
     private SensorManager sensorManager;
@@ -286,6 +290,14 @@ public class ShellActivity extends ComponentActivity {
         // Layout: WebView with ProgressBar + offline banner overlay
         webView = new WebView(this);
 
+        // Phase 1: serve the app from the secure WebViewAssetLoader origin
+        // (https://appassets.androidplatform.net) instead of file://, so the
+        // WebView gets a real origin (ES modules, workers, IndexedDB, CSP).
+        // The iappyx bridge is origin-independent and stays untouched.
+        assetLoader = new WebViewAssetLoader.Builder()
+                .addPathHandler(AssetOrigin.ASSETS_PATH, new WebViewAssetLoader.AssetsPathHandler(this))
+                .build();
+
         progressBar = new android.widget.ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         progressBar.setMax(100);
         progressBar.setProgress(0);
@@ -429,6 +441,19 @@ public class ShellActivity extends ComponentActivity {
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                if (assetLoader == null || request == null || request.getUrl() == null) return null;
+                try {
+                    return assetLoader.shouldInterceptRequest(request.getUrl());
+                } catch (Exception e) {
+                    // Never break the app: let the WebView load the request normally
+                    // and the main-frame error path falls back to file://.
+                    Log.w("Applix", "Asset interception failed: " + e.getMessage());
+                    return null;
+                }
+            }
+
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 String scheme = request.getUrl().getScheme();
                 if (scheme == null) return false;
@@ -486,6 +511,15 @@ public class ShellActivity extends ComponentActivity {
 
             private void handleWebViewError(WebView view, int errorCode, String description, String failingUrl) {
                 lastFailedUrl = failingUrl;
+
+                // Fallback: if the secure origin failed, retry once on file://.
+                if (AssetOrigin.shouldFallbackToFile(failingUrl, triedFileFallback)
+                        && assetExists(AssetOrigin.APP_ASSET_PATH)) {
+                    triedFileFallback = true;
+                    Log.w("Applix", "Asset origin failed, falling back to file://");
+                    view.loadUrl(AssetOrigin.FALLBACK_URL);
+                    return;
+                }
 
                 progressBar.setVisibility(android.view.View.GONE);
                 String safeDesc = description != null ? description.replace("'", "\\'") : "Unknown error";
@@ -618,7 +652,7 @@ public class ShellActivity extends ComponentActivity {
             }
         });
 
-        webView.loadUrl("file:///android_asset/app/index.html");
+        loadApp();
 
         // Register broadcast receiver for foreground location updates.
         // Reads payload from intent extras — the previous design round-
@@ -8968,4 +9002,24 @@ public class ShellActivity extends ComponentActivity {
             });
         }
     }
+
+    /** Loads the app from the secure origin, or file:// if the asset is absent. */
+    private void loadApp() {
+        if (assetExists(AssetOrigin.APP_ASSET_PATH)) {
+            webView.loadUrl(AssetOrigin.APP_URL);
+        } else {
+            Log.w("Applix", "app/index.html missing from assets, using file:// fallback");
+            webView.loadUrl(AssetOrigin.FALLBACK_URL);
+        }
+    }
+
+    /** True when the asset exists inside the APK. */
+    private boolean assetExists(String path) {
+        try (java.io.InputStream in = getAssets().open(path)) {
+            return in != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
 }

@@ -44,6 +44,15 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
+      - name: Verify the secure asset origin wiring
+        run: python3 tools/check_asset_loader.py
+
+      - name: Run shell unit tests (asset loader)
+        run: |
+          cd src/shell_apk
+          chmod +x gradlew
+          ./gradlew :app:testDebugUnitTest --no-daemon
+
       - name: Install freshly built shell templates into container assets
         run: |
           cp src/shell_apk/app/build/outputs/apk/release/app-release.apk src/container_app/assets/shell_template.apk

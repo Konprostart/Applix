@@ -14,9 +14,11 @@ import android.view.ViewGroup;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import androidx.webkit.WebViewAssetLoader;
 import android.widget.FrameLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -31,6 +33,8 @@ public class ShellActivity extends Activity {
 
     private WebView webView;
     private SwipeRefreshLayout swipeRefresh;
+    private WebViewAssetLoader assetLoader;
+    private boolean triedFileFallback = false;
     private ProgressBar progressBar;
     private TextView offlineBanner;
     private ValueCallback<Uri[]> pendingFileCallback;
@@ -51,6 +55,11 @@ public class ShellActivity extends Activity {
 
         // WebView inside SwipeRefreshLayout
         webView = new WebView(this);
+
+        // Secure origin (same mechanism as the full shell).
+        assetLoader = new WebViewAssetLoader.Builder()
+                .addPathHandler(AssetOrigin.ASSETS_PATH, new WebViewAssetLoader.AssetsPathHandler(this))
+                .build();
         webView.setBackgroundColor(Color.parseColor("#0d0d1a"));
         swipeRefresh = new SwipeRefreshLayout(this);
         swipeRefresh.addView(webView, new ViewGroup.LayoutParams(
@@ -100,6 +109,16 @@ public class ShellActivity extends Activity {
         // WebViewClient — URL routing, offline handling
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                if (assetLoader == null || request == null || request.getUrl() == null) return null;
+                try {
+                    return assetLoader.shouldInterceptRequest(request.getUrl());
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 String scheme = request.getUrl().getScheme();
                 if (scheme == null) return false;
@@ -116,6 +135,12 @@ public class ShellActivity extends Activity {
 
             @Override
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                if (AssetOrigin.shouldFallbackToFile(failingUrl, triedFileFallback)
+                        && assetExists(AssetOrigin.APP_ASSET_PATH)) {
+                    triedFileFallback = true;
+                    view.loadUrl(AssetOrigin.FALLBACK_URL);
+                    return;
+                }
                 if (!isNetworkAvailable()) {
                     offlineBanner.setVisibility(View.VISIBLE);
                 }
@@ -177,7 +202,11 @@ public class ShellActivity extends Activity {
         });
 
         // Load the redirect page
-        webView.loadUrl("file:///android_asset/app/index.html");
+        if (assetExists(AssetOrigin.APP_ASSET_PATH)) {
+            webView.loadUrl(AssetOrigin.APP_URL);
+        } else {
+            webView.loadUrl(AssetOrigin.FALLBACK_URL);
+        }
     }
 
     @Override
@@ -218,4 +247,14 @@ public class ShellActivity extends Activity {
         NetworkInfo ni = cm.getActiveNetworkInfo();
         return ni != null && ni.isConnected();
     }
+
+    /** True when the asset exists inside the APK. */
+    private boolean assetExists(String path) {
+        try (java.io.InputStream in = getAssets().open(path)) {
+            return in != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
 }

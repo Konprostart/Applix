@@ -36,6 +36,9 @@ import android.util.Log;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import androidx.webkit.WebViewAssetLoader;
+import android.webkit.WebResourceResponse;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebViewClient;
 
 import androidx.core.app.NotificationCompat;
@@ -91,6 +94,20 @@ public class TaskService extends Service {
         handler.post(() -> {
             try {
                 webView = new WebView(new android.view.ContextThemeWrapper(this, android.R.style.Theme));
+                final WebViewAssetLoader taskAssetLoader = new WebViewAssetLoader.Builder()
+                        .addPathHandler(AssetOrigin.ASSETS_PATH,
+                                new WebViewAssetLoader.AssetsPathHandler(ctx))
+                        .build();
+                webView.setWebViewClient(new WebViewClient() {
+                    @Override
+                    public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                        try {
+                            return taskAssetLoader.shouldInterceptRequest(request.getUrl());
+                        } catch (Exception e) {
+                            return null;
+                        }
+                    }
+                });
                 WebSettings s = webView.getSettings();
                 s.setJavaScriptEnabled(true);
                 s.setDomStorageEnabled(true);
@@ -317,7 +334,13 @@ public class TaskService extends Service {
                     }
                 });
 
-                webView.loadUrl("file:///android_asset/app/index.html");
+                // Same secure origin as the foreground shell, so localStorage
+                // and IndexedDB see one origin. Falls back to file://.
+                if (assetExists("app/index.html")) {
+                    webView.loadUrl(AssetOrigin.APP_URL);
+                } else {
+                    webView.loadUrl(AssetOrigin.FALLBACK_URL);
+                }
 
                 // Timeout
                 handler.postDelayed(() -> {
@@ -363,4 +386,14 @@ public class TaskService extends Service {
         }
         super.onDestroy();
     }
+
+    /** True when the asset exists inside the APK. */
+    private boolean assetExists(String path) {
+        try (java.io.InputStream in = getAssets().open(path)) {
+            return in != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
 }
