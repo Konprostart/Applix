@@ -56,7 +56,7 @@ class UiAuditor {
     // of the app the user sees. The same text is removed deterministically
     // before the app is built - see DevTextSanitizer.
     for (final match in _headingPattern.allMatches(html)) {
-      if (isDevText(match.group(3) ?? '')) {
+      if (DevTextSanitizer.isDevText(match.group(3) ?? '')) {
         issues.add(const UiViolation(
           'developer-text',
           'The app contains a developer text (changelog, release notes or a '

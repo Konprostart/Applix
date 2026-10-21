@@ -14,7 +14,7 @@ void main() {
   <h2>Settings</h2>
   <p>Pick a station.</p>
 </body></html>''';
-      final clean = removeDevText(html);
+      final clean = DevTextSanitizer.removeDevText(html);
       expect(clean.contains('Changes and Improvements'), isFalse);
       expect(clean.contains('New player'), isFalse);
       expect(clean.contains('Faster sync'), isFalse);
@@ -34,7 +34,7 @@ void main() {
   <h1>About</h1>
   <p>Made with care.</p>
 </body>''';
-      final clean = removeDevText(html);
+      final clean = DevTextSanitizer.removeDevText(html);
       expect(clean.contains('Changelog'), isFalse);
       expect(clean.contains('Version 1.0.0'), isFalse);
       expect(clean.contains('Fixed a bug.'), isFalse);
@@ -50,7 +50,7 @@ void main() {
       ]) {
         final html =
             '<body><h1>App</h1><h2>$heading</h2><p>secret</p><h2>Help</h2><p>ok</p></body>';
-        final clean = removeDevText(html);
+        final clean = DevTextSanitizer.removeDevText(html);
         expect(clean.contains('secret'), isFalse, reason: heading);
         expect(clean.contains('Help'), isTrue, reason: heading);
       }
@@ -58,7 +58,7 @@ void main() {
 
     test('removes a developer text that has no heading', () {
       const html = '<body><p>Changelog</p><p>Real content</p></body>';
-      final clean = removeDevText(html);
+      final clean = DevTextSanitizer.removeDevText(html);
       expect(clean.contains('Changelog'), isFalse);
       expect(clean.contains('Real content'), isTrue);
     });
@@ -70,14 +70,14 @@ void main() {
   <p>This app shows the release notes of your favourite show.</p>
   <h2>Tracks</h2><p>Three tracks today.</p>
 </body>''';
-      final clean = removeDevText(html);
+      final clean = DevTextSanitizer.removeDevText(html);
       expect(clean.contains('This app shows the release notes'), isTrue);
       expect(clean.contains('Three tracks today.'), isTrue);
     });
 
     test('leaves a clean app untouched', () {
       const html = '<html><head></head><body><h1>Todo</h1><ul><li>Milk</li></ul></body></html>';
-      expect(removeDevText(html), html);
+      expect(DevTextSanitizer.removeDevText(html), html);
     });
   });
 

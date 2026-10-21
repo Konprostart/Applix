@@ -107,3 +107,13 @@ String _removeLooseBlocks(String html) {
   }
   return result;
 }
+
+/// The public entry points, used by the preview, the editor, the build and
+/// the visual check.
+class DevTextSanitizer {
+  /// Removes every developer text section from an HTML document.
+  static String removeDevText(String html) => removeDevText(html);
+
+  /// True when the text is a developer text.
+  static bool isDevText(String text) => isDevText(text);
+}
