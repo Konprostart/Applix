@@ -10,6 +10,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.3.0] - 2026-10-21
+
+### Added
+- **Secure app origin (Phase 1).** Apps are now served from
+  `https://appassets.androidplatform.net/assets/app/index.html` through
+  `WebViewAssetLoader` instead of `file://`. The WebView gets a real https
+  origin, which unlocks **ES modules**, **Web Workers**, **IndexedDB** and a
+  working **Content-Security-Policy**. The `iappyx` bridge is unchanged
+  (37 `addJavascriptInterface` calls, guarded by a static check).
+- **Automatic file:// fallback.** If the asset origin fails (interception
+  error, missing `app/index.html`), the shell retries once on the legacy
+  `file:///android_asset/app/index.html`, so existing apps keep working.
+  The background task service (`TaskService`) and the web shell use the same
+  origin, so localStorage/IndexedDB see one origin everywhere.
+- **Shell tests.** `AssetOriginTest` (JVM) and `AssetLoaderServingTest`
+  (Robolectric) verify the full secure-origin URL mapping, foreign-origin
+  isolation and the fallback contract. CI runs them on every push.
+
+### Changed
+- Shell builds now depend on `androidx.webkit:webkit:1.12.1`.
+
 ## [0.2.9] - 2026-10-21
 
 ### Fixed
