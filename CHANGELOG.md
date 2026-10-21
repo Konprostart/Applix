@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.2.9] - 2026-10-21
+
+### Fixed
+- **No more developer prose on the app screen.** Every AI reply is now hard-extracted: the
+  document is taken from the first proper HTML fence, never cut at the first `<`, and
+  everything after `</html>` (for example a "Summary of changes made" list) is dropped before
+  it can reach the WebView. Sanitizing applies the same rule as a final safety net.
+- **A design bar for data apps.** The generation prompt now demands trader-grade screens
+  (tabular numbers, up/down color coding, charts, no dead `<input>` fields) and forbids change
+  summaries anywhere, including the polish/repair passes.
+
 ## [0.2.8] - 2026-10-21
 
 ### Added
