@@ -10,7 +10,7 @@
 //
 // The styles live in applix-ui.css (already inlined by the shell). These
 // helpers only build markup with .ax-* classes, so app CSS can still override
-// everything. No bridge calls: the kit works before iappyx is ready.
+// everything. No bridge calls: the kit works before the native bridge is ready.
 
 export const UI_KIT_VERSION = 1;
 
