@@ -25,6 +25,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -48,6 +49,9 @@ class PreviewScreen extends StatefulWidget {
   /// Loads the app only to verify that it boots, then closes and returns a
   /// [RuntimeReport] to the caller. No preview UI is shown.
   final bool verifyOnly;
+  /// Renders only the WebView, without the preview chrome. Used by the Create
+  /// result screen, where Preview is a tab with its own fixed action bar.
+  final bool embedded;
   const PreviewScreen({
     super.key,
     required this.htmlContent,
@@ -55,6 +59,7 @@ class PreviewScreen extends StatefulWidget {
     this.onHtmlFixed,
     this.initialWarnings = const [],
     this.verifyOnly = false,
+    this.embedded = false,
   });
   @override
   State<PreviewScreen> createState() => _PreviewScreenState();
@@ -690,6 +695,17 @@ class _PreviewScreenState extends State<PreviewScreen> {
     _loadPreview();
   }
 
+  @override
+  void didUpdateWidget(covariant PreviewScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.verifyOnly) return;
+    if (oldWidget.htmlContent != widget.htmlContent ||
+        !mapEquals(oldWidget.projectFiles, widget.projectFiles)) {
+      _console.clear();
+      _loadPreview();
+    }
+  }
+
   /// Loads the app with the same design system and the same project files the
   /// built app gets, so the preview looks exactly like the installed app.
   Future<void> _loadPreview() async {
@@ -993,6 +1009,33 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.embedded) {
+      return Stack(children: [
+        Positioned.fill(child: WebViewWidget(controller: _controller)),
+        if (_jsError != null)
+          Positioned(
+            left: 8, right: 8, bottom: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xE62A1620),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFF6B6B)),
+              ),
+              child: Row(children: [
+                const Icon(Icons.error_outline, size: 14, color: Color(0xFFFF6B6B)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(_jsError!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 10, color: Colors.white70)),
+                ),
+              ]),
+            ),
+          ),
+      ]);
+    }
     if (widget.verifyOnly) {
       return Scaffold(
         backgroundColor: const Color(0xFF0D0D1A),

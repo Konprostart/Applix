@@ -12,7 +12,10 @@ class AiResponse {
   /// Returns the largest usable piece of the app document inside [text],
   /// or '' when the response does not contain HTML at all.
   static String extractAppHtml(String text) {
-    var s = text.trim();
+    var s = text
+        .replaceAll('\ufeff', '')
+        .replaceAll('\u200b', '')
+        .trim();
     if (s.isEmpty) return '';
 
     // 1) The response may contain several fenced blocks (notes, logs, ...).

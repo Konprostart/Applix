@@ -27,6 +27,9 @@ GOLDEN = ROOT / "src/container_app/lib/services/golden_benchmark.dart"
 GOLDEN_TEST = ROOT / "src/container_app/test/golden_benchmark_test.dart"
 GOLDEN_DIR = ROOT / "src/container_app/test/fixtures/golden"
 HARNESS = ROOT / "tools/runtime_probe_check.js"
+RESULT = ROOT / "src/container_app/lib/widgets/generate_result_view.dart"
+RESULT_TEST = ROOT / "src/container_app/test/generate_result_view_test.dart"
+PARSING_TEST = ROOT / "src/container_app/test/generation_parsing_test.dart"
 
 errors: list[str] = []
 
@@ -51,6 +54,9 @@ read(QA_TEST, "RuntimeQa tests")
 golden = read(GOLDEN, "golden benchmark")
 read(GOLDEN_TEST, "golden benchmark tests")
 read(HARNESS, "runtime probe JS harness")
+result = read(RESULT, "generation result view")
+read(RESULT_TEST, "generation result view tests")
+read(PARSING_TEST, "generation parsing tests")
 for fixture in ("budget", "fitness"):
     read(GOLDEN_DIR / f"{fixture}.html", f"{fixture} golden fixture")
 
@@ -79,9 +85,16 @@ for needle in ("RuntimeProbe.bootstrap", "verifyOnly", "_checkRuntime",
 
 for needle in ("AppPatch.applyToProject", "AppPatch.instruction",
                "_runRuntimeCheck", "_showRuntimeFailure", "RuntimeQa.verify",
-               "_verifyGenerated"):
+               "_verifyGenerated", "GenerateResultView", "_hasResult",
+               "_generationError", "_describeGenerationError"):
     if needle not in create:
         errors.append(f"create_screen.dart is missing {needle!r}")
+
+for needle in ("class GenerateResultView", "previewTabKey", "codeTabKey",
+               "actionsKey", "int _tab = 0", "_tab == 0", "Regenerate",
+               "Build APK"):
+    if needle not in result:
+        errors.append(f"generate_result_view.dart is missing {needle!r}")
 
 for needle in ("class RuntimeQa", "RuntimeQaOutcome", "static Future<RuntimeQaOutcome> verify",
                "report.fatal", "cancelled"):

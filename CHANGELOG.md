@@ -10,6 +10,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.9.0] - 2026-10-21
+
+### Added
+- **Preview-first result screen.** After generation the app opens on a live
+  Preview tab. Raw code lives behind a second tab and is never shown by default.
+- **Fixed action bar.** Preview, Build APK and Regenerate stay pinned to the
+  bottom of the screen while the preview or code scrolls.
+- **Generation retry and patch fallback.** An empty model reply is retried once
+  with an explicit output instruction. A failed targeted patch now falls back to
+  the full app in the same reply, then to one full-app retry, instead of stop-
+  ping with an error. Generation failures show the real reason plus Retry.
+- **Tolerant parsing.** BOM/zero-width cleanup, fenced and bare project JSON,
+  smart quotes and trailing commas are accepted; prose after `</html>` is cut.
+- **Preview parity.** The inline preview loads the project's real CSS/JS files,
+  and reloads when code or project files change.
+- UI tests for Preview-first ordering, hidden code, pinned actions and disabled
+  actions while generating, plus parsing tests for fenced/prose JSON and HTML.
+
+### Changed
+- The AI polish and bridge-repair passes only replace the app when the audit
+  result actually improves, so a rewrite cannot make working UI worse.
+
+### Fixed
+- The preview's Generate button no longer lands below the code editor on small
+  screens; the result screen is a single scroll-free column with fixed actions.
+
 ## [0.8.0] - 2026-10-21
 
 ### Added

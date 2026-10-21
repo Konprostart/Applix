@@ -222,13 +222,30 @@ class AppProject {
   }
 
   static Map<String, dynamic>? _tryDecode(String raw) {
+    var text = raw.trim();
+    if (text.isEmpty) return null;
+    // Models add smart quotes and trailing commas to otherwise valid JSON.
+    text = text
+        .replaceAll('\u201c', '"')
+        .replaceAll('\u201d', '"')
+        .replaceAllMapped(RegExp(r',\s*([}\]])'), (m) => m.group(1)!);
     try {
-      final decoded = jsonDecode(raw.trim());
+      final decoded = jsonDecode(text);
       if (decoded is Map<String, dynamic> && decoded['files'] is Map) {
         return decoded;
       }
     } catch (_) {
-      // Not JSON - keep looking.
+      // One more attempt after dropping prose inside the fence.
+      final first = text.indexOf('{');
+      final last = text.lastIndexOf('}');
+      if (first >= 0 && last > first) {
+        try {
+          final decoded = jsonDecode(text.substring(first, last + 1));
+          if (decoded is Map<String, dynamic> && decoded['files'] is Map) {
+            return decoded;
+          }
+        } catch (_) {}
+      }
     }
     return null;
   }

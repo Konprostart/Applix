@@ -39,6 +39,7 @@ import '../services/project_store.dart';
 import '../services/ui_auditor.dart';
 import '../services/settings_service.dart';
 import '../widgets/build_log.dart';
+import '../widgets/generate_result_view.dart';
 import '../models/app_theme.dart';
 import '../models/icon_config.dart';
 import '../models/ai_provider.dart';
@@ -88,6 +89,8 @@ class CreateScreenState extends State<CreateScreen> {
   bool _promptExpanded = false;
   bool _promptCopied = false;
   bool _htmlExpanded = false;
+  bool _showSetup = false;
+  String? _generationError;
 
   String? _selectedDemoId;
   final _demoFilterController = TextEditingController();
@@ -185,8 +188,13 @@ class CreateScreenState extends State<CreateScreen> {
     _descExpanded = true;
     _htmlExpanded = true;
     _conversation.clear();
+    _showSetup = false;
+    _generationError = null;
+    _runtimeCheckedHtml = null;
+    _runtimeReport = null;
     _loadBundleFiles();
     _loadProjectFiles();
+    _loadProjectExtras();
     _aiGenerating = false;
     _selectedHtml = null;
     _bridgeIssues = [];
@@ -252,6 +260,10 @@ class CreateScreenState extends State<CreateScreen> {
       _aiGenerating = false;
       _selectedHtml = null;
       _extraFiles = {};
+      _showSetup = false;
+      _generationError = null;
+      _runtimeCheckedHtml = null;
+      _runtimeReport = null;
       _followUpController.clear();
       _log.clear();
     });
@@ -382,6 +394,8 @@ class CreateScreenState extends State<CreateScreen> {
       _aiGenerating = true; _genStartTime = DateTime.now();
       _conversation = [];
       _bridgeIssues = [];
+      _generationError = null;
+      _showSetup = false;
     });
 
     try {
@@ -419,34 +433,66 @@ class CreateScreenState extends State<CreateScreen> {
       });
 
       final systemPrompt = await PromptBuilder.getSystemPrompt();
-      final response = await AiService.generate(
+      var response = await AiService.generate(
         provider: provider,
         systemPrompt: systemPrompt,
         messages: _conversation,
       );
       if (!mounted || thisGenId != _genId) return;
-      final project = AppProject.parseModelOutput(response);
+      var project = AppProject.parseModelOutput(response);
+
+      // Models occasionally answer with prose only. Ask once for the app, then
+      // fail with a real reason instead of silently showing an empty editor.
+      if (project.entryHtml.trim().isEmpty) {
+        response = await AiService.generate(
+          provider: provider,
+          systemPrompt: systemPrompt,
+          messages: [
+            ..._conversation,
+            const ChatMessage(
+              role: 'user',
+              content: 'Your previous reply did not contain a complete app. '
+                  'Return ONLY the complete HTML document (or one project JSON '
+                  'block). No prose, no markdown fences around the whole answer.',
+            ),
+          ],
+        );
+        if (!mounted || thisGenId != _genId) return;
+        project = AppProject.parseModelOutput(response);
+      }
+      if (project.entryHtml.trim().isEmpty) {
+        throw Exception('The AI returned no complete app. Retry, or switch to '
+            'another model in Settings.');
+      }
+
       var cleaned = project.entryHtml;
       _conversation.add(ChatMessage(
           role: 'assistant',
           content: project.isMultiFile ? response.trim() : cleaned));
       _trimConversation();
       setState(() => _aiGenerating = false);
-      if (cleaned.trim().startsWith('<')) {
-        cleaned = await _repairBridgeIssues(cleaned, thisGenId);
-        if (!mounted || thisGenId != _genId) return;
-        cleaned = await _polishUi(cleaned, thisGenId);
-        if (!mounted || thisGenId != _genId) return;
-        _useProject(project, cleaned);
-        await _verifyGenerated(cleaned, project.files, thisGenId);
-      } else {
-        setState(() => _bridgeIssues = []);
-      }
+      cleaned = await _repairBridgeIssues(cleaned, thisGenId);
+      if (!mounted || thisGenId != _genId) return;
+      cleaned = await _polishUi(cleaned, thisGenId);
+      if (!mounted || thisGenId != _genId) return;
+      _useProject(project, cleaned);
+      await _verifyGenerated(cleaned, project.files, thisGenId);
     } catch (e) {
       if (!mounted || thisGenId != _genId) return;
-      setState(() => _aiGenerating = false);
-      _snack(friendlyError(e.toString()).toString());
+      setState(() {
+        _aiGenerating = false;
+        _generationError = _describeGenerationError(e);
+      });
+      _snack(_generationError!);
     }
+  }
+
+  String _describeGenerationError(Object e) {
+    final raw = e.toString().replaceFirst('Exception: ', '').trim();
+    if (raw.startsWith('The AI returned') || raw.startsWith('The update')) {
+      return raw;
+    }
+    return friendlyError(raw).toString();
   }
 
   AppProject _currentProject() => AppProject(
@@ -468,6 +514,7 @@ class CreateScreenState extends State<CreateScreen> {
       _trimConversation();
       _followUpController.clear();
       _aiGenerating = true; _genStartTime = DateTime.now();
+      _generationError = null;
     });
 
     try {
@@ -501,12 +548,34 @@ class CreateScreenState extends State<CreateScreen> {
       );
       if (!mounted || thisGenId != _genId) return;
       final outcome = AppPatch.applyToProject(response, current);
-      if (outcome != null && !outcome.ok) {
-        setState(() => _aiGenerating = false);
-        _snack('The update could not be applied safely: ${outcome.error}');
-        return;
+      AppProject project;
+      if (outcome != null && outcome.ok) {
+        project = outcome.project!;
+      } else {
+        // Patch failed (or was not attempted): never stop the update. Accept a
+        // complete app from the same reply, otherwise ask once for a full app.
+        project = AppProject.parseModelOutput(response);
+        if (project.entryHtml.trim().isEmpty) {
+          final retry = await AiService.generate(
+            provider: provider,
+            systemPrompt: systemPrompt,
+            messages: [
+              ...outgoing,
+              const ChatMessage(
+                role: 'user',
+                content: 'Return the complete updated app as the full HTML '
+                    'document (or one project JSON block). No patch, no prose.',
+              ),
+            ],
+          );
+          if (!mounted || thisGenId != _genId) return;
+          project = AppProject.parseModelOutput(retry);
+        }
+        if (project.entryHtml.trim().isEmpty) {
+          throw Exception('The update could not be applied and the AI returned '
+              'no complete app. Retry, or ask again with a smaller change.');
+        }
       }
-      final project = outcome?.project ?? AppProject.parseModelOutput(response);
       var cleaned = project.entryHtml;
       _conversation.add(ChatMessage(
           role: 'assistant',
@@ -525,8 +594,11 @@ class CreateScreenState extends State<CreateScreen> {
       }
     } catch (e) {
       if (!mounted || thisGenId != _genId) return;
-      setState(() => _aiGenerating = false);
-      _snack(friendlyError(e.toString()).toString());
+      setState(() {
+        _aiGenerating = false;
+        _generationError = _describeGenerationError(e);
+      });
+      _snack(_generationError!);
     }
   }
 
@@ -566,6 +638,7 @@ class CreateScreenState extends State<CreateScreen> {
       _selectedHtml = clean;
       _htmlController.text = clean;
       _htmlExpanded = false;
+      _showSetup = false;
       _runtimeCheckedHtml = null;
       _runtimeReport = null;
     });
@@ -593,6 +666,7 @@ class CreateScreenState extends State<CreateScreen> {
       _selectedHtml = clean;
       _htmlController.text = clean;
       _htmlExpanded = false;
+      _showSetup = false;
       _runtimeCheckedHtml = null;
       _runtimeReport = null;
     });
@@ -664,17 +738,20 @@ class CreateScreenState extends State<CreateScreen> {
         messages: _conversation,
       );
       final repaired = _stripMarkdownFences(response);
-      final isHtml = repaired.trim().startsWith('<');
-      final remaining = isHtml ? linter.lint(repaired) : issues;
+      final remaining = repaired.trim().startsWith('<')
+          ? linter.lint(repaired)
+          : issues;
+      final improved = repaired.trim().startsWith('<') &&
+          remaining.length < issues.length;
       if (!mounted || genId != _genId) return html;
-      if (isHtml) {
+      if (improved) {
         _conversation.add(ChatMessage(role: 'assistant', content: repaired));
       }
       setState(() {
-        _bridgeIssues = remaining;
+        _bridgeIssues = improved ? remaining : issues;
         _aiGenerating = false;
       });
-      return isHtml ? repaired : html;
+      return improved ? repaired : html;
     } catch (_) {
       if (mounted && genId == _genId) {
         setState(() => _aiGenerating = false);
@@ -709,6 +786,8 @@ class CreateScreenState extends State<CreateScreen> {
       );
       final polished = _stripMarkdownFences(response);
       if (!polished.trim().startsWith('<')) return html;
+      // Never replace working UI with a rewrite that fixes fewer audit rules.
+      if (UiAuditor.audit(polished).length >= issues.length) return html;
       if (mounted && genId == _genId) {
         _conversation.add(ChatMessage(role: 'assistant', content: polished));
       }
@@ -876,6 +955,46 @@ class CreateScreenState extends State<CreateScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
         ],
+      ),
+    );
+  }
+
+  Future<void> _openPreview() async {
+    var html = _htmlController.text.trim();
+    if (html.isEmpty && _selectedDemoId != null) {
+      html = await Generator.getPresetHtml(
+        templateId: _selectedDemoId!,
+        label: _nameController.text.trim(),
+      );
+      if (html.isEmpty) {
+        _snack('This demo could not be loaded for the preview.');
+        return;
+      }
+    }
+    if (html.isEmpty) {
+      _snack('Generate or paste an app first.');
+      return;
+    }
+    final issues = await _lintBridge(html);
+    final projectFiles = _editingId != null
+        ? await ProjectStore.readProject(
+            appId: _editingId!, packageName: _existingPackageName)
+        : Map<String, String>.from(_extraFiles);
+    if (!mounted) return;
+    setState(() => _bridgeIssues = issues);
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PreviewScreen(
+          htmlContent: html,
+          projectFiles: projectFiles,
+          initialWarnings: issues.map((issue) => issue.consoleLine).toList(),
+          onHtmlFixed: (fixed) {
+            if (!mounted) return;
+            _htmlController.text = fixed;
+            setState(() {});
+          },
+        ),
       ),
     );
   }
@@ -1110,6 +1229,23 @@ class CreateScreenState extends State<CreateScreen> {
     if (mounted) setState(() => _projectFiles = files);
   }
 
+  /// Loads the actual project file contents, so the inline preview shows the
+  /// same styles and modules the built APK will use.
+  Future<void> _loadProjectExtras() async {
+    final appId = _editingId;
+    if (appId == null) return;
+    try {
+      final files = await ProjectStore.readProject(
+        appId: appId,
+        packageName: _existingPackageName,
+      );
+      files
+        ..remove('index.html')
+        ..remove('app.json');
+      if (mounted) setState(() => _extraFiles = files);
+    } catch (_) {}
+  }
+
   /// Adds a text file to the project. It is shipped next to index.html, so the
   /// app can load it with a relative path.
   Future<void> _addProjectFile() async {
@@ -1221,7 +1357,15 @@ class CreateScreenState extends State<CreateScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: _showBuildLog ? _buildingView() : _mode == null ? _modeSelection() : _mode == 'showcase' ? _showcaseView() : _formView(),
+        child: _showBuildLog
+            ? _buildingView()
+            : _mode == null
+                ? _modeSelection()
+                : _mode == 'showcase'
+                    ? _showcaseView()
+                    : (_mode == 'ai' && !_showSetup && _hasResult)
+                        ? _resultView()
+                        : _formView(),
       ),
     );
   }
@@ -1384,6 +1528,126 @@ class CreateScreenState extends State<CreateScreen> {
     }),
   );
 
+  bool get _hasResult =>
+      _mode == 'ai' && _htmlController.text.trim().startsWith('<');
+
+  Widget _resultView() {
+    final html = _htmlController.text.trim();
+    final provider = _activeProvider;
+    return GenerateResultView(
+      appName: _nameController.text.trim().isEmpty
+          ? 'Your app'
+          : _nameController.text.trim(),
+      preview: PreviewScreen(
+        key: ValueKey('inline-preview-${html.length}-${html.hashCode}'),
+        htmlContent: html,
+        projectFiles: Map<String, String>.from(_extraFiles),
+        embedded: true,
+      ),
+      code: html,
+      generating: _aiGenerating,
+      onBack: () => _confirmExit(
+          _editingId != null ? () => widget.onViewMyApps?.call() : _reset),
+      onOpenPreview: () { _openPreview(); },
+      onBuild: _buildAiApp,
+      onRegenerate: () {
+        _generationError = null;
+        if (provider != null && provider.isConfigured) {
+          _generateWithAI(provider);
+        } else {
+          _selectAiApi();
+        }
+      },
+      onEditDetails: () => setState(() => _showSetup = true),
+      aboveActions: _resultExtras(),
+    );
+  }
+
+  Widget _resultExtras() {
+    final hasChat = _genMethod == 'api' && _conversation.isNotEmpty;
+    if (_generationError == null && !hasChat) return const SizedBox.shrink();
+    return Container(
+      color: const Color(0xFF0D0D1A),
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        if (_generationError != null) _generationErrorCard(compact: true),
+        if (hasChat && !_aiGenerating)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: _followUpController,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: const InputDecoration(
+                    hintText: 'Ask AI to change the app...',
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  ),
+                  onSubmitted: (_) => _sendFollowUp(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: _sendFollowUp,
+                icon: const Icon(Icons.send, size: 18, color: Color(0xFF6C8CFF)),
+                style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xFF1A1A2E),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ]),
+          ),
+      ]),
+    );
+  }
+
+  Widget _generationErrorCard({bool compact = false}) {
+    final message = _generationError;
+    if (message == null) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A1620),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFF6B6B)),
+      ),
+      child: Row(children: [
+        const Icon(Icons.error_outline, size: 16, color: Color(0xFFFF6B6B)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            message,
+            maxLines: compact ? 2 : 4,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12, color: Colors.white70),
+          ),
+        ),
+        const SizedBox(width: 6),
+        TextButton(
+          onPressed: () {
+            final provider = _activeProvider;
+            if (provider != null && provider.isConfigured) {
+              _generateWithAI(provider);
+            }
+          },
+          child: const Text('Retry', style: TextStyle(fontSize: 12)),
+        ),
+      ]),
+    );
+  }
+
+  void _backFromForm() {
+    if (_hasResult) {
+      setState(() => _showSetup = false);
+      return;
+    }
+    final isEdit = _editingId != null;
+    _confirmExit(isEdit ? () => widget.onViewMyApps?.call() : _reset);
+  }
+
   Widget _formView() {
     final isEdit = _editingId != null;
     final label = _mode == 'web' ? 'Website as App' : _mode == 'ai' ? 'AI App' : 'Demo App';
@@ -1394,7 +1658,7 @@ class CreateScreenState extends State<CreateScreen> {
         // Back + title
         Row(children: [
           GestureDetector(
-            onTap: () => _confirmExit(isEdit ? () => widget.onViewMyApps?.call() : _reset),
+            onTap: _backFromForm,
             child: Container(
               width: 38, height: 38,
               decoration: BoxDecoration(color: const Color(0xFF1A1A2E), borderRadius: BorderRadius.circular(10)),
@@ -1412,7 +1676,7 @@ class CreateScreenState extends State<CreateScreen> {
             ],
           )),
           GestureDetector(
-            onTap: () => _confirmExit(isEdit ? () => widget.onViewMyApps?.call() : _reset),
+            onTap: _backFromForm,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(color: const Color(0xFF1A1A2E), borderRadius: BorderRadius.circular(8)),
@@ -1597,6 +1861,10 @@ class CreateScreenState extends State<CreateScreen> {
                   }
                 },
               ),
+            if (_generationError != null) ...[
+              const SizedBox(height: 10),
+              _generationErrorCard(),
+            ],
           ],
         ]),
       ),
@@ -1884,37 +2152,13 @@ class CreateScreenState extends State<CreateScreen> {
                 style: TextStyle(fontSize: 11, color: Colors.white38)),
             const SizedBox(height: 8),
             _bridgeWarningCard(),
-            h.buildActionButton(label: 'Preview', icon: Icons.visibility, onPressed: (_htmlController.text.trim().isEmpty && _selectedDemoId == null) ? null : () async {
-              var html = _htmlController.text.trim();
-              if (html.isEmpty && _selectedDemoId != null) {
-                // A demo has no HTML in the editor - take the one the build uses.
-                html = await Generator.getPresetHtml(
-                  templateId: _selectedDemoId!,
-                  label: _nameController.text.trim(),
-                );
-                if (html.isEmpty) {
-                  _snack('This demo could not be loaded for the preview.');
-                  return;
-                }
-              }
-              final issues = await _lintBridge(html);
-              // Project files are inlined so the preview matches the built app.
-              final projectFiles = _editingId != null
-                  ? await ProjectStore.readProject(appId: _editingId!, packageName: _existingPackageName)
-                  : Map<String, String>.from(_extraFiles);
-              if (!mounted) return;
-              setState(() => _bridgeIssues = issues);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => PreviewScreen(
-                htmlContent: html,
-                projectFiles: projectFiles,
-                initialWarnings: issues.map((issue) => issue.consoleLine).toList(),
-                onHtmlFixed: (fixed) {
-                  if (!mounted) return;
-                  _htmlController.text = fixed;
-                  setState(() {});
-                },
-              )));
-            }),
+            h.buildActionButton(
+              label: 'Preview',
+              icon: Icons.visibility,
+              onPressed: (_htmlController.text.trim().isEmpty && _selectedDemoId == null)
+                  ? null
+                  : () { _openPreview(); },
+            ),
             const SizedBox(height: 10),
             h.buildActionButton(label: 'Save & Build APK', icon: Icons.build, onPressed: _isBuilding ? null : _buildAiApp, secondary: true),
           ]),

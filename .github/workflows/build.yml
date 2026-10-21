@@ -91,10 +91,10 @@ jobs:
           cd src/container_app
           flutter analyze --no-fatal-warnings --no-fatal-infos
 
-      - name: Golden benchmark + runtime QA
+      - name: Golden benchmark + runtime QA + result UI
         run: |
           cd src/container_app
-          flutter test test/golden_benchmark_test.dart test/runtime_qa_test.dart test/runtime_probe_test.dart
+          flutter test test/golden_benchmark_test.dart test/runtime_qa_test.dart test/runtime_probe_test.dart test/generate_result_view_test.dart test/generation_parsing_test.dart
 
       - name: Run container unit tests
         run: |
