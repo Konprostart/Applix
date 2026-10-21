@@ -5,15 +5,6 @@ import 'package:http/http.dart' as http;
 import '../models/ai_provider.dart';
 import 'openai_compatible.dart';
 
-/// The provider stopped because it hit the output limit. Treating that as a
-/// finished app silently ships a cut-off document, so callers must see it.
-class AiTruncatedException implements Exception {
-  final String message;
-  const AiTruncatedException(this.message);
-  @override
-  String toString() => message;
-}
-
 class AiService {
   /// Keeps a chat history bounded. Every message carries the whole app code,
   /// so an endless chat would grow the memory (and every request) without
@@ -231,11 +222,6 @@ class AiService {
     }
 
     final data = jsonDecode(response.body);
-    if (isTruncatedFinishReason(data['stop_reason']?.toString())) {
-      throw const AiTruncatedException(
-          'The AI response was cut off at the output limit before the app was '
-          'complete. Retry, or choose a model with a larger output limit.');
-    }
     final content = data['content'];
     if (content is List) {
       final texts = <String>[];
@@ -287,11 +273,6 @@ class AiService {
     }
     final first = choices.first;
     if (first is! Map) throw Exception('Unexpected response from API');
-    if (isTruncatedFinishReason(first['finish_reason']?.toString())) {
-      throw const AiTruncatedException(
-          'The AI response was cut off at the output limit before the app was '
-          'complete. Retry, or choose a model with a larger output limit.');
-    }
     final text = contentFromMessage(first['message']);
     if (text.isNotEmpty) return text;
     throw Exception('The AI returned no text content.');
@@ -332,11 +313,6 @@ class AiService {
     }
     final first = choices.first;
     if (first is! Map) throw Exception('Unexpected response from API');
-    if (isTruncatedFinishReason(first['finish_reason']?.toString())) {
-      throw const AiTruncatedException(
-          'The AI response was cut off at the output limit before the app was '
-          'complete. Retry, or choose a model with a larger output limit.');
-    }
     final text = contentFromMessage(first['message']);
     if (text.isNotEmpty) return text;
     throw Exception('The AI returned no text content.');

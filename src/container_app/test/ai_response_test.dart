@@ -45,9 +45,17 @@ void main() {
       expect(AiResponse.extractAppHtml(response), '');
     });
 
-    test('rejects a truncated document with no closing html tag', () {
+    test('salvages a useful document when the closing html tag is missing',
+        () {
       final html = AiResponse.extractAppHtml(
-          '<!DOCTYPE html>\n<html><body><p>Cut off mid...');
+          '<!DOCTYPE html>\n<html><body><p>Cut off mid...</');
+      expect(html, startsWith('<!DOCTYPE html>'));
+      expect(html, contains('<p>Cut off mid'));
+    });
+
+    test('does not salvage pure prose without any markup', () {
+      final html = AiResponse.extractAppHtml(
+          'This model is being moody and will not produce an app.');
       expect(html, '');
     });
   });

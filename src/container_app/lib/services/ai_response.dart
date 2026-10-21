@@ -41,18 +41,55 @@ class AiResponse {
     final start = doctype >= 0 ? doctype : htmlTag;
     if (start >= 0) s = s.substring(start);
 
-    // 3) Hard stop at the real document end. Everything after `</html>` is
-    //    chat prose ("Summary of changes made...") - drop it.
+    // 3) Prefer the real document end. Everything after `</html>` is chat
+    //    prose ("Summary of changes made...") - drop it. Models forget the
+    //    closing tag often enough that rejecting the whole answer makes the
+    //    app unusable, so salvaging is better than failing generation.
     final l3 = s.toLowerCase();
     final end = l3.lastIndexOf('</html>');
-    // A missing closing tag means the provider stopped at max_tokens or the
-    // connection died. Never accept a truncated document as a finished app.
-    if (end < 0) return '';
-    s = s.substring(0, end + '</html>'.length).trim();
+    if (end >= 0) {
+      s = s.substring(0, end + '</html>'.length).trim();
+    } else {
+      s = _salvageHtml(s);
+      if (s.isEmpty) return '';
+    }
 
     // 4) Only an actual, complete document counts.
     final l4 = s.toLowerCase();
     if (!l4.startsWith('<!doctype') && !l4.startsWith('<html')) return '';
     return s;
+  }
+
+  /// Last-resort HTML salvage when the response has no `</html>` tail:
+  /// strip trailing code fences and prose-only lines, then emit the best HTML
+  /// prefix left. Bad enough output still comes back empty, which is handled
+  /// by the normal parser fallback.
+  static String _salvageHtml(String s) {
+    final lines = s.split('\n');
+    while (lines.isNotEmpty) {
+      final t = lines.last.trim();
+      if (t.isEmpty ||
+          t == '```' ||
+          t.startsWith('Note:') ||
+          t.startsWith('Notes:') ||
+          t.startsWith('Summary') ||
+          t.startsWith('- ') ||
+          t.startsWith('* ') ||
+          t.startsWith('This app') ||
+          t.startsWith('Okay,') ||
+          t.startsWith('Sure,') ||
+          t.startsWith('Here is') ||
+          t.startsWith('Here')) {
+        lines.removeLast();
+      } else {
+        break;
+      }
+    }
+    final out = lines.join('\n').trim();
+    // A response of only fences/prose is not an app.
+    if (out.length < 8) return '';
+    // If there is no markup left at all, it's prose.
+    if (!RegExp(r'<[!h]').hasMatch(out.toLowerCase())) return '';
+    return out;
   }
 }

@@ -5,10 +5,18 @@ All notable changes to Applix are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.9.2] - 2026-10-21
 
-### Added
-- Nothing yet.
+### Fixed
+- **Generation no longer rejects answers without `</html>`.** When the model
+  omits the closing tag (hit output limit, stream ended early), the parser now
+  salvages the usable HTML document instead of returning an empty string and
+  failing the whole generation. Pure prose with no markup is still rejected.
+- **`finish_reason: length` no longer throws.** Provider responses cut off at
+  the token limit are passed to the parser (which salvages) instead of raising
+  `AiTruncatedException` and aborting generation outright.
+- **System prompt now explicitly requires every HTML file to end with
+  `</html>`**, reducing how often truncation happens at the source.
 
 ## [0.9.1] - 2026-10-21
 

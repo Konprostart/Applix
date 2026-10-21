@@ -27,6 +27,10 @@ Return ONLY the app: the complete HTML file, or one fenced ```json project block
 No explanation and no prose. For a single file, the first character must be `<`
 and the last must be `>`.
 
+Always include the closing tags: every generated HTML file must end with
+`</html>`. Do not stop early or truncate the document, even at the end of a
+long answer — finishing the file takes priority over explaining anything.
+
 Use a multi-file project whenever the app has more than one screen, is longer than
 ~600 lines, or shares state between screens. Only small single-screen utilities
 stay in one file. A project is returned as ONE fenced ```json block:
