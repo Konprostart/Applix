@@ -25,6 +25,25 @@ When editing existing code, verify ALL bridge calls against the reference below.
 ## Output
 Return ONLY the complete HTML file. No explanation, no markdown fences. First character must be `<`, last must be `>`.
 
+When the app is large enough that one file would be hard to maintain, you may
+instead return ONE project as a fenced ```json block:
+
+```json
+{"applix":2,"entry":"index.html","name":"Ticker","routes":["/"],
+ "files":{"index.html":"<!doctype html>...","src/app.js":"...","src/style.css":"..."}}
+```
+
+Project rules:
+- `entry` must be `index.html` at the root and must exist in `files`.
+- Paths are relative (`src/app.js`), never absolute and never contain `..`.
+- Only text files: html, js, mjs, css, json, svg, txt, md, webmanifest; no
+  binary assets and no CDN libraries.
+- JavaScript may use ES modules (`<script type="module" src="src/app.js">`)
+  with relative imports; the installed app serves files from a real origin.
+- Do NOT add `app.json`; the platform generates it.
+- The same "no commentary" rule applies: no prose outside the JSON block.
+Use the single HTML file whenever it is enough - most apps should stay one file.
+
 This also applies when updating or polishing an existing app. The user is never
 in a conversation with you - the answer IS the app. Never write a "Summary of
 changes made", a numbered list of what you changed, notes about the CSS or the

@@ -51,6 +51,7 @@ import 'flows/create_helpers.dart' as h;
 import 'showcase_screen.dart';
 import '../services/dev_text_sanitizer.dart';
 import '../services/ai_response.dart';
+import '../services/app_project.dart';
 
 class CreateScreen extends StatefulWidget {
   final VoidCallback? onAppSaved;
@@ -96,6 +97,8 @@ class CreateScreenState extends State<CreateScreen> {
   // Bundled app files (databases, JSON, images, etc.)
   List<Map<String, dynamic>> _bundleFiles = [];
   List<Map<String, dynamic>> _projectFiles = [];
+  /// Files of a multi-file AI project (modules, styles, ...).
+  Map<String, String> _extraFiles = {};
   bool _projectExpanded = false;
   bool _bundleExpanded = false;
   String? _pendingShowcaseBundleId; // set when loading a showcase app with resources
@@ -240,6 +243,7 @@ class CreateScreenState extends State<CreateScreen> {
       _conversation.clear();
       _aiGenerating = false;
       _selectedHtml = null;
+      _extraFiles = {};
       _followUpController.clear();
       _log.clear();
     });
@@ -380,8 +384,11 @@ class CreateScreenState extends State<CreateScreen> {
         messages: _conversation,
       );
       if (!mounted || thisGenId != _genId) return;
-      var cleaned = _stripMarkdownFences(response);
-      _conversation.add(ChatMessage(role: 'assistant', content: cleaned));
+      final project = AppProject.parseModelOutput(response);
+      var cleaned = project.entryHtml;
+      _conversation.add(ChatMessage(
+          role: 'assistant',
+          content: project.isMultiFile ? response.trim() : cleaned));
       _trimConversation();
       setState(() => _aiGenerating = false);
       if (cleaned.trim().startsWith('<')) {
@@ -389,7 +396,7 @@ class CreateScreenState extends State<CreateScreen> {
         if (!mounted || thisGenId != _genId) return;
         cleaned = await _polishUi(cleaned, thisGenId);
         if (!mounted || thisGenId != _genId) return;
-        _useThisHtml(cleaned);
+        _useProject(project, cleaned);
       } else {
         setState(() => _bridgeIssues = []);
       }
@@ -421,8 +428,11 @@ class CreateScreenState extends State<CreateScreen> {
         messages: _conversation,
       );
       if (!mounted || thisGenId != _genId) return;
-      var cleaned = _stripMarkdownFences(response);
-      _conversation.add(ChatMessage(role: 'assistant', content: cleaned));
+      final project = AppProject.parseModelOutput(response);
+      var cleaned = project.entryHtml;
+      _conversation.add(ChatMessage(
+          role: 'assistant',
+          content: project.isMultiFile ? response.trim() : cleaned));
       _trimConversation();
       setState(() => _aiGenerating = false);
       if (cleaned.trim().startsWith('<')) {
@@ -430,7 +440,7 @@ class CreateScreenState extends State<CreateScreen> {
         if (!mounted || thisGenId != _genId) return;
         cleaned = await _polishUi(cleaned, thisGenId);
         if (!mounted || thisGenId != _genId) return;
-        _useThisHtml(cleaned);
+        _useProject(project, cleaned);
       } else {
         setState(() => _bridgeIssues = []);
       }
@@ -480,6 +490,33 @@ class CreateScreenState extends State<CreateScreen> {
     });
     _refreshBridgeIssues(clean);
     _snack('HTML loaded. Preview or build below.');
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (_formScrollController.hasClients) {
+        _formScrollController.animateTo(
+          _formScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  /// Loads a parsed project into the editor: the entry HTML stays the
+  /// editable document, the remaining files are kept and packaged next to it.
+  void _useProject(AppProject project, String entryHtml) {
+    final clean = DevTextSanitizer.removeDevText(entryHtml);
+    final extras = Map<String, String>.from(project.files)
+      ..remove(project.entry);
+    setState(() {
+      _extraFiles = extras;
+      _selectedHtml = clean;
+      _htmlController.text = clean;
+      _htmlExpanded = false;
+    });
+    _refreshBridgeIssues(clean);
+    _snack(project.isMultiFile
+        ? 'Project loaded: ${project.files.length} files. Preview or build below.'
+        : 'HTML loaded. Preview or build below.');
     Future.delayed(const Duration(milliseconds: 300), () {
       if (_formScrollController.hasClients) {
         _formScrollController.animateTo(
@@ -824,10 +861,28 @@ class CreateScreenState extends State<CreateScreen> {
       // The project (entry file + extra files) lives on the device and is
       // shipped inside the APK, so relative paths such as <link href="style.css">
       // work in the installed app.
+      // Multi-file project: validate before touching the build, then persist
+      // every module next to the entry so the existing pipeline ships them.
+      final project = AppProject(
+        entry: 'index.html',
+        files: {'index.html': html, ..._extraFiles},
+        name: label,
+      );
+      if (_extraFiles.isNotEmpty) {
+        final invalid = project.validate();
+        if (invalid != null) {
+          _addLog('\u274C $invalid');
+          _snack(invalid);
+          return;
+        }
+      }
       await ProjectStore.writeProject(
         appId: appId,
         packageName: _existingPackageName,
         indexHtml: html,
+        files: _extraFiles.isEmpty
+            ? const {}
+            : {..._extraFiles, 'app.json': project.manifestJson()},
       );
       final projectPaths = await ProjectStore.paths(appId: appId, packageName: _existingPackageName);
       final result = await Generator.injectHtml(label: label, htmlContent: html, packageName: _existingPackageName, iconConfig: ic.toJsonString(), appTheme: _appTheme.toJsonString(), firebaseConfig: _firebaseConfig.isNotEmpty ? _firebaseConfig : null, onProgress: _addLog, webOnly: appType == 'web', bundleFiles: bundlePaths, projectFiles: projectPaths);
@@ -1683,7 +1738,7 @@ class CreateScreenState extends State<CreateScreen> {
               // Project files are inlined so the preview matches the built app.
               final projectFiles = _editingId != null
                   ? await ProjectStore.readProject(appId: _editingId!, packageName: _existingPackageName)
-                  : const <String, String>{};
+                  : Map<String, String>.from(_extraFiles);
               if (!mounted) return;
               setState(() => _bridgeIssues = issues);
               Navigator.push(context, MaterialPageRoute(builder: (_) => PreviewScreen(

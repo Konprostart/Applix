@@ -60,9 +60,11 @@ class ProjectStore {
     final dir = await projectDir(appId: appId, packageName: packageName);
     File('${dir.path}/index.html').writeAsStringSync(indexHtml);
     for (final entry in files.entries) {
-      final name = _safeName(entry.key);
-      if (name == null) continue;
-      File('${dir.path}/$name').writeAsStringSync(entry.value);
+      final name = _safeRelativePath(entry.key);
+      if (name == null || name == 'index.html') continue;
+      final f = File('${dir.path}/$name');
+      f.parent.createSync(recursive: true);
+      f.writeAsStringSync(entry.value);
     }
   }
 
@@ -74,9 +76,11 @@ class ProjectStore {
     required String content,
   }) async {
     final dir = await projectDir(appId: appId, packageName: packageName);
-    final safe = _safeName(name);
-    if (safe == null) return;
-    File('${dir.path}/$safe').writeAsStringSync(content);
+    final safe = _safeRelativePath(name);
+    if (safe == null || safe == 'index.html') return;
+    final f = File('${dir.path}/$safe');
+    f.parent.createSync(recursive: true);
+    f.writeAsStringSync(content);
   }
 
   static Future<void> removeFile({
@@ -85,7 +89,9 @@ class ProjectStore {
     required String name,
   }) async {
     final dir = await projectDir(appId: appId, packageName: packageName);
-    final f = File('${dir.path}/${_safeName(name) ?? name}');
+    final safe = _safeRelativePath(name);
+    if (safe == null || safe == 'index.html') return;
+    final f = File('${dir.path}/$safe');
     if (f.existsSync()) f.deleteSync();
   }
 
@@ -97,8 +103,8 @@ class ProjectStore {
     final dir = await projectDir(appId: appId, packageName: packageName);
     if (!dir.existsSync()) return {};
     final map = <String, String>{};
-    for (final f in dir.listSync().whereType<File>()) {
-      final name = f.uri.pathSegments.last;
+    for (final f in _filesRecursive(dir)) {
+      final name = _relativeName(dir, f);
       if (name == configFile) continue;
       try {
         map[name] = f.readAsStringSync();
@@ -132,8 +138,8 @@ class ProjectStore {
     final dir = await projectDir(appId: appId, packageName: packageName);
     if (!dir.existsSync()) return {};
     final map = <String, String>{};
-    for (final f in dir.listSync().whereType<File>()) {
-      final name = f.uri.pathSegments.last;
+    for (final f in _filesRecursive(dir)) {
+      final name = _relativeName(dir, f);
       if (name == 'index.html' || name == configFile) continue;
       map[name] = f.path;
     }
@@ -148,8 +154,8 @@ class ProjectStore {
     final dir = await projectDir(appId: appId, packageName: packageName);
     if (!dir.existsSync()) return [];
     final entries = <Map<String, dynamic>>[];
-    for (final f in dir.listSync().whereType<File>()) {
-      final name = f.uri.pathSegments.last;
+    for (final f in _filesRecursive(dir)) {
+      final name = _relativeName(dir, f);
       if (name == configFile) continue;
       entries.add({'name': name, 'size': f.lengthSync(), 'path': f.path});
     }
@@ -189,12 +195,12 @@ class ProjectStore {
     if (!from.existsSync()) return;
     try {
       if (!to.existsSync()) to.createSync(recursive: true);
-      for (final f in from.listSync()) {
-        final dest = File('${to.path}/${f.uri.pathSegments.last}');
-        if (f is File) {
-          if (dest.existsSync()) dest.deleteSync();
-          f.copySync(dest.path);
-        }
+      for (final f in _filesRecursive(from)) {
+        final rel = _relativeName(from, f);
+        final dest = File('${to.path}/$rel');
+        dest.parent.createSync(recursive: true);
+        if (dest.existsSync()) dest.deleteSync();
+        f.copySync(dest.path);
       }
       from.deleteSync(recursive: true);
     } catch (_) {
@@ -244,20 +250,57 @@ class ProjectStore {
         RegExp('<link[^>]*href=["\']$escaped["\'][^>]*>', caseSensitive: false),
         (m) => '<style>\n$content\n</style>',
       );
-      // <script src="script.js"></script> -> <script>...</script>
+      // <script src="script.js"></script> -> <script>...</script>.
+      // type="module" is preserved (module semantics stay intact; relative
+      // imports inside the module still need the built app's real origin).
       out = out.replaceAllMapped(
-        RegExp('<script[^>]*src=["\']$escaped["\'][^>]*>\s*</script>', caseSensitive: false),
-        (m) => '<script>\n$content\n</script>',
+        RegExp('<script([^>]*)src=["\']$escaped["\']([^>]*)>\s*</script>', caseSensitive: false),
+        (m) {
+          final attrs = '${m.group(1) ?? ''}${m.group(2) ?? ''}';
+          final isModule = attrs.toLowerCase().contains('type="module"') ||
+              attrs.toLowerCase().contains("type='module'");
+          return isModule
+              ? '<script type="module">\n$content\n</script>'
+              : '<script>\n$content\n</script>';
+        },
       );
     });
     return out;
   }
 
-  /// Project file names must stay inside the project folder.
-  static String? _safeName(String name) {
-    final clean = name.trim().replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
-    if (clean.isEmpty || clean == '.' || clean == '..') return null;
-    if (clean == 'index.html') return null; // the entry point is written separately
-    return clean;
+  /// Project file paths (flat or nested like `src/app.js`) must stay inside
+  /// the project folder. Each segment is sanitised; traversal is rejected.
+  static String? _safeRelativePath(String name) {
+    final p = name.trim().replaceAll('\\', '/');
+    if (p.isEmpty || p.startsWith('/') || p.contains('..')) return null;
+    final segments = p.split('/').where((s) => s.isNotEmpty).toList();
+    if (segments.isEmpty) return null;
+    final clean = <String>[];
+    for (final s in segments) {
+      if (s == '.' || s == '..') return null;
+      final safe = s.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+      if (safe.isEmpty) return null;
+      clean.add(safe);
+    }
+    return clean.join('/');
+  }
+
+  /// Every file below [dir], recursively, sorted for stable output.
+  static List<File> _filesRecursive(Directory dir) {
+    final files = <File>[];
+    for (final entity in dir.listSync(recursive: true, followLinks: false)) {
+      if (entity is File && !entity.path.contains('/.') && entity.uri.pathSegments.last != '.DS_Store') {
+        files.add(entity);
+      }
+    }
+    files.sort((a, b) => a.path.compareTo(b.path));
+    return files;
+  }
+
+  /// Path of [file] relative to [dir], with forward slashes.
+  static String _relativeName(Directory dir, File file) {
+    final base = dir.path.endsWith('/') ? dir.path : '${dir.path}/';
+    final path = file.path;
+    return path.startsWith(base) ? path.substring(base.length) : file.uri.pathSegments.last;
   }
 }

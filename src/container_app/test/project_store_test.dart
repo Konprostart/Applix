@@ -88,6 +88,54 @@ void main() {
       expect((files.first['name'] as String).contains('/'), isFalse);
     });
 
+    test('nested paths are stored and returned for the build', () async {
+      await ProjectStore.writeProject(
+        appId: 'app1',
+        packageName: 'applix.demo1',
+        indexHtml: '<html></html>',
+        files: {'src/app.js': 'console.log(1)', 'src/lib/util.js': 'export {}'},
+      );
+      final files = await ProjectStore.readProject(
+          appId: 'app1', packageName: 'applix.demo1');
+      expect(files['src/app.js'], 'console.log(1)');
+      expect(files['src/lib/util.js'], 'export {}');
+      final paths = await ProjectStore.paths(
+          appId: 'app1', packageName: 'applix.demo1');
+      expect(paths.keys, containsAll(['src/app.js', 'src/lib/util.js']));
+      expect(paths.keys, isNot(contains('index.html')));
+      expect(File(paths['src/app.js']!).existsSync(), isTrue);
+    });
+
+    test('nested paths cannot escape the project folder either', () async {
+      await ProjectStore.writeProject(
+        appId: 'app1',
+        packageName: 'applix.demo1',
+        indexHtml: '<html></html>',
+        files: {'src/../../evil.js': 'x', '/abs.js': 'x', 'src/ok.js': 'y'},
+      );
+      final files = await ProjectStore.listFiles(
+          appId: 'app1', packageName: 'applix.demo1');
+      final names = files.map((f) => f['name']).toList();
+      expect(names, contains('src/ok.js'));
+      expect(names, isNot(contains('evil.js')));
+      expect(names.any((n) => (n as String).contains('..')), isFalse);
+    });
+
+    test('a file is deleted by its nested name', () async {
+      await ProjectStore.writeProject(
+        appId: 'app1',
+        packageName: 'applix.demo1',
+        indexHtml: '<html></html>',
+        files: {'src/app.js': '1'},
+      );
+      await ProjectStore.removeFile(
+          appId: 'app1', packageName: 'applix.demo1', name: 'src/app.js');
+      final files = await ProjectStore.readProject(
+          appId: 'app1', packageName: 'applix.demo1');
+      expect(files.containsKey('src/app.js'), isFalse);
+      expect(files.containsKey('index.html'), isTrue);
+    });
+
     test('the project manifest is written and read back', () async {
       await ProjectStore.writeConfig(
         appId: 'app1',
@@ -117,6 +165,16 @@ void main() {
       );
       expect(out, contains('console.log("hi")'));
       expect(out, isNot(contains('src="script.js"')));
+    });
+
+    test('a module script keeps module semantics when inlined', () {
+      final out = ProjectStore.inlineProjectFiles(
+        '<script type="module" src="src/app.js"></script>',
+        {'src/app.js': 'import "./x.js";'},
+      );
+      expect(out, contains('<script type="module">'));
+      expect(out, contains('import "./x.js"'));
+      expect(out, isNot(contains('src="src/app.js"')));
     });
 
     test('dollar signs in the file are kept as they are', () {

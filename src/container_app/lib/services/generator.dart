@@ -22,8 +22,11 @@
 
 /// Flutter-side wrapper around the native build pipeline (MethodChannel).
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'app_project.dart';
 import 'dev_text_sanitizer.dart';
 
 class BuildResult {
@@ -103,6 +106,58 @@ class Generator {
     } finally {
       _ch.setMethodCallHandler(null);
       _building = false;
+    }
+  }
+
+  /// Builds a multi-file project (Phase 2).
+  ///
+  /// The entry HTML goes through the existing single-file pipeline; every
+  /// other project file (modules, styles, the generated app.json) is written
+  /// to a temp folder and handed to the same `projectFiles` channel the
+  /// user-added project files already use. The injector, signing and manifest
+  /// patching are untouched.
+  static Future<BuildResult> injectProject({
+    required String label,
+    required AppProject project,
+    required void Function(String) onProgress,
+    String? packageName,
+    String? iconConfig,
+    String? appTheme,
+    String? firebaseConfig,
+    bool webOnly = false,
+    Map<String, String>? bundleFiles,
+  }) async {
+    final invalid = project.validate();
+    if (invalid != null) {
+      throw PlatformException(code: 'INVALID_PROJECT', message: invalid);
+    }
+    final temp = await Directory.systemTemp.createTemp('applix_project_');
+    try {
+      final paths = <String, String>{};
+      for (final entry in project.extraFiles().entries) {
+        final file = File('${temp.path}/${entry.key}');
+        await file.parent.create(recursive: true);
+        await file.writeAsString(entry.value);
+        paths[entry.key] = file.path;
+      }
+      return await injectHtml(
+        label: label,
+        htmlContent: project.entryHtml,
+        onProgress: onProgress,
+        packageName: packageName,
+        iconConfig: iconConfig,
+        appTheme: appTheme,
+        firebaseConfig: firebaseConfig,
+        webOnly: webOnly,
+        bundleFiles: bundleFiles,
+        projectFiles: paths,
+      );
+    } finally {
+      try {
+        await temp.delete(recursive: true);
+      } catch (_) {
+        // Best effort: a leftover temp folder must never fail a build.
+      }
     }
   }
 

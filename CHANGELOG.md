@@ -8,7 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing yet.
+- **Multi-file projects (Phase 2).** The model may now answer with a project
+  (`index.html` plus `src/*.js`, styles and other text files) instead of one
+  document. Files are packaged next to the entry in `assets/app/`, so relative
+  ES module imports work in the installed app, and an `app.json` manifest
+  records the entry point and routes. Single-file answers keep working
+  unchanged and stay the default.
+- Project storage now keeps nested relative paths (`src/app.js`), and the
+  preview inliner preserves `type="module"` semantics.
+- Static guard for unsafe project paths: no absolute paths, no `..`, text
+  types only, 1 MB per file and 8 MB per project.
 
 ## [0.3.0] - 2026-10-21
 
