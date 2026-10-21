@@ -42,7 +42,7 @@ class RuntimeQaOutcome {
     required this.message,
   });
 
-  bool get passed => !blocked && !cancelled && (report?.fatal != true);
+  bool get passed => !blocked && !cancelled && report?.passed == true;
 }
 
 class RuntimeQa {
