@@ -50,6 +50,9 @@ jobs:
           cp src/shell_apk_web/app/build/outputs/apk/release/app-release.apk src/container_app/assets/shell_template_web.apk
           ls -l src/container_app/assets/*.apk
 
+      - name: Verify the shell placeholders match the injector
+        run: python3 tools/check_placeholders.py
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -58,6 +61,7 @@ jobs:
 
       - name: Verify bridge index is up to date
         run: python3 tools/gen_bridge_index.py --check
+
 
       - name: Run container unit tests
         run: |

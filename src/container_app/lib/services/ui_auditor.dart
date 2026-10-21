@@ -47,6 +47,24 @@ class UiAuditor {
           'Use the Android font stack (system-ui, Roboto) instead of -apple-system.'));
     }
 
+    const devTexts = [
+      'changes and improvements',
+      "what's new",
+      'changelog',
+      'release notes',
+      'version history',
+    ];
+    for (final text in devTexts) {
+      if (lower.contains(text)) {
+        issues.add(const UiViolation(
+            'developer-text',
+            'The app contains developer text ("$text") - a changelog, release notes or a '
+            '"what's new" list must not be part of the app the user sees.',
+        ));
+        break;
+      }
+    }
+
     if (!lower.contains('ax-')) {
       issues.add(const UiViolation('ui-kit',
           'The app does not use the Applix UI Kit classes - build it from .ax-* components.'));

@@ -51,7 +51,10 @@ class ApkInjector(private val keystoreAlias: String = "applix_signing_key") {
     companion object {
         private const val TAG = "Applix"
         private const val MANIFEST_PATH = "AndroidManifest.xml"
-        private const val LABEL_PLACEHOLDER = "IAPPYX_PLACEHOLDER_LABEL_XXXXXXXXXXXX"
+        // Must match the placeholder in the shell manifest
+        // (src/shell_apk/app/src/main/AndroidManifest.xml). If the two differ the
+        // label is never replaced and the app keeps the placeholder as its name.
+        private const val LABEL_PLACEHOLDER = "APPLIX_PLACEHOLDER_LABEL_XXXXXXXXXXXX"
         private const val TEMPLATE_PACKAGE   = "com.applix.generated.placeholderx.xxxxxxxx"
         private const val TEMPLATE_AUTHORITY = "com.applix.generated.placeholderx.xxxxxxxx.provider"
         private const val TEMPLATE_DYNPERM  = "com.applix.generated.placeholderx.xxxxxxxx.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"

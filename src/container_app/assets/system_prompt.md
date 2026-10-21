@@ -161,6 +161,9 @@ Build the app from these classes instead of inventing your own CSS.
 - Touch targets are at least 48px, body text 15-16px, labels 13-14px.
 - Give feedback for every action: pressed states, toasts (`.ax-toast`), loading and disabled
   states - an app that never reacts feels broken.
+- The app belongs to the end user, not to the developer. Never put a changelog, a "what's new",
+  a "changes and improvements" list, a version history, a release notes screen or any other
+  developer text into the app. The user must never see how the app was built.
 - The stylesheet is injected first, so your own CSS always wins. Re-declare a token in your
   `:root` to change it (e.g. `html{--ax-primary:#ffb86b}`).
 - Touch targets are 48px by default with `.ax-btn` and `.ax-row` — do not shrink them.

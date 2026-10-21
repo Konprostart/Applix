@@ -10,6 +10,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.2.7] - 2026-10-20
+
+### Fixed
+- **The app name is finally the name the user typed.** The injector looked for the placeholder
+  "IAPPYX_PLACEHOLDER_LABEL_XXXXXXXXXXXX" while the shell template contains
+  "APPLIX_PLACEHOLDER_LABEL_XXXXXXXXXXXX" - the two never matched, so the label was never
+  replaced and the generated app was called "APPLIX_PLACEHOLDER_LABEL_XXXXXXXXXXXX" on the
+  launcher. The placeholder is aligned now, and the maximum length of a name was lowered to the
+  length of the placeholder (35 characters) so it always fits.
+- **A check that stops this from happening again.** tools/check_placeholders.py compares every
+  placeholder of the injector with the built shell template and fails the build when one of them
+  does not match. It runs on every push in CI.
+- **No developer texts in the generated app.** The system prompt now forbids changelogs,
+  "what's new" lists, release notes and version histories in the app, and the visual check flags
+  them so the automatic polish pass removes them.
+
+### Changed
+- The app name limit is 35 characters (the length of the placeholder in the template).
+
 ## [0.2.6] - 2026-10-20
 
 ### Fixed
@@ -492,7 +511,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.2.6...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.2.7...HEAD
+[0.2.7]: https://github.com/Konprostart/Applix/releases/tag/v0.2.7
 [0.2.6]: https://github.com/Konprostart/Applix/releases/tag/v0.2.6
 [0.2.5]: https://github.com/Konprostart/Applix/releases/tag/v0.2.5
 [0.2.4]: https://github.com/Konprostart/Applix/releases/tag/v0.2.4
