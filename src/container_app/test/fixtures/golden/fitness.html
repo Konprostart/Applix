@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0B0B12">
+<title>Fitness notes</title>
+<style>
+  body { font-family: system-ui, Roboto, sans-serif; background: var(--ax-bg); color: var(--ax-text); }
+  .fit-form { display: grid; gap: var(--ax-2); margin-top: var(--ax-3); }
+  .fit-filters { display: flex; gap: var(--ax-2); overflow-x: auto; padding-bottom: var(--ax-2); }
+  .fit-del { color: var(--ax-danger); }
+</style></head>
+<body>
+<div class="ax-appbar">
+  <div>
+    <div class="ax-appbar__title">Training log</div>
+    <div class="ax-appbar__sub">This week</div>
+  </div>
+  <span class="ax-badge" id="badge">0</span>
+</div>
+<div class="ax-page">
+  <div class="ax-hero">
+    <div class="ax-hero__title ax-num" id="total">0 min</div>
+    <div class="ax-hero__sub">Total training time</div>
+  </div>
+  <div class="ax-card">
+    <div class="ax-section-title">Log a session</div>
+    <div class="fit-form">
+      <input class="ax-input" id="title" placeholder="Session name" autocomplete="off">
+      <div class="ax-row-flex">
+        <select class="ax-select" id="type">
+          <option>Strength</option><option>Cardio</option><option>Mobility</option>
+        </select>
+        <input class="ax-input ax-num" id="mins" type="number" inputmode="numeric" placeholder="Minutes">
+      </div>
+      <input class="ax-input" id="notes" placeholder="Notes (optional)">
+      <button class="ax-btn ax-btn--block" id="add">Save session</button>
+    </div>
+  </div>
+  <div class="fit-filters" id="filters">
+    <button class="ax-chip ax-chip--active" data-type="all">All</button>
+    <button class="ax-chip" data-type="Strength">Strength</button>
+    <button class="ax-chip" data-type="Cardio">Cardio</button>
+    <button class="ax-chip" data-type="Mobility">Mobility</button>
+  </div>
+  <div class="ax-list" id="list"></div>
+  <div class="ax-empty" id="empty" hidden>
+    <div class="ax-empty__title">No sessions found</div>
+    <div class="ax-muted">Log one above or change the filter.</div>
+  </div>
+</div>
+<script>
+var KEY = 'fitness_v1';
+var SEED = [
+  { id: 1, title: 'Push day', type: 'Strength', mins: 55, notes: 'Bench 3x8' },
+  { id: 2, title: 'Easy run', type: 'Cardio', mins: 32, notes: '5 km riverside' },
+  { id: 3, title: 'Hip mobility', type: 'Mobility', mins: 18, notes: 'Morning routine' }
+];
+var rows = [];
+try {
+  var raw = iappyx.load(KEY);
+  rows = raw ? JSON.parse(raw) : SEED.slice();
+} catch (e) { rows = SEED.slice(); }
+var filter = 'all';
+
+function persist() {
+  try { iappyx.save(KEY, JSON.stringify(rows)); } catch (e) {}
+}
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function render() {
+  var shown = rows.filter(function (r) { return filter === 'all' || r.type === filter; });
+  var total = rows.reduce(function (sum, r) { return sum + Number(r.mins); }, 0);
+  document.getElementById('total').textContent = total + ' min';
+  document.getElementById('badge').textContent = rows.length;
+  document.getElementById('empty').hidden = shown.length > 0;
+  document.getElementById('list').innerHTML = shown.map(function (r) {
+    return '<div class="ax-row">' +
+      '<div class="ax-row__body"><div class="ax-row__title">' + esc(r.title) + ' · ' + r.mins + ' min</div>' +
+      '<div class="ax-row__sub">' + esc(r.type) + (r.notes ? ' · ' + esc(r.notes) : '') + '</div></div>' +
+      '<button class="ax-icon-btn fit-del" data-id="' + r.id + '" aria-label="Delete">×</button>' +
+      '</div>';
+  }).join('');
+  document.querySelectorAll('.fit-del').forEach(function (btn) {
+    btn.onclick = function () {
+      rows = rows.filter(function (r) { return String(r.id) !== btn.dataset.id; });
+      persist(); render();
+    };
+  });
+}
+document.querySelectorAll('#filters .ax-chip').forEach(function (chip) {
+  chip.onclick = function () {
+    filter = chip.dataset.type;
+    document.querySelectorAll('#filters .ax-chip').forEach(function (c) {
+      c.classList.toggle('ax-chip--active', c === chip);
+    });
+    render();
+  };
+});
+document.getElementById('add').onclick = function () {
+  var title = document.getElementById('title');
+  var mins = document.getElementById('mins');
+  var value = parseInt(mins.value, 10);
+  if (!title.value.trim() || !isFinite(value) || value <= 0) return;
+  rows.unshift({
+    id: Date.now(), title: title.value.trim(),
+    type: document.getElementById('type').value, mins: value,
+    notes: document.getElementById('notes').value.trim()
+  });
+  title.value = ''; mins.value = ''; document.getElementById('notes').value = '';
+  persist(); render();
+};
+render();
+</script>
+</body></html>

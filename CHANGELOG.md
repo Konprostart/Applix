@@ -10,6 +10,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.8.0] - 2026-10-21
+
+### Added
+- **Automatic runtime QA (Phase 6).** Every generation now boots in a hidden
+  WebView with the real bridge shim and UI kit. The probe captures uncaught
+  errors, unhandled rejections, `console.error`, syntax failures and blank
+  screens before the app is shown, and a fatal report blocks the build.
+- **Golden benchmark.** Three standard briefs (budget tracker, fitness notes,
+  task list with persistence) are checked in CI for seed data, UI Kit v2
+  classes, persistence, controls, charts and placeholder copy.
+- **`RuntimeQa` decision layer.** Fatal errors block; inconclusive probes and
+  preview-only ES module resolution do not create false failures.
+- **JS integration harness** (`tools/runtime_probe_check.js`) that runs the
+  exact injected probe against a minimal DOM, so error capture is tested
+  without an emulator.
+- Unit tests for `RuntimeQa`, `GoldenBenchmark`, the probe and a CI step that
+  runs the golden benchmark and runtime QA tests explicitly.
+
+### Changed
+- Runtime verification now runs automatically after generation, and the cached
+  report is reused by Build instead of probing the same code twice.
+- Build gate decisions go through `RuntimeQa` so cancellation, fatal errors and
+  inconclusive checks are handled consistently.
+
 ## [0.7.0] - 2026-10-21
 
 ### Added

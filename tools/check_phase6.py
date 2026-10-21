@@ -21,6 +21,12 @@ PATCH = ROOT / "src/container_app/lib/services/app_patch.dart"
 PROBE = ROOT / "src/container_app/lib/services/runtime_probe.dart"
 PATCH_TEST = ROOT / "src/container_app/test/app_patch_test.dart"
 PROBE_TEST = ROOT / "src/container_app/test/runtime_probe_test.dart"
+QA = ROOT / "src/container_app/lib/services/runtime_qa.dart"
+QA_TEST = ROOT / "src/container_app/test/runtime_qa_test.dart"
+GOLDEN = ROOT / "src/container_app/lib/services/golden_benchmark.dart"
+GOLDEN_TEST = ROOT / "src/container_app/test/golden_benchmark_test.dart"
+GOLDEN_DIR = ROOT / "src/container_app/test/fixtures/golden"
+HARNESS = ROOT / "tools/runtime_probe_check.js"
 
 errors: list[str] = []
 
@@ -40,6 +46,13 @@ patch = read(PATCH, "AppPatch service")
 probe = read(PROBE, "RuntimeProbe service")
 read(PATCH_TEST, "AppPatch tests")
 read(PROBE_TEST, "RuntimeProbe tests")
+qa = read(QA, "RuntimeQa service")
+read(QA_TEST, "RuntimeQa tests")
+golden = read(GOLDEN, "golden benchmark")
+read(GOLDEN_TEST, "golden benchmark tests")
+read(HARNESS, "runtime probe JS harness")
+for fixture in ("budget", "fitness"):
+    read(GOLDEN_DIR / f"{fixture}.html", f"{fixture} golden fixture")
 
 if spec != prompt:
     errors.append("SPEC.md is out of sync with assets/system_prompt.md")
@@ -65,9 +78,26 @@ for needle in ("RuntimeProbe.bootstrap", "verifyOnly", "_checkRuntime",
         errors.append(f"preview_screen.dart is missing {needle!r}")
 
 for needle in ("AppPatch.applyToProject", "AppPatch.instruction",
-               "_runRuntimeCheck", "_showRuntimeFailure", "report.fatal"):
+               "_runRuntimeCheck", "_showRuntimeFailure", "RuntimeQa.verify",
+               "_verifyGenerated"):
     if needle not in create:
         errors.append(f"create_screen.dart is missing {needle!r}")
+
+for needle in ("class RuntimeQa", "RuntimeQaOutcome", "static Future<RuntimeQaOutcome> verify",
+               "report.fatal", "cancelled"):
+    if needle not in qa:
+        errors.append(f"runtime_qa.dart is missing {needle!r}")
+
+for needle in ("class GoldenBenchmark", "static const briefs", "budget",
+               "fitness", "tasks", "iappyx.save", "needsChart",
+               "List<GoldenFailure> evaluate"):
+    if needle not in golden:
+        errors.append(f"golden_benchmark.dart is missing {needle!r}")
+
+for needle in ("runtime_probe.js", "unhandledrejection", "console.error",
+               "Runtime probe harness passed"):
+    if needle not in read(HARNESS, "runtime probe harness"):
+        errors.append(f"runtime_probe_check.js is missing {needle!r}")
 
 # The old duplicate output-shape paragraph must stay gone.
 if prompt.count("This also applies when updating or polishing") != 1:

@@ -82,11 +82,19 @@ jobs:
       - name: Phase 6 guard (patch + runtime check)
         run: python3 tools/check_phase6.py
 
+      - name: Runtime probe JS harness
+        run: node tools/runtime_probe_check.js
+
 
       - name: Analyze the container app
         run: |
           cd src/container_app
           flutter analyze --no-fatal-warnings --no-fatal-infos
+
+      - name: Golden benchmark + runtime QA
+        run: |
+          cd src/container_app
+          flutter test test/golden_benchmark_test.dart test/runtime_qa_test.dart test/runtime_probe_test.dart
 
       - name: Run container unit tests
         run: |

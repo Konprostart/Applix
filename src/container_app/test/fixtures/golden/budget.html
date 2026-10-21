@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0B0B12">
+<title>Budget</title>
+<style>
+  body { font-family: system-ui, Roboto, sans-serif; background: var(--ax-bg); color: var(--ax-text); }
+  .budget-form { display: grid; gap: var(--ax-2); margin-top: var(--ax-3); }
+  .budget-form .ax-row-flex { gap: var(--ax-2); }
+  .budget-bars { display: flex; align-items: flex-end; gap: var(--ax-2); height: 88px; margin-top: var(--ax-3); }
+  .budget-bar { flex: 1; border-radius: var(--ax-radius-sm); background: var(--ax-primary); min-height: 4px; }
+  .budget-del { color: var(--ax-danger); }
+</style></head>
+<body>
+<div class="ax-appbar">
+  <div>
+    <div class="ax-appbar__title">Budget</div>
+    <div class="ax-appbar__sub">October</div>
+  </div>
+  <span class="ax-badge" id="count">0</span>
+</div>
+<div class="ax-page">
+  <div class="ax-hero">
+    <div class="ax-hero__title ax-num" id="balance">$0.00</div>
+    <div class="ax-hero__sub">Spent this month</div>
+  </div>
+  <div class="ax-card">
+    <div class="ax-section-title">New expense</div>
+    <div class="budget-form">
+      <input class="ax-input" id="desc" placeholder="What was it?" autocomplete="off">
+      <div class="ax-row-flex">
+        <input class="ax-input ax-num" id="amount" type="number" inputmode="decimal" placeholder="0.00">
+        <select class="ax-select" id="cat">
+          <option>Food</option><option>Transport</option><option>Home</option><option>Fun</option>
+        </select>
+      </div>
+      <button class="ax-btn ax-btn--block" id="add">Add expense</button>
+    </div>
+  </div>
+  <div class="ax-card">
+    <div class="ax-section-title">By category</div>
+    <div class="ax-chart budget-bars" id="chart"></div>
+  </div>
+  <div class="ax-list" id="list"></div>
+  <div class="ax-empty" id="empty" hidden>
+    <div class="ax-empty__title">No expenses yet</div>
+    <div class="ax-muted">Add the first one above.</div>
+  </div>
+</div>
+<script>
+var KEY = 'budget_v1';
+var SEED = [
+  { id: 1, desc: 'Groceries', amount: 64.20, cat: 'Food', date: 'Oct 3' },
+  { id: 2, desc: 'Metro card', amount: 30.00, cat: 'Transport', date: 'Oct 5' },
+  { id: 3, desc: 'Electric bill', amount: 92.40, cat: 'Home', date: 'Oct 8' },
+  { id: 4, desc: 'Cinema', amount: 18.50, cat: 'Fun', date: 'Oct 11' }
+];
+var rows = [];
+try {
+  var raw = iappyx.load(KEY);
+  rows = raw ? JSON.parse(raw) : SEED.slice();
+} catch (e) { rows = SEED.slice(); }
+
+function money(n) { return '$' + Number(n).toFixed(2); }
+function persist() {
+  try { iappyx.save(KEY, JSON.stringify(rows)); } catch (e) {}
+}
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function render() {
+  var total = rows.reduce(function (sum, r) { return sum + Number(r.amount); }, 0);
+  document.getElementById('balance').textContent = money(total);
+  document.getElementById('count').textContent = rows.length;
+  document.getElementById('empty').hidden = rows.length > 0;
+  var byCat = {};
+  rows.forEach(function (r) { byCat[r.cat] = (byCat[r.cat] || 0) + Number(r.amount); });
+  var max = Math.max.apply(null, Object.keys(byCat).map(function (k) { return byCat[k]; }).concat([1]));
+  document.getElementById('chart').innerHTML = Object.keys(byCat).map(function (k) {
+    return '<div class="ax-muted" style="flex:1;text-align:center;font-size:.7rem">' +
+      '<div class="budget-bar" style="height:' + Math.max(4, byCat[k] / max * 72) + 'px"></div>' +
+      esc(k) + '</div>';
+  }).join('');
+  document.getElementById('list').innerHTML = rows.map(function (r) {
+    return '<div class="ax-row">' +
+      '<div class="ax-row__body"><div class="ax-row__title">' + esc(r.desc) + '</div>' +
+      '<div class="ax-row__sub">' + esc(r.cat) + ' · ' + esc(r.date) + '</div></div>' +
+      '<div class="ax-row__value ax-num">' + money(r.amount) + '</div>' +
+      '<button class="ax-icon-btn budget-del" data-id="' + r.id + '" aria-label="Delete">×</button>' +
+      '</div>';
+  }).join('');
+  document.querySelectorAll('.budget-del').forEach(function (btn) {
+    btn.onclick = function () {
+      rows = rows.filter(function (r) { return String(r.id) !== btn.dataset.id; });
+      persist(); render();
+    };
+  });
+}
+document.getElementById('add').onclick = function () {
+  var desc = document.getElementById('desc');
+  var amount = document.getElementById('amount');
+  var value = parseFloat(amount.value);
+  if (!desc.value.trim() || !isFinite(value) || value <= 0) return;
+  rows.unshift({
+    id: Date.now(), desc: desc.value.trim(), amount: value,
+    cat: document.getElementById('cat').value, date: 'Today'
+  });
+  desc.value = ''; amount.value = '';
+  persist(); render();
+};
+render();
+</script>
+</body></html>

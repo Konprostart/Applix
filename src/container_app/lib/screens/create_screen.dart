@@ -55,6 +55,7 @@ import '../services/app_project.dart';
 import '../services/app_plan.dart';
 import '../services/app_patch.dart';
 import '../services/runtime_probe.dart';
+import '../services/runtime_qa.dart';
 
 class CreateScreen extends StatefulWidget {
   final VoidCallback? onAppSaved;
@@ -437,6 +438,7 @@ class CreateScreenState extends State<CreateScreen> {
         cleaned = await _polishUi(cleaned, thisGenId);
         if (!mounted || thisGenId != _genId) return;
         _useProject(project, cleaned);
+        await _verifyGenerated(cleaned, project.files, thisGenId);
       } else {
         setState(() => _bridgeIssues = []);
       }
@@ -517,6 +519,7 @@ class CreateScreenState extends State<CreateScreen> {
         cleaned = await _polishUi(cleaned, thisGenId);
         if (!mounted || thisGenId != _genId) return;
         _useProject(project, cleaned);
+        await _verifyGenerated(cleaned, project.files, thisGenId);
       } else {
         setState(() => _bridgeIssues = []);
       }
@@ -823,15 +826,35 @@ class CreateScreenState extends State<CreateScreen> {
     await _doBuild(label, html, 'web', description: 'Web app: $url');
   }
 
-  Future<RuntimeReport?> _runRuntimeCheck(String html) async {
+  Future<RuntimeReport?> _runRuntimeCheck(String html) =>
+      _runRuntimeCheckFor(html, _extraFiles);
+
+  Future<RuntimeReport?> _runRuntimeCheckFor(
+      String html, Map<String, String> files) async {
     if (!mounted) return null;
     return Navigator.of(context).push<RuntimeReport>(MaterialPageRoute(
       builder: (_) => PreviewScreen(
         htmlContent: html,
-        projectFiles: Map<String, String>.from(_extraFiles),
+        projectFiles: Map<String, String>.from(files)
+          ..remove('index.html')
+          ..remove('app.json'),
         verifyOnly: true,
       ),
     ));
+  }
+
+  /// Runs automatically once a generation finishes, so a broken app is known
+  /// before the user taps Build. The build gate reuses this result.
+  Future<void> _verifyGenerated(
+      String html, Map<String, String> files, int genId) async {
+    if (!html.trimLeft().startsWith('<')) return;
+    final report = await _runRuntimeCheckFor(html, files);
+    if (!mounted || genId != _genId || report == null) return;
+    setState(() {
+      _runtimeCheckedHtml = html;
+      _runtimeReport = report;
+    });
+    if (report.fatal) await _showRuntimeFailure(report);
   }
 
   Future<void> _showRuntimeFailure(RuntimeReport report) async {
@@ -846,8 +869,8 @@ class CreateScreenState extends State<CreateScreen> {
         title: const Text('The app does not start'),
         content: Text(
           'Runtime check failed:\n\n$details\n\n'
-          'The build was stopped so a white screen is not shipped. '
-          'Use the AI chat to fix the error, then build again.',
+          'The app cannot be built until this is fixed, so a white screen '
+          'is not shipped. Use the AI chat to fix the error, then build again.',
           style: const TextStyle(fontSize: 13),
         ),
         actions: [
@@ -864,17 +887,32 @@ class CreateScreenState extends State<CreateScreen> {
     if (label.length > 37 || label.codeUnits.length > 37) { _snack('Name too long (max 37 characters).'); return; }
     if (!html.startsWith('<')) { _snack('HTML must start with < (e.g., <!DOCTYPE html>).'); return; }
     if (_runtimeCheckedHtml != html) {
-      final report = await _runRuntimeCheck(html);
+      final outcome = await RuntimeQa.verify(() => _runRuntimeCheck(html));
       if (!mounted) return;
-      if (report == null) return;
-      setState(() {
-        _runtimeCheckedHtml = html;
-        _runtimeReport = report;
-      });
-      if (report.fatal) {
-        await _showRuntimeFailure(report);
+      if (outcome.cancelled) {
+        _snack(outcome.message);
         return;
       }
+      if (outcome.blocked) {
+        if (outcome.report != null) {
+          await _showRuntimeFailure(outcome.report!);
+        } else {
+          _snack(outcome.message);
+        }
+        return;
+      }
+      final report = outcome.report;
+      if (report != null) {
+        setState(() {
+          _runtimeCheckedHtml = html;
+          _runtimeReport = report;
+        });
+      }
+    }
+    final cachedReport = _runtimeReport;
+    if (cachedReport != null && cachedReport.fatal) {
+      await _showRuntimeFailure(cachedReport);
+      return;
     }
     final issues = await _lintBridge(html);
     if (issues.isNotEmpty) {
