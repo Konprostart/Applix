@@ -23,6 +23,7 @@
 /// In-app HTML preview using WebView. Injects a bridge shim so apps that call
 /// iappyx.* methods get stub responses instead of crashing.
 
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -34,6 +35,7 @@ import '../services/project_store.dart';
 import '../services/settings_service.dart';
 import '../services/ui_kit.dart';
 import '../services/dev_text_sanitizer.dart';
+import '../services/runtime_probe.dart';
 
 class PreviewScreen extends StatefulWidget {
   final String htmlContent;
@@ -43,12 +45,16 @@ class PreviewScreen extends StatefulWidget {
   /// Called when the AI fixed the code, so the editor can be updated.
   final void Function(String html)? onHtmlFixed;
   final List<String> initialWarnings;
+  /// Loads the app only to verify that it boots, then closes and returns a
+  /// [RuntimeReport] to the caller. No preview UI is shown.
+  final bool verifyOnly;
   const PreviewScreen({
     super.key,
     required this.htmlContent,
     this.projectFiles = const {},
     this.onHtmlFixed,
     this.initialWarnings = const [],
+    this.verifyOnly = false,
   });
   @override
   State<PreviewScreen> createState() => _PreviewScreenState();
@@ -66,6 +72,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
   bool _consoleExpanded = true;
   bool _bannerVisible = true;
   bool _fixing = false;
+  Timer? _verifyTimer;
+  int _verifyAttempts = 0;
+  bool _verifyFinished = false;
   static const _channel = MethodChannel('com.konprostart.applix/generator');
 
   // ── Console capture (injected before app code) ──
@@ -687,6 +696,41 @@ class _PreviewScreenState extends State<PreviewScreen> {
     final html = await _prepareHtml();
     if (!mounted) return;
     _controller.loadHtmlString(_injectScripts(html), baseUrl: 'https://localhost/');
+    if (widget.verifyOnly) {
+      _verifyTimer = Timer(const Duration(milliseconds: 700), _checkRuntime);
+    }
+  }
+
+  Future<void> _checkRuntime() async {
+    if (!mounted || _verifyFinished) return;
+    _verifyAttempts++;
+    RuntimeReport? report;
+    try {
+      final raw = await _controller.runJavaScriptReturningResult(
+        'window.__applixRuntime && window.__applixRuntime.ready'
+            ' ? JSON.stringify(window.__applixRuntime) : ""',
+      );
+      report = RuntimeReport.parse(raw);
+    } catch (_) {}
+    if (!mounted || _verifyFinished) return;
+    if (report != null && report.ready) {
+      _finishVerify(report);
+      return;
+    }
+    if (_verifyAttempts >= 12) {
+      _finishVerify(RuntimeReport.inconclusive(
+          'the app did not finish starting in the preview.'));
+      return;
+    }
+    _verifyTimer = Timer(const Duration(milliseconds: 300), _checkRuntime);
+  }
+
+  void _finishVerify(RuntimeReport report) {
+    if (_verifyFinished) return;
+    _verifyFinished = true;
+    _verifyTimer?.cancel();
+    if (!mounted) return;
+    Navigator.of(context).pop(report);
   }
 
   /// The HTML as the app will really be built: the project files inlined and
@@ -908,7 +952,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   String _injectScripts(String html) {
     // Insert console capture + bridge shim right after <head> or at the very start
-    final scripts = _consoleCapture + _bridgeShim;
+    var scripts = _consoleCapture + _bridgeShim;
+    if (widget.verifyOnly) scripts += RuntimeProbe.bootstrap;
     final headIdx = html.toLowerCase().indexOf('<head');
     if (headIdx != -1) {
       final closeIdx = html.indexOf('>', headIdx);
@@ -939,6 +984,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   @override
   void dispose() {
+    _verifyTimer?.cancel();
     // Stop any audio/TTS started during preview
     try { _channel.invokeMethod('audioStop'); } catch (_) {}
     try { _channel.invokeMethod('ttsStop'); } catch (_) {}
@@ -947,6 +993,31 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.verifyOnly) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF0D0D1A),
+        body: Stack(children: [
+          Positioned.fill(child: WebViewWidget(controller: _controller)),
+          Positioned.fill(
+            child: Container(
+              color: const Color(0xFF0D0D1A),
+              child: const Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(strokeWidth: 3, color: Color(0xFF4FC3F7)),
+                  ),
+                  SizedBox(height: 16),
+                  Text('Checking the app starts...',
+                      style: TextStyle(fontSize: 14, color: Colors.white70)),
+                ]),
+              ),
+            ),
+          ),
+        ]),
+      );
+    }
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D1A),
       appBar: AppBar(

@@ -79,6 +79,8 @@ jobs:
 
       - name: Verify the Phase 5 generation quality layer
         run: python3 tools/check_phase5.py
+      - name: Phase 6 guard (patch + runtime check)
+        run: python3 tools/check_phase6.py
 
 
       - name: Analyze the container app

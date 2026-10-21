@@ -53,6 +53,8 @@ import '../services/dev_text_sanitizer.dart';
 import '../services/ai_response.dart';
 import '../services/app_project.dart';
 import '../services/app_plan.dart';
+import '../services/app_patch.dart';
+import '../services/runtime_probe.dart';
 
 class CreateScreen extends StatefulWidget {
   final VoidCallback? onAppSaved;
@@ -100,6 +102,10 @@ class CreateScreenState extends State<CreateScreen> {
   List<Map<String, dynamic>> _projectFiles = [];
   /// Files of a multi-file AI project (modules, styles, ...).
   Map<String, String> _extraFiles = {};
+  /// The HTML that passed the WebView runtime check, so Build does not open
+  /// the verifier again for unchanged code.
+  String? _runtimeCheckedHtml;
+  RuntimeReport? _runtimeReport;
   bool _projectExpanded = false;
   bool _bundleExpanded = false;
   String? _pendingShowcaseBundleId; // set when loading a showcase app with resources
@@ -441,6 +447,14 @@ class CreateScreenState extends State<CreateScreen> {
     }
   }
 
+  AppProject _currentProject() => AppProject(
+        entry: 'index.html',
+        files: {
+          'index.html': _htmlController.text.trim(),
+          ..._extraFiles,
+        },
+      );
+
   Future<void> _sendFollowUp() async {
     final msg = _followUpController.text.trim();
     if (msg.isEmpty || _activeProvider == null) return;
@@ -456,13 +470,41 @@ class CreateScreenState extends State<CreateScreen> {
 
     try {
       final systemPrompt = await PromptBuilder.getSystemPrompt();
+      final current = _currentProject();
+      final hasCode = _conversation.any((m) {
+        final content = m.content.trimLeft();
+        if (content.contains('"applix_patch"')) return false;
+        return content.startsWith('<') ||
+            RegExp(r'"applix"\s*:\s*2').hasMatch(content);
+      });
+      final context = hasCode
+          ? ''
+          : '\n\nCURRENT APP:\n${jsonEncode({
+              'applix': 2,
+              'entry': current.entry,
+              'files': {
+                for (final e in current.files.entries)
+                  if (e.key != 'app.json') e.key: e.value,
+              },
+            })}';
+      final outgoing = List<ChatMessage>.from(_conversation);
+      outgoing[outgoing.length - 1] = ChatMessage(
+        role: 'user',
+        content: '${msg}\n\n${AppPatch.instruction}$context',
+      );
       final response = await AiService.generate(
         provider: provider,
         systemPrompt: systemPrompt,
-        messages: _conversation,
+        messages: outgoing,
       );
       if (!mounted || thisGenId != _genId) return;
-      final project = AppProject.parseModelOutput(response);
+      final outcome = AppPatch.applyToProject(response, current);
+      if (outcome != null && !outcome.ok) {
+        setState(() => _aiGenerating = false);
+        _snack('The update could not be applied safely: ${outcome.error}');
+        return;
+      }
+      final project = outcome?.project ?? AppProject.parseModelOutput(response);
       var cleaned = project.entryHtml;
       _conversation.add(ChatMessage(
           role: 'assistant',
@@ -521,6 +563,8 @@ class CreateScreenState extends State<CreateScreen> {
       _selectedHtml = clean;
       _htmlController.text = clean;
       _htmlExpanded = false;
+      _runtimeCheckedHtml = null;
+      _runtimeReport = null;
     });
     _refreshBridgeIssues(clean);
     _snack('HTML loaded. Preview or build below.');
@@ -546,6 +590,8 @@ class CreateScreenState extends State<CreateScreen> {
       _selectedHtml = clean;
       _htmlController.text = clean;
       _htmlExpanded = false;
+      _runtimeCheckedHtml = null;
+      _runtimeReport = null;
     });
     _refreshBridgeIssues(clean);
     _snack(project.isMultiFile
@@ -777,12 +823,59 @@ class CreateScreenState extends State<CreateScreen> {
     await _doBuild(label, html, 'web', description: 'Web app: $url');
   }
 
+  Future<RuntimeReport?> _runRuntimeCheck(String html) async {
+    if (!mounted) return null;
+    return Navigator.of(context).push<RuntimeReport>(MaterialPageRoute(
+      builder: (_) => PreviewScreen(
+        htmlContent: html,
+        projectFiles: Map<String, String>.from(_extraFiles),
+        verifyOnly: true,
+      ),
+    ));
+  }
+
+  Future<void> _showRuntimeFailure(RuntimeReport report) async {
+    if (!mounted) return;
+    final details = report.blank
+        ? 'The app rendered an empty screen.'
+        : report.fatalErrors.take(3).join('\n\n');
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        title: const Text('The app does not start'),
+        content: Text(
+          'Runtime check failed:\n\n$details\n\n'
+          'The build was stopped so a white screen is not shipped. '
+          'Use the AI chat to fix the error, then build again.',
+          style: const TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+        ],
+      ),
+    );
+  }
+
   Future<void> _buildAiApp() async {
     final label = _nameController.text.trim();
     final html = _htmlController.text.trim();
     if (label.isEmpty || html.isEmpty) { _snack('Fill in name and paste HTML.'); return; }
     if (label.length > 37 || label.codeUnits.length > 37) { _snack('Name too long (max 37 characters).'); return; }
     if (!html.startsWith('<')) { _snack('HTML must start with < (e.g., <!DOCTYPE html>).'); return; }
+    if (_runtimeCheckedHtml != html) {
+      final report = await _runRuntimeCheck(html);
+      if (!mounted) return;
+      if (report == null) return;
+      setState(() {
+        _runtimeCheckedHtml = html;
+        _runtimeReport = report;
+      });
+      if (report.fatal) {
+        await _showRuntimeFailure(report);
+        return;
+      }
+    }
     final issues = await _lintBridge(html);
     if (issues.isNotEmpty) {
       if (!mounted) return;
