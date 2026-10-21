@@ -10,6 +10,10 @@
 library;
 
 /// The headings that mark a developer text.
+///
+/// Only unambiguous developer headings are listed: "release notes" is left out
+/// on purpose, because a show or a product can have release notes of its own
+/// that belong into the app.
 const List<String> devTextHeadings = [
   'changes and improvements',
   'changes and improvement',
@@ -17,8 +21,6 @@ const List<String> devTextHeadings = [
   'whats new',
   'changelog',
   'change log',
-  'release notes',
-  'release note',
   'version history',
   'new in this version',
   'what is new',

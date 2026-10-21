@@ -42,10 +42,9 @@ void main() {
       expect(clean.contains('Made with care.'), isTrue);
     });
 
-    test('removes what is new, release notes and version history', () {
+    test('removes what is new and version history', () {
       for (final heading in [
         "What's New",
-        'Release Notes',
         'Version History',
         'New in this version',
       ]) {
