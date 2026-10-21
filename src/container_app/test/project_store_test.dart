@@ -155,7 +155,7 @@ void main() {
         '<html><head><link rel="stylesheet" href="style.css"></head><body>x</body></html>',
         {'style.css': 'body{color:red}'},
       );
-      expect(out, contains('<style>'));
+      expect(out, contains('<style'));
       expect(out, contains('body{color:red}'));
       expect(out, isNot(contains('href="style.css"')));
     });

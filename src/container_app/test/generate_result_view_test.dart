@@ -135,6 +135,6 @@ void main() {
     await tester.pumpAndSettle();
     // IndexedStack keeps the preview widget in the tree so its WebView state
     // (forms, scroll) survives tab switches.
-    expect(find.text('LIVE PREVIEW'), findsOneWidget);
+    expect(find.text('LIVE PREVIEW', skipOffstage: false), findsOneWidget);
   });
 }
