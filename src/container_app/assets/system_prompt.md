@@ -181,11 +181,55 @@ Build the app from these classes instead of inventing your own CSS.
   `.ax-btn--small`) · `.ax-fab` · `.ax-chip` (`.ax-chip--active`) · `.ax-badge` · `.ax-switch`
 - Inputs: `.ax-input` · `.ax-field` + `.ax-field__label` + `.ax-field__hint`
 - Feedback: `.ax-empty` + `.ax-empty__icon` + `.ax-empty__title` · `.ax-skeleton` · `.ax-toast`
-- Overlays: `.ax-sheet` + `.ax-sheet-backdrop` + `.ax-sheet__handle`
-- Data: `.ax-stat` + `.ax-stat__value` + `.ax-stat__label`
+- Overlays: `.ax-sheet` + `.ax-sheet-backdrop` + `.ax-sheet__handle` + `.ax-sheet__title`
+  + `.ax-sheet__body` + `.ax-sheet__actions`
+- Navigation: `.ax-tabs` + `.ax-tab` (`.ax-tab--active`) · `.ax-bottom-nav`
+  + `.ax-bottom-nav__item` (`.ax-bottom-nav__item--active`) + `.ax-bottom-nav__icon`
+  + `.ax-bottom-nav__label` · `.ax-segmented` + `.ax-segmented__item`
+  (`.ax-segmented__item--active`)
+- Data: `.ax-stat` + `.ax-stat__value` + `.ax-stat__label` · `.ax-table` (`.ax-num` for
+  right-aligned tabular numbers)
+- Motion: `.ax-anim-in` (staggered entrance) · `.ax-press` (scale on press)
+
+### UI Kit ES module — `applix-ui.js`
+
+Every built app ships a dependency-free ES module next to the entry, so do **not**
+hand-write toasts, sheets, tabs, bottom navigation or segmented controls. Import it:
+
+```html
+<script type="module">
+  import { toast, openSheet, confirmDialog, mountTabs, mountBottomNav,
+           mountSegmented, stagger } from './applix-ui.js';
+
+  toast('Saved');
+  const ok = await confirmDialog({ title: 'Delete?', message: 'This cannot be undone',
+                                   confirmLabel: 'Delete', danger: true });
+  if (ok) { /* ... */ }
+  mountBottomNav(document.querySelector('#nav'), {
+    items: [{ id: 'home', label: 'Home', icon: '🏠' }, { id: 'stats', label: 'Stats', icon: '📊' }],
+    active: 0,
+    onChange: (item) => showScreen(item.id),
+  });
+</script>
+```
+
+- `toast(message, { duration, action: { label, onClick } })` → transient feedback.
+- `openSheet({ title, content, actions, dismissible, onClose })` → returns `{ close, sheet }`.
+- `confirmDialog({ title, message, confirmLabel, cancelLabel, danger })` → `Promise<boolean>`.
+- `mountTabs(container, { tabs, active, onChange })` → `{ setActive }`; `tabs` are `{ id, label }`.
+- `mountBottomNav(container, { items, active, onChange })` → `{ setActive }`; add
+  `padding-bottom: calc(72px + var(--ax-safe-bottom))` to `.ax-page` so content is not hidden.
+- `mountSegmented(container, { options, active, onChange })` → `{ setActive }`.
+- `stagger('.ax-card')` → entrance animation for a list of elements.
+- In a multi-file project import it from the app root: `import { toast } from './applix-ui.js'`
+  (or `'../applix-ui.js'` from `src/`). The `app.json` manifest lists it as
+  `"uiKit": {"version": 1, "css": "applix-ui.css", "js": "applix-ui.js"}`.
+- The module has no dependencies and no bridge calls, so it is safe before `iappyx` is ready.
 
 **Rules**
 - Use these classes for the whole layout. Add custom CSS only for what they do not cover.
+- Never build bottom navigation, a tab bar, a modal/sheet, a toast or a data table from
+  scratch. Use the kit classes and `applix-ui.js` functions; restyle via tokens only.
 - The result must look like a modern native app, never like a web page: no default browser
   buttons, no underlined links, no dense tables, no tiny text, no default blue.
 - Every screen needs: a top bar (`.ax-appbar`), real spacing (16-24px), a card or list

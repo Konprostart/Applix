@@ -118,6 +118,25 @@ class ApkBuildControlTest {
     }
 
     @Test
+    fun theUiKitModuleIsShippedAndSelfContained() {
+        val jsFile = File("../../assets/applix-ui.js").takeIf { it.exists() }
+            ?: File("src/container_app/assets/applix-ui.js")
+        val js = jsFile.readText()
+        assertTrue("the UI Kit module has no version", js.contains("export const UI_KIT_VERSION"))
+        for (fn in listOf(
+            "toast", "openSheet", "confirmDialog", "mountTabs",
+            "mountBottomNav", "mountSegmented", "stagger"
+        )) {
+            assertTrue("the UI Kit module does not export $fn", js.contains("export function $fn("))
+        }
+        assertFalse(
+            "the UI Kit module must not depend on other modules",
+            Regex("(?m)^\\s*import\\s").containsMatchIn(js)
+        )
+        assertFalse("the UI Kit module must not call the bridge", js.contains("iappyx"))
+    }
+
+    @Test
     fun aTemplateCanOptOutOfTheUiKit() {
         val cssFile = File("../../assets/applix-ui.css").takeIf { it.exists() }
             ?: File("src/container_app/assets/applix-ui.css")

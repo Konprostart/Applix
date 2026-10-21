@@ -873,3 +873,286 @@ html body blockquote {
   padding-left: 12px;
   margin: 12px 0;
 }
+
+
+/* ------------------------------------------------ JS kit transitions */
+
+.ax-toast--js {
+  opacity: 0;
+  transform: translate(-50%, 14px);
+  animation: none;
+  transition: opacity 0.2s var(--ax-ease), transform 0.2s var(--ax-ease);
+}
+
+.ax-toast--js.ax-toast--show {
+  opacity: 1;
+  transform: translateX(-50%);
+}
+
+.ax-toast__msg {
+  margin-right: var(--ax-2);
+}
+
+.ax-toast__action {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--ax-primary);
+  font: inherit;
+  font-weight: 700;
+  padding: var(--ax-1) var(--ax-2);
+  margin: calc(var(--ax-1) * -1) calc(var(--ax-2) * -1) calc(var(--ax-1) * -1) 0;
+  border-radius: var(--ax-radius-sm);
+}
+
+.ax-toast__action:active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ax-sheet-backdrop--js {
+  opacity: 0;
+  animation: none;
+  transition: opacity 0.22s var(--ax-ease);
+}
+
+.ax-sheet-backdrop--js.ax-sheet-backdrop--show {
+  opacity: 1;
+}
+
+.ax-sheet-backdrop--js .ax-sheet {
+  animation: none;
+  transform: translateY(100%);
+  transition: transform 0.26s var(--ax-ease);
+}
+
+.ax-sheet-backdrop--js.ax-sheet-backdrop--show .ax-sheet {
+  transform: none;
+}
+
+.ax-sheet__title {
+  font-size: 1.08rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  margin: 0 0 var(--ax-2);
+}
+
+.ax-sheet__body {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--ax-text-dim);
+}
+
+.ax-sheet__actions {
+  display: grid;
+  gap: var(--ax-2);
+  margin-top: var(--ax-4);
+}
+
+/* ------------------------------------------------------------------ tabs */
+
+.ax-tabs {
+  display: flex;
+  gap: var(--ax-1);
+  padding: var(--ax-1);
+  border-radius: var(--ax-radius-pill);
+  background: var(--ax-surface);
+  border: 1px solid var(--ax-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ax-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.ax-tab {
+  appearance: none;
+  flex: 1 0 auto;
+  border: 0;
+  background: transparent;
+  color: var(--ax-text-dim);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: var(--ax-2) var(--ax-3);
+  min-height: 40px;
+  border-radius: var(--ax-radius-pill);
+  transition: background var(--ax-fast) var(--ax-ease), color var(--ax-fast) var(--ax-ease);
+}
+
+.ax-tab:active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ax-tab--active {
+  background: var(--ax-elevated);
+  color: var(--ax-text);
+  box-shadow: var(--ax-shadow-1);
+}
+
+/* ---------------------------------------------------------- bottom nav */
+
+.ax-bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: space-around;
+  gap: var(--ax-1);
+  padding: var(--ax-2) var(--ax-3);
+  padding-bottom: calc(var(--ax-2) + var(--ax-safe-bottom));
+  background: rgba(18, 18, 28, 0.92);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  border-top: 1px solid var(--ax-border);
+}
+
+.ax-bottom-nav__item {
+  appearance: none;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 52px;
+  padding: var(--ax-1);
+  border: 0;
+  border-radius: var(--ax-radius);
+  background: transparent;
+  color: var(--ax-text-faint);
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: color var(--ax-fast) var(--ax-ease), background var(--ax-fast) var(--ax-ease);
+}
+
+.ax-bottom-nav__item:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.ax-bottom-nav__icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.ax-bottom-nav__label {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ax-bottom-nav__item--active {
+  color: var(--ax-primary);
+}
+
+/* ------------------------------------------------------------ segmented */
+
+.ax-segmented {
+  display: flex;
+  padding: 3px;
+  gap: 3px;
+  border-radius: var(--ax-radius);
+  background: var(--ax-surface);
+  border: 1px solid var(--ax-border);
+}
+
+.ax-segmented__item {
+  appearance: none;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--ax-text-dim);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-height: 36px;
+  padding: var(--ax-1) var(--ax-2);
+  border-radius: calc(var(--ax-radius) - 4px);
+  transition: background var(--ax-fast) var(--ax-ease), color var(--ax-fast) var(--ax-ease);
+}
+
+.ax-segmented__item--active {
+  background: var(--ax-elevated);
+  color: var(--ax-text);
+  box-shadow: var(--ax-shadow-1);
+}
+
+/* ---------------------------------------------------------------- table */
+
+.ax-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+  border-radius: var(--ax-radius);
+  overflow: hidden;
+}
+
+.ax-table th {
+  padding: var(--ax-2) var(--ax-3);
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ax-text-faint);
+  background: var(--ax-surface);
+  border-bottom: 1px solid var(--ax-border);
+  position: sticky;
+  top: 0;
+}
+
+.ax-table td {
+  padding: var(--ax-3);
+  border-bottom: 1px solid var(--ax-border);
+  color: var(--ax-text);
+}
+
+.ax-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.ax-table tbody tr:active {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ax-table .ax-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------- motion helpers */
+
+.ax-anim-in {
+  animation: ax-fade-up var(--ax-base) var(--ax-ease) both;
+}
+
+.ax-press {
+  transition: transform var(--ax-fast) var(--ax-ease);
+}
+
+.ax-press:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ax-anim-in,
+  .ax-toast,
+  .ax-toast--js,
+  .ax-sheet,
+  .ax-sheet-backdrop,
+  .ax-tab,
+  .ax-segmented__item,
+  .ax-bottom-nav__item {
+    animation: none !important;
+    transition: none !important;
+  }
+}

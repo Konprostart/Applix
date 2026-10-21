@@ -89,6 +89,34 @@ class AppGenerator(private val context: Context) {
         return css
     }
 
+    @Volatile private var uiKitJsCache: String? = null
+
+    /**
+     * The companion ES module (assets/applix-ui.js). It is shipped into every
+     * app next to index.html so both single-file apps
+     * (`import { toast } from './applix-ui.js'`) and multi-file projects can
+     * use the same components.
+     */
+    private fun uiKitJs(): String {
+        uiKitJsCache?.let { return it }
+        val js = try {
+            context.assets.open("flutter_assets/assets/applix-ui.js").use { it.readBytes().toString(Charsets.UTF_8) }
+        } catch (e: Exception) {
+            Log.w(TAG, "UI kit JS not available: ${e.message}")
+            ""
+        }
+        uiKitJsCache = js
+        return js
+    }
+
+    /** Adds the UI kit sources to the app root (app.json points at them). */
+    private fun addUiKitFiles(assets: MutableMap<String, ByteArray>) {
+        val css = uiKit()
+        if (css.isNotEmpty()) assets["applix-ui.css"] = css.toByteArray(Charsets.UTF_8)
+        val js = uiKitJs()
+        if (js.isNotEmpty()) assets["applix-ui.js"] = js.toByteArray(Charsets.UTF_8)
+    }
+
     private fun withUiKit(html: String): String = applyUiKit(html, uiKit())
     /**
      * Per-app theme the shell applies to the system bars. The builder decides
@@ -300,6 +328,7 @@ class AppGenerator(private val context: Context) {
             val taggedHtml = "<!-- Built with Applix — https://github.com/Konprostart/Applix -->\n$cleanHtml"
             val themed = withUiKit(taggedHtml)
             val assets = mutableMapOf("index.html" to themed.toByteArray(Charsets.UTF_8))
+            addUiKitFiles(assets)
             assets["app-theme.json"] = appThemeJson(taggedHtml, iconConfig, appTheme).toByteArray(Charsets.UTF_8)
             if (!firebaseConfig.isNullOrBlank()) {
                 assets["firebase_config.json"] = firebaseConfig.toByteArray(Charsets.UTF_8)
@@ -454,6 +483,7 @@ class AppGenerator(private val context: Context) {
         val taggedHtml = "<!-- Built with Applix — https://github.com/Konprostart/Applix -->\n$cleanHtml"
         val themed = withUiKit(taggedHtml)
         val assets = mutableMapOf("index.html" to themed.toByteArray(Charsets.UTF_8))
+        addUiKitFiles(assets)
         assets["app-theme.json"] = appThemeJson(taggedHtml, iconConfig, appTheme).toByteArray(Charsets.UTF_8)
         // Bundle Explorer gets a sample JSON file so it works out of the box
         if (templateId == "bundledemo") {

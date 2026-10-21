@@ -25,6 +25,11 @@ class AppProject {
   /// Format marker written into app.json.
   static const format = 2;
 
+  /// The shared design system shipped with every app (Phase 3).
+  static const uiKitVersion = 1;
+  static const uiKitCss = 'applix-ui.css';
+  static const uiKitJs = 'applix-ui.js';
+
   /// The entry document, relative to the app root.
   final String entry;
 
@@ -157,11 +162,20 @@ class AppProject {
   }
 
   /// The `app.json` manifest handed to the app (and to tooling).
+  ///
+  /// `uiKit` tells the app (and any tooling) where the shared components are:
+  /// they are always shipped next to the entry, so multi-file apps can import
+  /// them with a relative path.
   String manifestJson() => const JsonEncoder.withIndent('  ').convert({
         'applix': format,
         'entry': entry,
         if (name != null) 'name': name,
         'routes': routes,
+        'uiKit': {
+          'version': uiKitVersion,
+          'css': uiKitCss,
+          'js': uiKitJs,
+        },
       });
 
   /// Files packaged into `assets/app/`: the entry, the manifest and modules.

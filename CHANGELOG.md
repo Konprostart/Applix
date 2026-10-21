@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Nothing yet.
+
+## [0.4.0] - 2026-10-21
+
+### Added
+- **UI Kit & design components (Phase 3).** Every app now ships a shared
+  component kit: `applix-ui.css` (tabs, bottom navigation, segmented control,
+  data tables, sheets, toasts, motion helpers) and `applix-ui.js`, a
+  dependency-free ES module with `toast`, `openSheet`, `confirmDialog`,
+  `mountTabs`, `mountBottomNav`, `mountSegmented` and `stagger`.
+- The kit is easy to import in multi-file projects with a relative path
+  (`import { toast } from './applix-ui.js'`); `app.json` advertises it under
+  `uiKit` (`version`, `css`, `js`).
+- The system prompt now forbids hand-written navigation, tab bars, dialogs,
+  toasts and table styling and documents every kit component.
+- CI guards the kit with `tools/check_ui_kit.py` (assets, selectors, exports,
+  packaging, prompt), plus Dart and Kotlin tests.
+- Single-file apps keep working unchanged; the kit is injected exactly as
+  before and can still be disabled with `<meta name="applix-ui" content="off">`.
 - **Multi-file projects (Phase 2).** The model may now answer with a project
   (`index.html` plus `src/*.js`, styles and other text files) instead of one
   document. Files are packaged next to the entry in `assets/app/`, so relative

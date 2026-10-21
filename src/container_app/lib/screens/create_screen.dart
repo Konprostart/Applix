@@ -880,9 +880,7 @@ class CreateScreenState extends State<CreateScreen> {
         appId: appId,
         packageName: _existingPackageName,
         indexHtml: html,
-        files: _extraFiles.isEmpty
-            ? const {}
-            : {..._extraFiles, 'app.json': project.manifestJson()},
+        files: {..._extraFiles, 'app.json': project.manifestJson()},
       );
       final projectPaths = await ProjectStore.paths(appId: appId, packageName: _existingPackageName);
       final result = await Generator.injectHtml(label: label, htmlContent: html, packageName: _existingPackageName, iconConfig: ic.toJsonString(), appTheme: _appTheme.toJsonString(), firebaseConfig: _firebaseConfig.isNotEmpty ? _firebaseConfig : null, onProgress: _addLog, webOnly: appType == 'web', bundleFiles: bundlePaths, projectFiles: projectPaths);

@@ -11,9 +11,18 @@ import 'package:flutter/services.dart' show rootBundle;
 
 class UiKit {
   static const assetPath = 'assets/applix-ui.css';
+  static const jsAssetPath = 'assets/applix-ui.js';
   static const styleId = 'applix-ui-kit';
 
+  /// Names of the kit files shipped next to index.html in every built app.
+  static const cssFileName = 'applix-ui.css';
+  static const jsFileName = 'applix-ui.js';
+
+  /// Version advertised in app.json (`uiKit.version`).
+  static const version = 1;
+
   static String? _css;
+  static String? _js;
 
   /// The design system CSS (cached after the first read).
   static Future<String> loadCss() async {
@@ -24,6 +33,17 @@ class UiKit {
       _css = '';
     }
     return _css!;
+  }
+
+  /// The companion ES module (cached after the first read).
+  static Future<String> loadJs() async {
+    if (_js != null) return _js!;
+    try {
+      _js = await rootBundle.loadString(jsAssetPath);
+    } catch (_) {
+      _js = '';
+    }
+    return _js!;
   }
 
   /// True when the app explicitly opted out of the UI kit.
