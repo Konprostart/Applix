@@ -71,9 +71,9 @@ void main() {
       onBuild: () => build++,
       onRegenerate: () => regenerate++,
     ));
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Preview'));
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Build APK'));
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Regenerate'));
+    await tester.tap(find.byKey(GenerateResultView.previewActionKey));
+    await tester.tap(find.byKey(GenerateResultView.buildActionKey));
+    await tester.tap(find.byKey(GenerateResultView.regenerateActionKey));
     expect(preview, 1);
     expect(build, 1);
     expect(regenerate, 1);
@@ -98,7 +98,7 @@ void main() {
     ));
     expect(find.text('Generating...'), findsOneWidget);
     final button = tester.widget<ElevatedButton>(
-        find.widgetWithText(ElevatedButton, 'Build APK'));
+        find.byKey(GenerateResultView.buildActionKey));
     expect(button.onPressed, isNull);
   });
 }

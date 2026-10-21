@@ -32,6 +32,9 @@ class GenerateResultView extends StatefulWidget {
   static const previewPaneKey = Key('result-preview-pane');
   static const codePaneKey = Key('result-code-pane');
   static const actionsKey = Key('result-sticky-actions');
+  static const previewActionKey = Key('result-action-preview');
+  static const buildActionKey = Key('result-action-build');
+  static const regenerateActionKey = Key('result-action-regenerate');
 
   final String appName;
   final Widget preview;
@@ -263,6 +266,7 @@ class _GenerateResultViewState extends State<GenerateResultView> {
         child: Row(children: [
           Expanded(
             child: _action(
+              key: GenerateResultView.previewActionKey,
               label: 'Preview',
               icon: Icons.visibility,
               onPressed: widget.generating ? null : widget.onOpenPreview,
@@ -271,6 +275,7 @@ class _GenerateResultViewState extends State<GenerateResultView> {
           const SizedBox(width: 8),
           Expanded(
             child: _action(
+              key: GenerateResultView.buildActionKey,
               label: 'Build APK',
               icon: Icons.build,
               primary: true,
@@ -280,6 +285,7 @@ class _GenerateResultViewState extends State<GenerateResultView> {
           const SizedBox(width: 8),
           Expanded(
             child: _action(
+              key: GenerateResultView.regenerateActionKey,
               label: 'Regenerate',
               icon: Icons.refresh,
               onPressed: widget.generating ? null : widget.onRegenerate,
@@ -291,6 +297,7 @@ class _GenerateResultViewState extends State<GenerateResultView> {
   }
 
   Widget _action({
+    required Key key,
     required String label,
     required IconData icon,
     required VoidCallback? onPressed,
@@ -299,6 +306,7 @@ class _GenerateResultViewState extends State<GenerateResultView> {
     return SizedBox(
       height: 46,
       child: ElevatedButton.icon(
+        key: key,
         onPressed: onPressed,
         icon: Icon(icon, size: 16),
         label: Text(label,
