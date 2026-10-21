@@ -104,8 +104,9 @@ class ApkBuildControlTest {
 
     @Test
     fun theUiKitIsAppliedToEveryTemplate() {
-        val css = File("../../assets/applix-ui.css").takeIf { it.exists() }
-            ?: File("src/container_app/assets/applix-ui.css").readText()
+        val cssFile = File("../../assets/applix-ui.css").takeIf { it.exists() }
+            ?: File("src/container_app/assets/applix-ui.css")
+        val css = cssFile.readText()
         val html = "<html><head><title>T</title></head><body><h1>Hello</h1></body></html>"
 
         val themed = AppGenerator.applyUiKit(html, css)
@@ -118,8 +119,9 @@ class ApkBuildControlTest {
 
     @Test
     fun aTemplateCanOptOutOfTheUiKit() {
-        val css = File("../../assets/applix-ui.css").takeIf { it.exists() }
-            ?: File("src/container_app/assets/applix-ui.css").readText()
+        val cssFile = File("../../assets/applix-ui.css").takeIf { it.exists() }
+            ?: File("src/container_app/assets/applix-ui.css")
+        val css = cssFile.readText()
         val html = "<html><head><meta name=\"applix-ui\" content=\"off\"></head><body></body></html>"
         assertEquals("the opt out was ignored", html, AppGenerator.applyUiKit(html, css))
     }
