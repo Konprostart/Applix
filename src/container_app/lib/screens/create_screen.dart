@@ -449,7 +449,7 @@ class CreateScreenState extends State<CreateScreen> {
           systemPrompt: systemPrompt,
           messages: [
             ..._conversation,
-            const ChatMessage(
+            ChatMessage(
               role: 'user',
               content: 'Your previous reply did not contain a complete app. '
                   'Return ONLY the complete HTML document (or one project JSON '
@@ -561,7 +561,7 @@ class CreateScreenState extends State<CreateScreen> {
             systemPrompt: systemPrompt,
             messages: [
               ...outgoing,
-              const ChatMessage(
+              ChatMessage(
                 role: 'user',
                 content: 'Return the complete updated app as the full HTML '
                     'document (or one project JSON block). No patch, no prose.',
