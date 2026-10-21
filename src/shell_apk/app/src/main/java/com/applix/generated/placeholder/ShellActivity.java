@@ -341,6 +341,9 @@ public class ShellActivity extends ComponentActivity {
         WebSettings s = webView.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
+        // IndexedDB and localStorage survive app restarts; the vault is the
+        // only place for secrets (see SecureVault).
+        s.setDatabaseEnabled(true);
         // Native apps do not pinch-zoom and never show the web overscroll glow.
         s.setSupportZoom(false);
         s.setBuiltInZoomControls(false);
@@ -368,6 +371,7 @@ public class ShellActivity extends ComponentActivity {
         webView.addJavascriptInterface(new BiometricBridge(),    "iappyxBiometric");
         webView.addJavascriptInterface(new NfcBridge(),          "iappyxNfc");
         webView.addJavascriptInterface(new SqliteBridge(),       "iappyxSqlite");
+        webView.addJavascriptInterface(new SecureVault(this),    "iappyxVault");
         webView.addJavascriptInterface(new DownloadBridge(),     "iappyxDownload");
         webView.addJavascriptInterface(new MediaBridge(),       "iappyxMedia");
         webView.addJavascriptInterface(new HttpClientBridge(),   "iappyxHttpClient");
@@ -555,7 +559,7 @@ public class ShellActivity extends ComponentActivity {
                     "alarm:iappyxAlarm,audio:iappyxAudio,screen:iappyxScreen," +
                     "contacts:iappyxContacts,sms:iappyxSms,calendar:iappyxCalendar," +
                     "biometric:iappyxBiometric," +
-                    "nfc:iappyxNfc,sqlite:iappyxSqlite,download:iappyxDownload,media:iappyxMedia," +
+                    "nfc:iappyxNfc,sqlite:iappyxSqlite,secure:iappyxVault,download:iappyxDownload,media:iappyxMedia," +
                     "httpServer:iappyxHttpServer,httpClient:iappyxHttpClient,ssh:iappyxSsh,smb:iappyxSmb,ble:iappyxBle,push:iappyxPush,tcp:iappyxTcp,nsd:iappyxNsd,udp:iappyxUdp,wifiDirect:iappyxWifiDirect," +
                     "save:function(k,v){iappyxStorage.save(k,v)}," +
                     "load:function(k){return iappyxStorage.load(k)}," +

@@ -10,6 +10,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.5.0] - 2026-10-21
+
+### Added
+- **Secure vault (Phase 4).** Apps get `iappyx.secure` (`set`, `get`, `has`,
+  `remove`, `clear`, `keys`, `size`, `isAvailable`) backed by an AES-256-GCM
+  key in the **Android Keystore**. Only ciphertext is persisted, values are
+  capped at 256 KB and the key never leaves the keystore. Available in the
+  main shell and in background tasks.
+- **Local data hardening.** WebView database storage is enabled alongside DOM
+  storage, so IndexedDB and localStorage persist across restarts (localStorage
+  also for multi-file projects). The prompt now tells the model to use
+  IndexedDB for bulky data and the vault for every secret.
+- The prompt forbids storing tokens, passwords and keys in `iappyx.save`,
+  WebView storage, bundled files or logs.
+- CI guards the wiring with `tools/check_phase4.py`, a JVM test for the crypto
+  format (round trip, random IV, tamper and wrong-key rejection) and a Dart
+  contract test for the bridge index and prompt.
+- Background scheduling continues to use the existing alarm/task/trigger
+  pipeline (no new WorkManager dependency), which the shell already persists
+  across reboots.
+
 ## [0.4.0] - 2026-10-21
 
 ### Added

@@ -74,6 +74,9 @@ jobs:
       - name: Verify the UI kit is packaged
         run: python3 tools/check_ui_kit.py
 
+      - name: Verify the secure vault wiring
+        run: python3 tools/check_phase4.py
+
 
       - name: Analyze the container app
         run: |

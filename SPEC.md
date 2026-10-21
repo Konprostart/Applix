@@ -119,7 +119,9 @@ When `pickFile` returns a `content://` URI, pass it directly to other bridges (`
 - `Notification` Web API — use `iappyx.notification.*`
 - bare `WebSocket` — sockets to external services need `iappyx.tcp.*` or `iappyx.httpClient.*` polling; WebSocket is also blocked from `file://` origin
 - `await` on bridge calls — `iappyx.*` methods are NOT Promises, they are Java bridge aliases. Awaiting them silently hangs forever. Always use the cbId callback pattern: `iappyx.foo.bar(args, 'cb')` paired with `window._iappyxCb.cb = function(res){…}`.
-- `localStorage`/`sessionStorage` — use `iappyx.save()`/`iappyx.load()` (WebView storage does not persist)
+- `localStorage`/`sessionStorage`/IndexedDB — these now persist across restarts, but keep
+  them for bulky cached data only. Small settings belong in `iappyx.save()`, secrets in
+  `iappyx.secure` (never in WebView storage or plain `iappyx.save`).
 - `eval()` on untrusted input
 - `document.write()` — breaks the page after load
 - `window.open()` — blocked in WebView
@@ -290,6 +292,34 @@ var files=JSON.parse(iappyx.storage.listFiles());
 var extracted=files.some(function(f){return f.name==='mydata.db';});
 if(!extracted){iappyx.storage.extractAsset('mydata.db','mydata.db',cbId);/* open in callback */}
 else{JSON.parse(iappyx.sqlite.open('mydata.db'));/* ready to query */}
+```
+
+### Secure vault (sync, Android Keystore)
+
+`iappyx.secure.set(key,value)` → bool — encrypts the value with an AES-256-GCM key that
+lives in the **Android Keystore** (never exported, bound to this app). Only ciphertext is
+persisted.
+`iappyx.secure.get(key)` → string or null (decrypts) · `iappyx.secure.has(key)` → bool ·
+`iappyx.secure.remove(key)` → bool · `iappyx.secure.clear()` ·
+`iappyx.secure.keys()` → JSON array of **names only** · `iappyx.secure.size()` → int ·
+`iappyx.secure.isAvailable()` → bool (false when the keystore is unavailable).
+
+**Rules**
+- Passwords, API keys, access/refresh tokens, session cookies and recovery codes go in
+  `iappyx.secure` **only**. Never put them in `iappyx.save`, localStorage, IndexedDB,
+  app source, bundled files, `console.log` or a toast.
+- The key is per installed app: uninstalling deletes it and the values are unrecoverable.
+  Do not use the vault as the only copy of data the user expects to keep — keep a backup
+  the user controls for anything critical.
+- Values are capped at 256 KB. For larger secrets (certificates, key files) store a file
+  and keep only a random identifier in the vault.
+- Calls are synchronous like the other bridges and already run off the UI thread; treat
+  `get` returning null as "missing or key invalidated" and handle it gracefully.
+
+```javascript
+iappyx.secure.set('api_token', token);           // true on success
+var t = iappyx.secure.get('api_token');          // null when missing
+if (!iappyx.secure.isAvailable()) { /* show a clear error state */ }
 ```
 
 ### Caching external JS libraries (offline-capable CDN pattern)

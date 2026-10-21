@@ -111,6 +111,7 @@ public class TaskService extends Service {
                 WebSettings s = webView.getSettings();
                 s.setJavaScriptEnabled(true);
                 s.setDomStorageEnabled(true);
+                s.setDatabaseEnabled(true);
                 s.setAllowFileAccess(true);
 
                 // Task control bridge (done signal)
@@ -131,6 +132,8 @@ public class TaskService extends Service {
                 }, "iappyxStorage");
 
                 // Widget bridge (via BridgeUtils)
+                webView.addJavascriptInterface(new SecureVault(ctx), "iappyxVault");
+
                 webView.addJavascriptInterface(new Object() {
                     @JavascriptInterface public void update(String json) { BridgeUtils.updateWidget(ctx, json); }
                     @JavascriptInterface public void clear() { BridgeUtils.clearWidget(ctx); }
@@ -300,6 +303,7 @@ public class TaskService extends Service {
                             "intent:iappyxIntent," +
                             "assets:iappyxAssets," +
                             "httpClient:iappyxHttpClient," +
+                            "secure:iappyxVault," +
                             "save:function(k,v){iappyxStorage.save(k,v)}," +
                             "load:function(k){return iappyxStorage.load(k)}," +
                             "remove:function(k){iappyxStorage.remove(k)}," +

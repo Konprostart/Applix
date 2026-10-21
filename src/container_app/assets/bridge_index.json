@@ -207,6 +207,16 @@
       "setBrightness",
       "wakeLock"
     ],
+    "secure": [
+      "clear",
+      "get",
+      "has",
+      "isAvailable",
+      "keys",
+      "remove",
+      "set",
+      "size"
+    ],
     "sensor": [
       "startAccelerometer",
       "startCompass",
