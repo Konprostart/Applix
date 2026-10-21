@@ -1,10 +1,18 @@
 # Applix
 
 [![Release](https://img.shields.io/github/v/release/Konprostart/Applix.svg)](https://github.com/Konprostart/Applix/releases/latest)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Konprostart/Applix/blob/main/LICENSE)
 
 **Generate real Android apps on your device — no server, no app store, no code.**
 
 Describe what you want to your favorite AI, and Applix turns it into a real installed APK with its own launcher icon. Building, signing, and installing all happen on-device. No cloud. No subscription. No coding required.
+
+> **Android app generator • AI to APK builder • on-device app maker • Flutter + Dart • builds, signs and installs real APKs offline**
+
+Applix is an open source **Android app generator**: you describe an app in plain language, an AI writes the
+code, and Applix compiles it into a **real, signed and installed Android APK** — with its own launcher
+icon, its own package name and its own app name. Everything happens **on the phone**: no server, no
+account, no cloud, no app store. It is built with **Flutter and Dart** and runs entirely offline.
 
 Derived from [iappyxOS](https://github.com/iappyx/iappyxOS) (MIT licensed). See [NOTICE.md](NOTICE.md) for attribution.
 
