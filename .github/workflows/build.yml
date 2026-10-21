@@ -74,6 +74,12 @@ jobs:
           flutter pub get
           flutter build apk --release
 
+      - name: Run the container Android unit tests
+        run: |
+          cd src/container_app/android
+          chmod +x gradlew
+          ./gradlew :app:testDebugUnitTest --no-daemon
+
       - name: Upload full shell APK
         uses: actions/upload-artifact@v4
         with:

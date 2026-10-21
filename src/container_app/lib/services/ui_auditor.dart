@@ -4,6 +4,8 @@
 /// clearly wrong, so a false positive never makes an app worse.
 library;
 
+import 'dev_text_sanitizer.dart';
+
 class UiViolation {
   final String code;
   final String message;
@@ -15,6 +17,9 @@ class UiViolation {
 }
 
 class UiAuditor {
+  static final RegExp _headingPattern =
+      RegExp(r'<h([1-6])(\s[^>]*)?>([\s\S]*?)</h\1\s*>', caseSensitive: false);
+
   /// Audits an HTML document and returns the violations that were found.
   static List<UiViolation> audit(String html) {
     final issues = <UiViolation>[];
@@ -47,20 +52,15 @@ class UiAuditor {
           'Use the Android font stack (system-ui, Roboto) instead of -apple-system.'));
     }
 
-    const devTexts = [
-      'changes and improvements',
-      "what's new",
-      'changelog',
-      'release notes',
-      'version history',
-    ];
-    for (final text in devTexts) {
-      if (lower.contains(text)) {
-        issues.add(UiViolation(
+    // A developer text (changelog, "what's new", release notes) is never part
+    // of the app the user sees. The same text is removed deterministically
+    // before the app is built - see DevTextSanitizer.
+    for (final match in _headingPattern.allMatches(html)) {
+      if (isDevText(match.group(3) ?? '')) {
+        issues.add(const UiViolation(
           'developer-text',
-          'The app contains developer text ("' + text +
-              '") - a changelog, release notes or a list of changes must not be '
-              'part of the app the user sees.',
+          'The app contains a developer text (changelog, release notes or a '
+              'list of changes) - it must not be part of the app the user sees.',
         ));
         break;
       }

@@ -741,3 +741,135 @@ textarea {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------------------------------------------------------------- legacy bridge
+   Plain HTML - the built-in templates and older apps - gets the same look as
+   the .ax-* components. The rules use "html body" so they win over the simple
+   class rules of an old template, while an app that already uses the UI Kit
+   components (.ax-*) is not changed at all. */
+
+html body {
+  font-family: var(--ax-font, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+html body h1,
+html body h2,
+html body h3,
+html body h4 {
+  color: var(--ax-text);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+html body h1 { font-size: 1.75rem; }
+html body h2 { font-size: 1.3rem; }
+html body h3 { font-size: 1.05rem; }
+
+html body p {
+  color: var(--ax-text-dim);
+}
+
+html body a {
+  color: var(--ax-primary);
+  text-decoration: none;
+}
+
+html body a:active {
+  opacity: 0.75;
+}
+
+html body button,
+html body [role="button"] {
+  background: var(--ax-surface-2);
+  border: 1px solid var(--ax-border);
+  border-radius: var(--ax-radius-sm);
+  color: var(--ax-text);
+  font-weight: 600;
+  padding: 10px 16px;
+  min-height: 44px;
+  transition: transform var(--ax-fast) var(--ax-ease),
+              background var(--ax-fast) var(--ax-ease);
+}
+
+html body button:active,
+html body [role="button"]:active {
+  transform: scale(0.97);
+  background: var(--ax-elevated);
+}
+
+html body input,
+html body select,
+html body textarea {
+  background: var(--ax-surface);
+  border: 1px solid var(--ax-border-strong);
+  border-radius: var(--ax-radius-sm);
+  color: var(--ax-text);
+  padding: 10px 12px;
+  min-height: 44px;
+}
+
+html body input:focus,
+html body select:focus,
+html body textarea:focus {
+  outline: none;
+  border-color: var(--ax-primary);
+  box-shadow: 0 0 0 3px var(--ax-glow);
+}
+
+html body ul,
+html body ol {
+  color: var(--ax-text-dim);
+}
+
+html body li {
+  margin: 4px 0;
+}
+
+html body hr {
+  border: none;
+  border-top: 1px solid var(--ax-border);
+  margin: 16px 0;
+}
+
+html body img {
+  border-radius: var(--ax-radius);
+}
+
+html body code,
+html body pre {
+  background: var(--ax-surface-2);
+  border-radius: var(--ax-radius-sm);
+  color: var(--ax-text);
+}
+
+html body pre {
+  padding: 12px;
+  overflow-x: auto;
+}
+
+html body table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+html body th,
+html body td {
+  border-bottom: 1px solid var(--ax-border);
+  padding: 10px 8px;
+  text-align: left;
+}
+
+html body th {
+  color: var(--ax-text);
+  font-weight: 600;
+}
+
+html body blockquote {
+  border-left: 3px solid var(--ax-primary);
+  color: var(--ax-text-dim);
+  padding-left: 12px;
+  margin: 12px 0;
+}

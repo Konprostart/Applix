@@ -49,6 +49,7 @@ import 'icon_editor_screen.dart';
 import '../services/error_helper.dart';
 import 'flows/create_helpers.dart' as h;
 import 'showcase_screen.dart';
+import '../services/dev_text_sanitizer.dart';
 
 class CreateScreen extends StatefulWidget {
   final VoidCallback? onAppSaved;
@@ -472,12 +473,13 @@ class CreateScreenState extends State<CreateScreen> {
   }
 
   void _useThisHtml(String html) {
+    final clean = DevTextSanitizer.removeDevText(html);
     setState(() {
-      _selectedHtml = html;
-      _htmlController.text = html;
+      _selectedHtml = clean;
+      _htmlController.text = clean;
       _htmlExpanded = false;
     });
-    _refreshBridgeIssues(html);
+    _refreshBridgeIssues(clean);
     _snack('HTML loaded. Preview or build below.');
     Future.delayed(const Duration(milliseconds: 300), () {
       if (_formScrollController.hasClients) {
@@ -697,7 +699,7 @@ class CreateScreenState extends State<CreateScreen> {
     final label = _nameController.text.trim();
     final url = _urlController.text.trim();
     if (label.isEmpty || url.isEmpty) { _snack('Please fill in name and URL.'); return; }
-    if (label.length > 35 || label.codeUnits.length > 35) { _snack('Name too long (max 35 characters).'); return; }
+    if (label.length > 37 || label.codeUnits.length > 37) { _snack('Name too long (max 37 characters).'); return; }
     if (!url.startsWith('http://') && !url.startsWith('https://')) { _snack('URL must start with http:// or https://'); return; }
     final safeLabel = label.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
     final safeUrl = url.replaceAll('\\', '\\\\').replaceAll('"', '\\"').replaceAll('<', '\\x3c');
@@ -709,7 +711,7 @@ class CreateScreenState extends State<CreateScreen> {
     final label = _nameController.text.trim();
     final html = _htmlController.text.trim();
     if (label.isEmpty || html.isEmpty) { _snack('Fill in name and paste HTML.'); return; }
-    if (label.length > 35 || label.codeUnits.length > 35) { _snack('Name too long (max 35 characters).'); return; }
+    if (label.length > 37 || label.codeUnits.length > 37) { _snack('Name too long (max 37 characters).'); return; }
     if (!html.startsWith('<')) { _snack('HTML must start with < (e.g., <!DOCTYPE html>).'); return; }
     final issues = await _lintBridge(html);
     if (issues.isNotEmpty) {
@@ -740,7 +742,7 @@ class CreateScreenState extends State<CreateScreen> {
     final t = [...h.starterTemplates, ...h.demoTemplates].where((t) => t.$1 == _selectedDemoId).firstOrNull;
     if (t == null) { _snack('Demo template not found.'); return; }
     final label = _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : t.$3;
-    if (label.length > 35 || label.codeUnits.length > 35) { _snack('Name too long (max 35 characters).'); return; }
+    if (label.length > 37 || label.codeUnits.length > 37) { _snack('Name too long (max 37 characters).'); return; }
     if (_iconConfig.elements.isEmpty) {
       _iconConfig = IconConfig(bgColor: IconConfig.colorForString(t.$2), elements: [IconElement(content: t.$2)]);
     }

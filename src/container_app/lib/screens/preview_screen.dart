@@ -33,6 +33,7 @@ import '../services/prompt_builder.dart';
 import '../services/project_store.dart';
 import '../services/settings_service.dart';
 import '../services/ui_kit.dart';
+import '../services/dev_text_sanitizer.dart';
 
 class PreviewScreen extends StatefulWidget {
   final String htmlContent;
@@ -693,7 +694,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
   Future<String> _prepareHtml([String? html]) async {
     final source = html ?? widget.htmlContent;
     final withFiles = ProjectStore.inlineProjectFiles(source, widget.projectFiles);
-    return UiKit.applyTo(withFiles);
+    return UiKit.applyTo(DevTextSanitizer.removeDevText(withFiles));
   }
 
   /// The first JavaScript error in the console (a syntax error breaks the app).

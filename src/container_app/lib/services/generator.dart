@@ -24,6 +24,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dev_text_sanitizer.dart';
 
 class BuildResult {
   final String packageName;
@@ -86,7 +87,7 @@ class Generator {
     try {
       final result = await _ch.invokeMethod<Map>('injectHtml', {
         'label': label,
-        'html': htmlContent,
+        'html': DevTextSanitizer.removeDevText(htmlContent),
         if (packageName != null) 'packageName': packageName,
         if (iconConfig != null) 'iconConfig': iconConfig,
         if (appTheme != null && appTheme.isNotEmpty) 'appTheme': appTheme,

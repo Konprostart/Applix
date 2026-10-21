@@ -10,6 +10,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.2.8] - 2026-10-21
+
+### Added
+- **A control pass that proves the app name.** A new Android unit test builds the real shell
+  template, patches it with the real injector and checks that the name in the manifest is exactly
+  the name the user typed, that no placeholder is left over, that the length in the string pool
+  is correct and that a name which does not fit is rejected instead of breaking the build.
+  It runs on every push in CI.
+- **A check that simulates the whole patch.** tools/check_placeholders.py now patches the built
+  shell template with the same algorithm, in the same order, as the injector and then reads the
+  binary manifest back: the string pool has to stay complete, the new name and the new package
+  have to be in it and no value may get lost.
+- **Developer texts are removed deterministically.** A new service strips a changelog, a
+  "what's new" list, release notes or a version history from the generated app - before it is
+  previewed, before it is shown in the editor and before it is built into the APK. It does not
+  depend on the AI polishing the code, so a generated app is always clean.
+- **Plain HTML gets the new look.** The UI Kit now has a bridge layer that gives headings,
+  buttons, inputs, lists, tables and code blocks the same look as the .ax-* components. The
+  built-in templates and older apps get the new design without their code being rewritten, and
+  apps that already use the UI Kit components are not changed at all.
+
+### Fixed
+- The name of a generated app was limited to 35 characters although the placeholder in the
+  template has 37 - the limit is now exactly the length of the placeholder.
+- The visual check no longer flags an app that only mentions "release notes" in its content; it
+  only flags an actual developer section.
+
+### Changed
+- The preview, the code editor and the build all run the same developer text removal, so what
+  the user sees is exactly what ends up in the APK.
+
 ## [0.2.7] - 2026-10-20
 
 ### Fixed
@@ -511,7 +542,8 @@ First public release of Applix.
 - The container APK is signed with a dedicated release key in CI; the key never leaves the
   GitHub Actions secrets and is never committed to the repository.
 
-[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.2.7...HEAD
+[Unreleased]: https://github.com/Konprostart/Applix/compare/v0.2.8...HEAD
+[0.2.8]: https://github.com/Konprostart/Applix/releases/tag/v0.2.8
 [0.2.7]: https://github.com/Konprostart/Applix/releases/tag/v0.2.7
 [0.2.6]: https://github.com/Konprostart/Applix/releases/tag/v0.2.6
 [0.2.5]: https://github.com/Konprostart/Applix/releases/tag/v0.2.5

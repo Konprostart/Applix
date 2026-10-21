@@ -39,6 +39,29 @@ class AppGenerator(private val context: Context) {
         private const val TAG = "Applix"
         private const val TEMPLATE_ASSET = "flutter_assets/assets/shell_template.apk"
         private const val TEMPLATE_ASSET_WEB = "flutter_assets/assets/shell_template_web.apk"
+
+        /**
+         * Injects the design system into an HTML document. Pure function, so it
+         * can be covered by unit tests - the CSS comes from the caller.
+         */
+        internal fun applyUiKit(html: String, css: String): String {
+            val lower = html.lowercase()
+            if (lower.contains("applix-ui") && (lower.contains("content=\"off\"") || lower.contains("content='off'"))) {
+                return html
+            }
+            if (css.isEmpty()) return html
+            if (html.contains("id=\"applix-ui-kit\"")) return html
+            val block = "<style id=\"applix-ui-kit\">\n$css\n</style>"
+            return when {
+                html.contains("<head>") -> html.replaceFirst("<head>", "<head>\n$block")
+                html.contains("<head ") -> {
+                    val idx = html.indexOf(">")
+                    html.substring(0, idx + 1) + "\n" + block + html.substring(idx + 1)
+                }
+                html.contains("<html>") -> html.replaceFirst("<html>", "<html>\n<head>\n$block\n</head>")
+                else -> "$block\n$html"
+            }
+        }
     }
 
     private val injector = ApkInjector(KeyManager.KEY_ALIAS)
@@ -66,26 +89,7 @@ class AppGenerator(private val context: Context) {
         return css
     }
 
-    private fun withUiKit(html: String): String {
-        val lower = html.lowercase()
-        if (lower.contains("applix-ui") && (lower.contains("content=\"off\"") || lower.contains("content='off'"))) {
-            return html
-        }
-        val css = uiKit()
-        if (css.isEmpty()) return html
-        if (html.contains("id=\"applix-ui-kit\"")) return html
-        val block = "<style id=\"applix-ui-kit\">\n$css\n</style>"
-        return when {
-            html.contains("<head>") -> html.replaceFirst("<head>", "<head>\n$block")
-            html.contains("<head ") -> {
-                val idx = html.indexOf(">")
-                html.substring(0, idx + 1) + "\n" + block + html.substring(idx + 1)
-            }
-            html.contains("<html>") -> html.replaceFirst("<html>", "<html>\n<head>\n$block\n</head>")
-            else -> "$block\n$html"
-        }
-    }
-
+    private fun withUiKit(html: String): String = applyUiKit(html, uiKit())
     /**
      * Per-app theme the shell applies to the system bars. The builder decides
      * the colors: a light app gets light bars with dark icons, everything else

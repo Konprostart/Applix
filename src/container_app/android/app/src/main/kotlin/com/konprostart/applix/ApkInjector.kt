@@ -54,8 +54,8 @@ class ApkInjector(private val keystoreAlias: String = "applix_signing_key") {
         // Must match the placeholder in the shell manifest
         // (src/shell_apk/app/src/main/AndroidManifest.xml). If the two differ the
         // label is never replaced and the app keeps the placeholder as its name.
-        private const val LABEL_PLACEHOLDER = "APPLIX_PLACEHOLDER_LABEL_XXXXXXXXXXXX"
-        private const val TEMPLATE_PACKAGE   = "com.applix.generated.placeholderx.xxxxxxxx"
+        internal const val LABEL_PLACEHOLDER = "APPLIX_PLACEHOLDER_LABEL_XXXXXXXXXXXX"
+        internal const val TEMPLATE_PACKAGE   = "com.applix.generated.placeholderx.xxxxxxxx"
         private const val TEMPLATE_AUTHORITY = "com.applix.generated.placeholderx.xxxxxxxx.provider"
         private const val TEMPLATE_DYNPERM  = "com.applix.generated.placeholderx.xxxxxxxx.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
         private const val TEMPLATE_MLKIT   = "com.applix.generated.placeholderx.xxxxxxxx.mlkitinitprovider"
@@ -266,7 +266,7 @@ class ApkInjector(private val keystoreAlias: String = "applix_signing_key") {
 
     // ── Manifest patching ──
 
-    private fun patchManifest(data: ByteArray, packageName: String, label: String): ByteArray {
+    internal fun patchManifest(data: ByteArray, packageName: String, label: String): ByteArray {
         val authority = "$packageName.provider"
         val dynPerm = "$packageName.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
         val mlkit = "$packageName.mlkitinitprovider"
@@ -284,7 +284,7 @@ class ApkInjector(private val keystoreAlias: String = "applix_signing_key") {
         return r
     }
 
-    private fun replaceAllUtf16(data: ByteArray, placeholder: String, replacement: String): ByteArray {
+    internal fun replaceAllUtf16(data: ByteArray, placeholder: String, replacement: String): ByteArray {
         val ph = placeholder.toByteArray(Charsets.UTF_16LE)
         val rep = replacement.toByteArray(Charsets.UTF_16LE)
         if (rep.size > ph.size) throw IllegalArgumentException(
