@@ -95,9 +95,13 @@ if re.search(r"_conversation = \[ChatMessage\(role: 'user', content: 'App name:"
              create):
     errors.append("create_screen.dart still sends only the app name to the model")
 
-# UI kit v2.
+# UI kit v2 and one version number everywhere.
 if "UI_KIT_VERSION = 2" not in kit_js:
     errors.append("applix-ui.js is not at UI_KIT_VERSION 2")
+if "static const version = 2;" not in read(ROOT / "src/container_app/lib/services/ui_kit.dart", "UiKit"):
+    errors.append("ui_kit.dart still advertises an old kit version")
+if "static const uiKitVersion = 2;" not in read(ROOT / "src/container_app/lib/services/app_project.dart", "AppProject"):
+    errors.append("app_project.dart still advertises an old kit version")
 for name in ("icon", "mountIcons", "sparkline", "barChart", "donut"):
     if not re.search(rf"export\s+function\s+{name}\s*\(", kit_js):
         errors.append(f"applix-ui.js does not export {name}()")

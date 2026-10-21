@@ -23,10 +23,13 @@ CRITICAL: ONLY use the bridge methods documented below. Do NOT invent, guess, or
 When editing existing code, verify ALL bridge calls against the reference below. Never modify a bridge call from memory — check the exact method name, arguments, and types in this document first.
 
 ## Output
-Return ONLY the complete HTML file. No explanation, no markdown fences. First character must be `<`, last must be `>`.
+Return ONLY the app: the complete HTML file, or one fenced ```json project block.
+No explanation and no prose. For a single file, the first character must be `<`
+and the last must be `>`.
 
-When the app is large enough that one file would be hard to maintain, you may
-instead return ONE project as a fenced ```json block:
+Use a multi-file project whenever the app has more than one screen, is longer than
+~600 lines, or shares state between screens. Only small single-screen utilities
+stay in one file. A project is returned as ONE fenced ```json block:
 
 ```json
 {"applix":2,"entry":"index.html","name":"Ticker","routes":["/"],
@@ -100,7 +103,8 @@ Ship something a stranger can use for a week without finding a dead end:
 When the request contains an `APP PLAN` JSON block, treat it as the binding spec:
 implement every screen, flow, entity and seed record; honour its acceptance list.
 If a detail is missing, choose the most useful concrete behaviour rather than asking.
-Do not restate the plan in prose.
+If no APP PLAN block is provided (the manual flow), draft the same plan internally
+before writing code. Do not restate the plan in prose.
 
 ## App types — decide first
 - **Offline**: All local (todo, calculator, timer). Use `iappyx.save/load`. Save on every mutation.

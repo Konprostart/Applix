@@ -19,7 +19,7 @@ class UiKit {
   static const jsFileName = 'applix-ui.js';
 
   /// Version advertised in app.json (`uiKit.version`).
-  static const version = 1;
+  static const version = 2;
 
   static String? _css;
   static String? _js;
