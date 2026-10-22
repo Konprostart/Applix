@@ -12,7 +12,7 @@
 // helpers only build markup with .ax-* classes, so app CSS can still override
 // everything. No bridge calls: the kit works before the native bridge is ready.
 
-export const UI_KIT_VERSION = 2;
+const UI_KIT_VERSION = 2;
 
 const el = (tag, className = '', text = '') => {
   const node = document.createElement(tag);
@@ -28,7 +28,7 @@ const button = (className, label) => {
 };
 
 /** Transient message at the bottom of the screen. `tone`: 'error' | 'success'. */
-export function toast(message, { duration = 2200, action, tone } = {}) {
+function toast(message, { duration = 2200, action, tone } = {}) {
   const node = el('div', 'ax-toast ax-toast--js' + (tone ? ' ax-toast--' + tone : ''));
   node.setAttribute('role', 'status');
   node.appendChild(el('span', 'ax-toast__msg', message));
@@ -56,7 +56,7 @@ export function toast(message, { duration = 2200, action, tone } = {}) {
 }
 
 /** Error message for failed actions. Never leave a failure silent. */
-export function showError(message, { duration = 3800, action } = {}) {
+function showError(message, { duration = 3800, action } = {}) {
   return toast(String(message || 'Something went wrong.'), { duration, action, tone: 'error' });
 }
 
@@ -65,7 +65,7 @@ export function showError(message, { duration = 3800, action } = {}) {
  * Returns { close, sheet }. `onClose` fires exactly once, also on backdrop
  * tap or Escape.
  */
-export function openSheet({ title, content, actions = [], dismissible = true, onClose } = {}) {
+function openSheet({ title, content, actions = [], dismissible = true, onClose } = {}) {
   const backdrop = el('div', 'ax-sheet-backdrop ax-sheet-backdrop--js');
   const sheet = el('div', 'ax-sheet');
   sheet.setAttribute('role', 'dialog');
@@ -122,7 +122,7 @@ export function openSheet({ title, content, actions = [], dismissible = true, on
 }
 
 /** Promise<boolean> confirmation built on the sheet. */
-export function confirmDialog({
+function confirmDialog({
   title = 'Are you sure?',
   message = '',
   confirmLabel = 'Confirm',
@@ -153,7 +153,7 @@ export function confirmDialog({
 }
 
 /** Animated top tab bar. tabs: [{id, label}] */
-export function mountTabs(container, { tabs = [], active = 0, onChange } = {}) {
+function mountTabs(container, { tabs = [], active = 0, onChange } = {}) {
   container.textContent = '';
   const bar = el('div', 'ax-tabs');
   bar.setAttribute('role', 'tablist');
@@ -183,7 +183,7 @@ export function mountTabs(container, { tabs = [], active = 0, onChange } = {}) {
 }
 
 /** Fixed bottom navigation. items: [{id, label, icon}] (icon is a short text/emoji). */
-export function mountBottomNav(container, { items = [], active = 0, onChange } = {}) {
+function mountBottomNav(container, { items = [], active = 0, onChange } = {}) {
   container.textContent = '';
   const nav = el('nav', 'ax-bottom-nav');
   let current = active;
@@ -214,7 +214,7 @@ export function mountBottomNav(container, { items = [], active = 0, onChange } =
 }
 
 /** iOS-style segmented control. options: [{id, label}] or string[]. */
-export function mountSegmented(container, { options = [], active = 0, onChange } = {}) {
+function mountSegmented(container, { options = [], active = 0, onChange } = {}) {
   container.textContent = '';
   const wrap = el('div', 'ax-segmented');
   const normalized = options.map((option, index) =>
@@ -243,7 +243,7 @@ export function mountSegmented(container, { options = [], active = 0, onChange }
 }
 
 /** Staggers the entrance animation of a list of elements. */
-export function stagger(selector, root = document) {
+function stagger(selector, root = document) {
   const nodes = typeof selector === 'string'
     ? Array.from(root.querySelectorAll(selector))
     : Array.from(selector);
@@ -284,7 +284,7 @@ function svgEl(tag, attrs = {}) {
 }
 
 /** Inline SVG icon (stroke style, currentColor). name: see ICONS. */
-export function icon(name, { size = 22, className = 'ax-icon' } = {}) {
+function icon(name, { size = 22, className = 'ax-icon' } = {}) {
   const svg = svgEl('svg', {
     class: className,
     viewBox: '0 0 24 24',
@@ -299,7 +299,7 @@ export function icon(name, { size = 22, className = 'ax-icon' } = {}) {
 }
 
 /** Replaces <span data-ax-icon="home"></span> with inline SVG icons. */
-export function mountIcons(root = document) {
+function mountIcons(root = document) {
   const nodes = Array.from(root.querySelectorAll('[data-ax-icon]'));
   nodes.forEach((node) => {
     const svg = icon(node.dataset.axIcon, {
@@ -316,7 +316,7 @@ function numeric(values) {
 }
 
 /** SVG sparkline for a series of numbers. */
-export function sparkline(values, { width = 280, height = 64, stroke = 'var(--ax-primary)', fill = true } = {}) {
+function sparkline(values, { width = 280, height = 64, stroke = 'var(--ax-primary)', fill = true } = {}) {
   const nums = numeric(values);
   const svg = svgEl('svg', {
     class: 'ax-sparkline',
@@ -356,7 +356,7 @@ export function sparkline(values, { width = 280, height = 64, stroke = 'var(--ax
 }
 
 /** Simple bar chart. values: numbers; labels: optional strings. */
-export function barChart(values, { labels = [], height = 120, format } = {}) {
+function barChart(values, { labels = [], height = 120, format } = {}) {
   const nums = numeric(values);
   const wrap = el('div', 'ax-chart');
   const bars = el('div', 'ax-chart__bars');
@@ -381,7 +381,7 @@ export function barChart(values, { labels = [], height = 120, format } = {}) {
 }
 
 /** Donut progress 0..100 with a centered label. */
-export function donut(value, { size = 96, strokeWidth = 10, label = '', tone = 'var(--ax-primary)' } = {}) {
+function donut(value, { size = 96, strokeWidth = 10, label = '', tone = 'var(--ax-primary)' } = {}) {
   const pct = Math.max(0, Math.min(100, Number(value) || 0));
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -415,7 +415,7 @@ export function donut(value, { size = 96, strokeWidth = 10, label = '', tone = '
   return svg;
 }
 
-export default {
+window.AppliX = {
   version: UI_KIT_VERSION,
   toast,
   showError,
@@ -431,3 +431,10 @@ export default {
   barChart,
   donut,
 };
+
+// Classic-script exposure: the kit is loaded with a plain <script src>, so every
+// helper is a global. This file is a plain script, not a module.
+Object.keys(window.AppliX).forEach(function (name) {
+  if (name !== 'version') window[name] = window.AppliX[name];
+});
+window.UI_KIT_VERSION = UI_KIT_VERSION;

@@ -64,11 +64,15 @@ for selector in REQUIRED_CSS:
 if "tabular-nums" not in css:
     errors.append("CSS tables must use tabular numbers")
 
-if not re.search(r"^\s*export\s+const\s+UI_KIT_VERSION", js, re.M):
-    errors.append("JS must export UI_KIT_VERSION")
+if not re.search(r"^\s*const\s+UI_KIT_VERSION\s*=", js, re.M):
+    errors.append("JS must declare UI_KIT_VERSION")
+if re.search(r"\bexport\b", js):
+    errors.append("JS must not contain the word 'export' (it is a classic script)")
 for name in REQUIRED_JS[1:]:
-    if not re.search(rf"export\s+function\s+{name}\s*\(", js):
-        errors.append(f"JS must export function {name}()")
+    if not re.search(rf"^\s*function\s+{name}\s*\(", js, re.M):
+        errors.append(f"JS must define function {name}()")
+    if f"window.AppliX" not in js or name not in js:
+        errors.append(f"JS must expose {name} on window")
 if re.search(r"^\s*import\s", js, re.M) or "require(" in js:
     errors.append("UI kit JS must stay dependency-free (no import/require)")
 if "addEventListener" not in js or "document.createElement" not in js:

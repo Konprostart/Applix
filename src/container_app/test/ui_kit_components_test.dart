@@ -53,8 +53,9 @@ void main() {
       expect(css, contains('--ax-safe-bottom'));
     });
 
-    test('the module exports the documented helpers and is self-contained', () {
-      expect(js, contains('export const UI_KIT_VERSION = 2;'));
+    test('the kit is a classic script: no export word, helpers exposed on window', () {
+      expect(js, isNot(matches(RegExp(r'\bexport\b'))));
+      expect(js, contains('const UI_KIT_VERSION = 2;'));
       for (final fn in [
         'toast',
         'showError',
@@ -70,9 +71,9 @@ void main() {
         'barChart',
         'donut',
       ]) {
-        expect(js, contains('export function $fn('), reason: 'missing $fn');
+        expect(js, contains('function $fn('), reason: 'missing $fn');
       }
-      expect(js, contains('export default {'));
+      expect(js, contains('window.AppliX = {'));
       expect(js, isNot(matches(RegExp(r'^\s*import\s', multiLine: true))));
       expect(js, isNot(contains('require(')));
       expect(js, isNot(contains('iappyx')));

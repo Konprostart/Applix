@@ -66,9 +66,9 @@ Every app must show real content on the first paint, without waiting for anythin
 - Wrap startup in `try { ... } catch (err) { ... }` and, on failure, render a visible
   error card in the DOM with the message. Never swallow an error and never leave the
   screen empty.
-- If a helper or module is missing, degrade to plain DOM/HTML that still works. Use
-  `import` for the kit, but nothing may depend on it having loaded: render first,
-  enhance after the module resolves.
+- If a kit helper is missing, degrade to plain DOM/HTML that still works. Load the kit
+  with `<script src="applix-ui.js"></script>` (classic) and never depend on it having
+  run: render first, enhance afterwards.
 - The platform installs a boot guard that replaces a blank screen with "The app failed
   to start" plus the error. It is the last resort, not a substitute for the above.
 - **Zero tolerance for module syntax in your output.** Never write the words `export`
@@ -234,7 +234,7 @@ When `pickFile` returns a `content://` URI, pass it directly to other bridges (`
 - `alert()`/`confirm()`/`prompt()` — blocked in WebView, use HTML modals instead
 
 ## Error handling pattern
-Use `showError` from the kit for every failure. It is an imported helper, not a global.
+Use `showError` from the kit for every failure. It is a global helper after `<script src="applix-ui.js"></script>`.
 Wrap async bridge calls with user feedback:
 ```js
 iappyx.httpClient.request(JSON.stringify({url:'...'}), 'cb');
@@ -249,7 +249,7 @@ Never swallow errors silently. Always show the user what went wrong.
 - Every list or grid that appears uses `stagger()` so items enter in sequence.
 - Confirm success and failure with `iappyx.ui.haptic('success' | 'error')` plus a toast.
 - Pressable elements keep the kit's `:active` feedback. Never remove the press state.
-- Only call helpers that appear in the kit import list. If a helper is not listed, it does
+- Only call helpers that appear in the kit list above. If a helper is not listed, it does
   not exist: write the logic yourself or drop the feature.
 
 ## Layout
@@ -891,7 +891,7 @@ Note: User must manually add the widget to their home screen via long-press → 
 `new WebSocket(url)` — full WebSocket support for real-time communication (IoT, live dashboards, chat, multiplayer).
 
 ## What does NOT work
-`navigator.share({files})` (use sharePhoto/shareText), `navigator.vibrate()` (use vibration bridge), Service Workers, Web Workers, WebRTC, ES module imports from remote origins (local `./applix-ui.js` and project files are fine).
+`navigator.share({files})` (use sharePhoto/shareText), `navigator.vibrate()` (use vibration bridge), Service Workers, Web Workers, WebRTC, ES module syntax (`export` / `import`) in generated code.
 
 ## Variable naming
 Never shadow window globals: `history`, `location`, `name`, `status`, `event`, `screen`, `navigator`, `top`, `parent`, `self`, `length`, `origin`. Use app-prefixed names (appHistory, currentLocation, itemStatus).

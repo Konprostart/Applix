@@ -103,8 +103,10 @@ if "static const version = 2;" not in read(ROOT / "src/container_app/lib/service
 if "static const uiKitVersion = 2;" not in read(ROOT / "src/container_app/lib/services/app_project.dart", "AppProject"):
     errors.append("app_project.dart still advertises an old kit version")
 for name in ("icon", "mountIcons", "sparkline", "barChart", "donut"):
-    if not re.search(rf"export\s+function\s+{name}\s*\(", kit_js):
-        errors.append(f"applix-ui.js does not export {name}()")
+    if not re.search(rf"^\s*function\s+{name}\s*\(", kit_js, re.M):
+        errors.append(f"applix-ui.js does not define {name}()")
+if re.search(r"\bexport\b", kit_js):
+    errors.append("applix-ui.js must not contain the word 'export'")
 for selector in (".ax-select", ".ax-check", ".ax-radio", ".ax-search",
                  ".ax-chart__bars", ".ax-sparkline", ".ax-donut", ".ax-icon-btn"):
     if selector not in kit_css:

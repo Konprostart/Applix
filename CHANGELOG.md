@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.9.11] - 2026-10-22
+
+### Fixed
+- **`applix-ui.js` no longer contains `export`.** The UI kit was an ES module
+  that the apps load as a plain `<script src>`, so the browser failed at its
+  first `export` (`Unexpected token 'export'`) on both the preview and the
+  installed APK. The kit is now a classic script: the helpers are declared as
+  plain functions and exposed as globals (`window.AppliX` and `window.<name>`).
+  The file contains no `export` word at all.
+- Kit checks (`tools/check_ui_kit.py`, `tools/check_phase5.py`) and the kit test
+  now verify the classic form and fail if `export` returns.
+- The prompt no longer tells the model to `import` the kit; it loads it with
+  `<script src="applix-ui.js"></script>`. SPEC.md stays identical.
+
 ## [0.9.10] - 2026-10-22
 
 ### Fixed
