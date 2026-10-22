@@ -65,12 +65,14 @@ void main() {
       expect(bodies, isNot(contains('export {')));
     });
 
-    test('the kit tag becomes a module with a window glue', () {
+    test('the kit stays a classic tag and its helpers become globals', () {
       final result = ScriptSanitizer.normalize(_notesHtml, const {
         'applix-ui.js': 'export function toast(m) { return m; }',
       });
-      expect(result.html, contains('<script type="module" src="applix-ui.js">'));
-      expect(result.html, contains('window[k]=__applixModule[k]'));
+      expect(result.html, contains('<script src="applix-ui.js"></script>'));
+      expect(result.html, isNot(contains('type="module" src="applix-ui.js"')));
+      expect(result.files['applix-ui.js'], contains('function toast(m)'));
+      expect(result.files['applix-ui.js'], isNot(contains('export')));
     });
 
     test('a project file with export is cleaned when loaded as a classic src', () {

@@ -93,7 +93,7 @@ void main() {
     test('the prompt requires the kit instead of hand-written widgets', () {
       final prompt = _read('assets/system_prompt.md');
       expect(prompt, contains('applix-ui.js'));
-      expect(prompt, contains("from './applix-ui.js'"));
+      expect(prompt, contains('<script src="applix-ui.js"></script>'));
       expect(prompt, contains('mountBottomNav'));
       expect(prompt, contains('confirmDialog'));
       expect(prompt, contains('Never build bottom navigation'));

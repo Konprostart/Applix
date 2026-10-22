@@ -139,10 +139,15 @@ class ScriptSanitizer {
         final key = _fileKey(src, updated);
         if (key != null) {
           final code = updated[key]!;
-          if (hasImports(code) || hasExports(code)) {
+          if (hasImports(code)) {
             out.write(_asModule(whole));
             out.write(_glue(src));
             continue;
+          }
+          if (hasExports(code)) {
+            // Declarations stay global once `export` is gone, so the tag can
+            // remain a classic script.
+            updated[key] = stripExports(code);
           }
         }
         out.write(whole);
