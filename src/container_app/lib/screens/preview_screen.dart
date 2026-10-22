@@ -29,6 +29,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 import '../models/ai_provider.dart';
 import '../services/ai_response.dart';
 import '../services/ai_service.dart';
@@ -684,6 +685,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
 </script>
 ''';
 
+  bool _pageReady = false;
+  String? _mainFrameError;
+
   @override
   void initState() {
     super.initState();
@@ -693,7 +697,22 @@ class _PreviewScreenState extends State<PreviewScreen> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..addJavaScriptChannel('ConsoleChannel', onMessageReceived: _onConsoleMessage)
-      ..addJavaScriptChannel('BridgeChannel', onMessageReceived: _onBridgeMessage);
+      ..addJavaScriptChannel('BridgeChannel', onMessageReceived: _onBridgeMessage)
+      ..setNavigationDelegate(NavigationDelegate(
+        onPageFinished: (_) {
+          if (mounted) setState(() => _pageReady = true);
+        },
+        onWebResourceError: (error) {
+          if (!error.isErrorForMainFrame) return;
+          if (mounted) setState(() => _mainFrameError = error.description);
+        },
+      ));
+    // A WebView with no loaded content can paint black on some devices while
+    // the page loads; keep it visibly themed before and after every load.
+    final platform = _controller.platform;
+    if (platform is AndroidWebViewController) {
+      platform.setBackgroundColor(const Color(0xFF101019));
+    }
     _loadPreview();
   }
 
@@ -711,6 +730,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
   /// Loads the app with the same design system and the same project files the
   /// built app gets, so the preview looks exactly like the installed app.
   Future<void> _loadPreview() async {
+    setState(() {
+      _pageReady = false;
+      _mainFrameError = null;
+    });
     final html = await _prepareHtml();
     if (!mounted) return;
     _controller.loadHtmlString(
@@ -1021,6 +1044,39 @@ class _PreviewScreenState extends State<PreviewScreen> {
     if (widget.embedded) {
       return Stack(children: [
         Positioned.fill(child: WebViewWidget(controller: _controller)),
+        if (_mainFrameError != null)
+          Positioned.fill(
+            child: Container(
+              color: const Color(0xFF101019),
+              padding: const EdgeInsets.all(24),
+              alignment: Alignment.center,
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.warning_amber_rounded, size: 32, color: Color(0xFFFFB74D)),
+                const SizedBox(height: 12),
+                const Text('Preview could not load this content.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 6),
+                Text(_mainFrameError!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 11, color: Colors.white54)),
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  key: const Key('preview-retry-key'),
+                  onPressed: _loadPreview,
+                  icon: const Icon(Icons.refresh, size: 16),
+                  label: const Text('Retry'),
+                ),
+              ]),
+            ),
+          )
+        else if (!_pageReady)
+          const Positioned.fill(
+            child: ColoredBox(
+              color: Color(0xFF101019),
+              child: Center(child: CircularProgressIndicator(strokeWidth: 3, color: Color(0xFF6C8CFF))),
+            ),
+          ),
         if (_jsError != null)
           Positioned(
             left: 8, right: 8, bottom: 8,

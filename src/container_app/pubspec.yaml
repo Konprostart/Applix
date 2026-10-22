@@ -1,7 +1,7 @@
 name: applix
 description: Applix — AI-powered app generator.
 publish_to: 'none'
-version: 0.9.5
+version: 0.9.6
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   webview_flutter: ^4.10.0
+  webview_flutter_android: ^4.14.1
   path_provider: ^2.1.0
   file_picker: ^8.0.0
   shared_preferences: ^2.5.3

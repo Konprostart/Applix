@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.9.6] - 2026-10-22
+
+### Fixed
+- **No more dead screen during generation.** The form now shows a live
+  progress card with the pipeline stage and a Cancel button while the AI is
+  working, instead of freezing the Generate button silently.
+- **Preview hardening.** The WebView gets an explicit themed background and a
+  loading indicator; if the main frame fails to load, a visible error card
+  with the reason and a Retry button replaces the black area.
+- **Edit Code is developer-only.** The "Edit Code" entry in Advanced Settings
+  is hidden unless developer mode is on, like the result-screen Code tab.
+
 ## [0.9.5] - 2026-10-22
 
 ### Changed

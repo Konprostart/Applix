@@ -1546,7 +1546,8 @@ class CreateScreenState extends State<CreateScreen> {
             const SizedBox(height: 4),
             const Text('Use this when adding an Android app in Firebase Console.', style: TextStyle(fontSize: 10, color: Colors.white24)),
             const SizedBox(height: 16),
-            // Advanced: open the code editor for the project files.
+            // Advanced: open the code editor, hidden outside developer mode.
+            if (_developerMode)
             GestureDetector(
               onTap: _openCodeEditor,
               child: Container(
@@ -1801,6 +1802,41 @@ class CreateScreenState extends State<CreateScreen> {
           onPressed: _applyPendingImprovement,
           child:
               const Text('Apply', style: TextStyle(fontSize: 12, color: Color(0xFF3BA55D))),
+        ),
+      ]),
+    );
+  }
+
+  /// Live progress on the form while the AI generates. Without this the form
+  /// only freezes the button, which reads as a dead screen.
+  Widget _generatingCard() {
+    return Container(
+      key: const Key('form-generating-card'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF16203B),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF2C3E6B)),
+      ),
+      child: Row(children: [
+        const SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(
+              strokeWidth: 2.5, color: Color(0xFF6C8CFF)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            _genStage.isEmpty ? 'Generation running...' : _genStage,
+            style: const TextStyle(fontSize: 13, color: Colors.white),
+          ),
+        ),
+        TextButton(
+          key: const Key('form-generating-cancel'),
+          onPressed: _cancelGeneration,
+          child: const Text('Cancel',
+              style: TextStyle(fontSize: 12, color: Color(0xFFFF6B6B))),
         ),
       ]),
     );
@@ -2064,6 +2100,10 @@ class CreateScreenState extends State<CreateScreen> {
                   }
                 },
               ),
+            if (_aiGenerating) ...[
+              const SizedBox(height: 10),
+              _generatingCard(),
+            ],
             if (_generationError != null) ...[
               const SizedBox(height: 10),
               _generationErrorCard(),
