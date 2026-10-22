@@ -165,7 +165,35 @@ class ScriptSanitizer {
       out.write(whole);
     }
     out.write(html.substring(last));
-    return ScriptNormalization(out.toString(), updated);
+    return ScriptNormalization(bindInlineHandlers(out.toString()), updated);
+  }
+
+  static final RegExp _inlineHandlerCall = RegExp(
+      r'''\bon[a-z]+\s*=\s*["']\s*([A-Za-z_$][\w$]*)\s*\(''',
+      caseSensitive: false);
+
+  /// Makes functions that inline handlers call reachable from `window`.
+  ///
+  /// For every `onclick="name(...)"`-style call, a guarded `window.name = name`
+  /// runs after the document's scripts. A top-level declaration becomes global;
+  /// a name that only exists inside a closure is skipped (the guard catches the
+  /// ReferenceError), so the document is never broken by this step.
+  static String bindInlineHandlers(String html) {
+    if (html.contains('id="applix-handler-bind"')) return html;
+    final names = _inlineHandlerCall
+        .allMatches(html)
+        .map((m) => m.group(1)!)
+        .where((n) => !const {'this', 'event', 'return', 'if', 'javascript'}.contains(n))
+        .toSet();
+    if (names.isEmpty) return html;
+    final bindings = StringBuffer('<script id="applix-handler-bind">\n');
+    for (final name in names) {
+      bindings.write('try{window.$name = $name;}catch(e){}\n');
+    }
+    bindings.write('</script>');
+    final close = html.toLowerCase().lastIndexOf('</body>');
+    if (close == -1) return '$html\n$bindings';
+    return html.substring(0, close) + bindings.toString() + '\n' + html.substring(close);
   }
 
   /// Sanitizes a document without knowing its project files. Used as a final

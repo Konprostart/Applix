@@ -84,6 +84,21 @@ void main() {
       expect(result.files['app.js'], contains('function render() {}'));
     });
 
+    test('a top-level function used by an inline handler is bound to window', () {
+      const html = '<html><body><button onclick="openAddForm()">+</button>'
+          '<script>\nfunction openAddForm() { return 1; }\n</script></body></html>';
+      final out = ScriptSanitizer.normalize(html, const {}).html;
+      expect(out, contains('try{window.openAddForm = openAddForm;}catch(e){}'));
+      expect(out.indexOf('applix-handler-bind'), greaterThan(out.indexOf('function openAddForm')));
+    });
+
+    test('binding is added once even when normalized twice', () {
+      const html = '<html><body><button onclick="save()">x</button></body></html>';
+      final once = ScriptSanitizer.normalize(html, const {}).html;
+      final twice = ScriptSanitizer.normalize(once, const {}).html;
+      expect(twice, once);
+    });
+
     test('export inside a string literal is left alone', () {
       const code = "var s = 'export function x() {}';\nexport function y() {}";
       final out = ScriptSanitizer.stripExports(code);

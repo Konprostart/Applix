@@ -77,6 +77,12 @@ Every app must show real content on the first paint, without waiting for anythin
   must be reachable to `window`, and wire controls with `addEventListener` once the
   DOM exists. This is not a style preference: a single `export` in a classic script
   breaks the whole app.
+- **Functions called from HTML must be global.** A handler such as `onclick="openAddForm()"`
+  only finds functions declared at top level of a classic script, or assigned to
+  `window`. A function inside an IIFE, a `DOMContentLoaded` callback or a block is
+  invisible to it and throws `ReferenceError: openAddForm is not defined`. Either declare
+  it at top level, or set `window.openAddForm = openAddForm;` explicitly. Preferred:
+  no inline handlers at all; use `addEventListener` after the DOM exists.
 
 This also applies when updating or polishing an existing app. The user is never
 in a conversation with you - the answer IS the app. Never write a "Summary of
