@@ -34,7 +34,7 @@ import '../models/ai_provider.dart';
 import '../services/ai_response.dart';
 import '../services/ai_service.dart';
 import '../services/prompt_builder.dart';
-import '../services/preview_origin.dart';
+import '../services/preview_server.dart';
 import '../services/project_store.dart';
 import '../services/settings_service.dart';
 import '../services/ui_kit.dart';
@@ -687,6 +687,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   bool _pageReady = false;
   String? _mainFrameError;
+  PreviewServer? _server;
+  Timer? _readyTimer;
 
   @override
   void initState() {
@@ -699,11 +701,26 @@ class _PreviewScreenState extends State<PreviewScreen> {
       ..addJavaScriptChannel('ConsoleChannel', onMessageReceived: _onConsoleMessage)
       ..addJavaScriptChannel('BridgeChannel', onMessageReceived: _onBridgeMessage)
       ..setNavigationDelegate(NavigationDelegate(
-        onPageFinished: (_) {
-          if (mounted) setState(() => _pageReady = true);
+        onPageFinished: (_) async {
+          _readyTimer?.cancel();
+          // A finished load can still be a failed one: only trust it when the
+          // body actually has content.
+          var hasContent = false;
+          try {
+            final value = await _controller.runJavaScriptReturningResult(
+                '(document.body && document.body.innerHTML.trim().length > 0) ? 1 : 0');
+            hasContent = value == 1 || value == '1' || value == true;
+          } catch (_) {}
+          if (!mounted) return;
+          setState(() {
+            _pageReady = true;
+            if (hasContent) _mainFrameError = null;
+          });
         },
         onWebResourceError: (error) {
-          if (mounted) setState(() => _mainFrameError = error.description);
+          // Subresources failing after the page rendered must not hide the app.
+          if (!mounted || _pageReady) return;
+          setState(() => _mainFrameError ??= error.description);
         },
       ));
     // A WebView with no loaded content can paint black on some devices while
@@ -729,16 +746,39 @@ class _PreviewScreenState extends State<PreviewScreen> {
   /// Loads the app with the same design system and the same project files the
   /// built app gets, so the preview looks exactly like the installed app.
   Future<void> _loadPreview() async {
-    setState(() {
-      _pageReady = false;
-      _mainFrameError = null;
-    });
     final html = await _prepareHtml();
-    if (!mounted) return;
-    _controller.loadHtmlString(
-      _injectScripts(html),
-      baseUrl: PreviewOrigin.baseUrl(html, widget.projectFiles),
-    );
+    await _loadPrepared(html);
+  }
+
+  /// Serves the prepared document from a loopback origin so relative resources
+  /// (`applix-ui.js`, styles, project files) load offline instead of hitting
+  /// the network and failing with ERR_CONNECTION_REFUSED.
+  Future<void> _loadPrepared(String html) async {
+    if (mounted) {
+      setState(() {
+        _pageReady = false;
+        _mainFrameError = null;
+      });
+    }
+    final injected = _injectScripts(html);
+    try {
+      var server = _server;
+      server ??= await PreviewServer.start();
+      _server = server;
+      server.update(injected, widget.projectFiles);
+      if (!mounted) return;
+      _readyTimer?.cancel();
+      _readyTimer = Timer(const Duration(seconds: 8), () {
+        if (mounted && !_pageReady) {
+          setState(() => _mainFrameError ??= 'The preview did not finish loading.');
+        }
+      });
+      await _controller.loadRequest(server.uri);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _mainFrameError = 'Local preview server failed: $e');
+      return;
+    }
     if (widget.verifyOnly) {
       _verifyTimer = Timer(const Duration(milliseconds: 700), _checkRuntime);
     }
@@ -837,10 +877,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
       widget.onHtmlFixed?.call(fixed);
       final prepared = await _prepareHtml(fixed);
       if (!mounted) return;
-      _controller.loadHtmlString(
-        _injectScripts(prepared),
-        baseUrl: PreviewOrigin.baseUrl(prepared, widget.projectFiles),
-      );
+      await _loadPrepared(prepared);
     } catch (e) {
       if (mounted) setState(() => _fixing = false);
       messenger.showSnackBar(SnackBar(
@@ -1032,6 +1069,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
   @override
   void dispose() {
     _verifyTimer?.cancel();
+    _readyTimer?.cancel();
+    _server?.dispose();
+    _server = null;
     // Stop any audio/TTS started during preview
     try { _channel.invokeMethod('audioStop'); } catch (_) {}
     try { _channel.invokeMethod('ttsStop'); } catch (_) {}
@@ -1135,12 +1175,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
             icon: const Icon(Icons.refresh, size: 20),
             onPressed: () async {
               setState(() => _console.clear());
-              final html = await _prepareHtml();
-              if (!mounted) return;
-              _controller.loadHtmlString(
-                _injectScripts(html),
-                baseUrl: PreviewOrigin.baseUrl(html, widget.projectFiles),
-              );
+              await _loadPreview();
             },
           ),
           Stack(children: [

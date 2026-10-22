@@ -10,6 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.9.7] - 2026-10-22
+
+### Fixed
+- **Preview loads again (net::ERR_CONNECTION_REFUSED).** The preview used a
+  fake `https://app-<hash>.localhost/` base URL, so relative requests (UI kit
+  script, styles, project files) went to the network and were refused,
+  leaving the preview blank. The app is now served from a real loopback HTTP
+  server (127.0.0.1, ephemeral port) that returns the prepared document and
+  the project's files with correct content types. Everything renders offline.
+- **Subresource failures no longer mask a rendered preview.** A web resource
+  error only replaces the preview while the document has not loaded; a page
+  that rendered keeps showing, and errors stay in the console.
+- **Stuck loading has an exit.** If the document does not finish loading in
+  8 seconds, the preview shows the reason and a Retry button instead of an
+  endless spinner.
+
 ## [0.9.6] - 2026-10-22
 
 ### Fixed
