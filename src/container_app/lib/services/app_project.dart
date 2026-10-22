@@ -3,6 +3,7 @@
 import 'dart:convert';
 
 import 'dev_text_sanitizer.dart';
+import 'script_sanitizer.dart';
 import 'ai_response.dart';
 import 'json_repair.dart';
 
@@ -97,9 +98,12 @@ class AppProject {
             }
           }
           final name = decoded['name'];
+          final normalized = ScriptSanitizer.normalize(files[entry] ?? '', files);
+          final cleanFiles = Map<String, String>.from(normalized.files)
+            ..[entry] = normalized.html;
           return AppProject(
             entry: entry,
-            files: files,
+            files: cleanFiles,
             routes: routes,
             name: name is String && name.trim().isNotEmpty ? name.trim() : null,
           );
@@ -108,7 +112,7 @@ class AppProject {
     }
     final html = AiResponse.extractAppHtml(response);
     if (html.isEmpty) return const AppProject(files: {});
-    return AppProject.singleFile(html);
+    return AppProject.singleFile(ScriptSanitizer.normalize(html, const {}).html);
   }
 
   /// `index.html` if present, else the only HTML file.

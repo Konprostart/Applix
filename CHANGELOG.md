@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.9.9] - 2026-10-22
+
+### Fixed
+- **`Uncaught SyntaxError: Unexpected token 'export'`.** Generated apps whose
+  classic `<script>` (or a file loaded without `type="module"`) contained ES
+  module syntax failed to parse, so no button worked. A script normalizer now
+  runs on every model answer and on every preview load: `export` keywords are
+  removed from classic scripts (declarations stay global), and a script that
+  uses `import` is switched to `type="module"`.
+- **Prompt.** Plain `<script>` tags must not contain `export` or `import`; the
+  boot contract says so explicitly. SPEC.md stays identical.
+
 ## [0.9.8] - 2026-10-22
 
 ### Fixed

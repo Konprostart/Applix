@@ -35,6 +35,7 @@ import '../services/ai_response.dart';
 import '../services/ai_service.dart';
 import '../services/prompt_builder.dart';
 import '../services/preview_server.dart';
+import '../services/script_sanitizer.dart';
 import '../services/project_store.dart';
 import '../services/settings_service.dart';
 import '../services/ui_kit.dart';
@@ -869,7 +870,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
   /// the design system applied.
   Future<String> _prepareHtml([String? html]) async {
     final source = html ?? widget.htmlContent;
-    final withFiles = ProjectStore.inlineProjectFiles(source, widget.projectFiles);
+    final normalized = ScriptSanitizer.normalize(source, widget.projectFiles);
+    final withFiles = ProjectStore.inlineProjectFiles(normalized.html, normalized.files);
     return UiKit.applyTo(DevTextSanitizer.removeDevText(withFiles));
   }
 

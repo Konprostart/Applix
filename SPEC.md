@@ -70,6 +70,10 @@ Every app must show real content on the first paint, without waiting for anythin
   enhance after the module resolves.
 - The platform installs a boot guard that replaces a blank screen with "The app failed
   to start" plus the error. It is the last resort, not a substitute for the above.
+- A plain `<script>` is classic JavaScript: never write `export` or `import` in it
+  (`Uncaught SyntaxError: Unexpected token 'export'` kills every button). Declare the
+  app's functions and state at top level or inside an IIFE, and wire controls with
+  `addEventListener` once the DOM exists. Use `type="module"` only for the kit import.
 
 This also applies when updating or polishing an existing app. The user is never
 in a conversation with you - the answer IS the app. Never write a "Summary of
