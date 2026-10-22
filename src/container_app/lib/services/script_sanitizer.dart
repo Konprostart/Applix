@@ -181,10 +181,8 @@ class ScriptSanitizer {
         'body,#app,#root,main,.ax-page{opacity:1;visibility:visible;}'
         '</style>';
     final head = RegExp(r'<head\b[^>]*>', caseSensitive: false).firstMatch(html);
-    if (head != null) {
-      return html.substring(0, head.end) + guard + html.substring(head.end);
-    }
-    return '$guard\n$html';
+    if (head == null) return html; // fragments are left exactly as they are
+    return html.substring(0, head.end) + guard + html.substring(head.end);
   }
 
   static final RegExp _inlineHandlerCall = RegExp(
