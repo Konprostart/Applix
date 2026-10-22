@@ -103,11 +103,11 @@ class AppGenerator(private val context: Context) {
          * can be covered by unit tests - the CSS comes from the caller.
          */
         internal fun applyUiKit(html: String, css: String): String {
-            val guarded = injectBootGuard(html)
-            val lower = guarded.lowercase()
-            if (lower.contains("applix-ui") && (lower.contains("content=\"off\"") || lower.contains("content='off'"))) {
-                return guarded
+            val lower0 = html.lowercase()
+            if (lower0.contains("applix-ui") && (lower0.contains("content=\"off\"") || lower0.contains("content='off'"))) {
+                return html
             }
+            val guarded = injectBootGuard(html)
             if (css.isEmpty()) return guarded
             if (guarded.contains("id=\"applix-ui-kit\"")) return guarded
             val block = "<style id=\"applix-ui-kit\">\n$css\n</style>"
