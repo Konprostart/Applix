@@ -77,6 +77,12 @@ Every app must show real content on the first paint, without waiting for anythin
   must be reachable to `window`, and wire controls with `addEventListener` once the
   DOM exists. This is not a style preference: a single `export` in a classic script
   breaks the whole app.
+- **Visible from the first frame.** The main container (`#app`, `main` or `body`) always
+  has `min-height: 100vh; width: 100%; display: flex; flex-direction: column;`, and no
+  part of the layout starts at `opacity: 0`, `visibility: hidden` or `display: none`.
+  The first paint already shows the top bar, the title and the primary controls. Never
+  wait for JavaScript to create them. Text contrast is always readable: light text on a
+  dark background or dark text on a light background, never the same color for both.
 - **Functions called from HTML must be global.** A handler such as `onclick="openAddForm()"`
   only finds functions declared at top level of a classic script, or assigned to
   `window`. A function inside an IIFE, a `DOMContentLoaded` callback or a block is

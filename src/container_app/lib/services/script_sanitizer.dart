@@ -165,7 +165,26 @@ class ScriptSanitizer {
       out.write(whole);
     }
     out.write(html.substring(last));
-    return ScriptNormalization(bindInlineHandlers(out.toString()), updated);
+    return ScriptNormalization(
+        bindInlineHandlers(ensureVisibilityGuard(out.toString())), updated);
+  }
+
+  /// Keeps generated content from being invisible by default.
+  ///
+  /// Adds a stylesheet that makes the document fill the screen and forces
+  /// `opacity` and `visibility` back to visible on the main containers. It does
+  /// not change `display` or colors, so an app's own layout stays intact.
+  static String ensureVisibilityGuard(String html) {
+    if (html.contains('id="applix-visibility-guard"')) return html;
+    const guard = '<style id="applix-visibility-guard">'
+        'html,body{min-height:100%;}'
+        'body,#app,#root,main,.ax-page{opacity:1;visibility:visible;}'
+        '</style>';
+    final head = RegExp(r'<head\b[^>]*>', caseSensitive: false).firstMatch(html);
+    if (head != null) {
+      return html.substring(0, head.end) + guard + html.substring(head.end);
+    }
+    return '$guard\n$html';
   }
 
   static final RegExp _inlineHandlerCall = RegExp(

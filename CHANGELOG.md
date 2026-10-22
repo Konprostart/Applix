@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.9.13] - 2026-10-22
+
+### Changed
+- **Visibility guard for generated apps.** Every generated document gets a
+  small stylesheet that makes the page fill the screen and keeps `body`, `#app`,
+  `#root`, `main` and `.ax-page` at `opacity: 1` and `visibility: visible`. It
+  does not touch `display` or colors, so an app's own layout is unchanged.
+- **Prompt.** The main container must have a full-height flex layout, the first
+  paint must already show the top bar, title and controls, and text contrast must
+  be readable. SPEC.md stays identical.
+
 ## [0.9.12] - 2026-10-22
 
 ### Fixed

@@ -92,6 +92,16 @@ void main() {
       expect(out.indexOf('applix-handler-bind'), greaterThan(out.indexOf('function openAddForm')));
     });
 
+    test('a visibility guard is added to the head once and never hides display', () {
+      const html = '<html><head><title>x</title></head><body><div id="app">Hi</div></body></html>';
+      final once = ScriptSanitizer.normalize(html, const {}).html;
+      expect(once, contains('<style id="applix-visibility-guard">'));
+      expect(once.indexOf('applix-visibility-guard'), lessThan(once.indexOf('<title>')));
+      expect(once, isNot(contains('display:none')));
+      final twice = ScriptSanitizer.normalize(once, const {}).html;
+      expect(twice, once);
+    });
+
     test('binding is added once even when normalized twice', () {
       const html = '<html><body><button onclick="save()">x</button></body></html>';
       final once = ScriptSanitizer.normalize(html, const {}).html;
