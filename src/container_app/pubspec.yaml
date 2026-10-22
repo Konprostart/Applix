@@ -1,7 +1,7 @@
 name: applix
 description: Applix — AI-powered app generator.
 publish_to: 'none'
-version: 0.9.11
+version: 0.9.12
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

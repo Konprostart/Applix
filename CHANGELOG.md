@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.9.12] - 2026-10-22
+
+### Fixed
+- **`ReferenceError: openAddForm is not defined`.** Functions called from
+  inline handlers (`onclick="openAddForm()"`) are now bound to `window` after
+  the document's scripts. A name that only exists inside a closure is skipped
+  safely; the prompt tells the model to declare such functions at top level or
+  assign them to `window`, or to use `addEventListener`. SPEC.md stays identical.
+
 ## [0.9.11] - 2026-10-22
 
 ### Fixed
