@@ -122,12 +122,16 @@ class ApkBuildControlTest {
         val jsFile = File("../../assets/applix-ui.js").takeIf { it.exists() }
             ?: File("src/container_app/assets/applix-ui.js")
         val js = jsFile.readText()
-        assertTrue("the UI Kit module has no version", js.contains("export const UI_KIT_VERSION"))
+        assertTrue("the UI Kit has no version", js.contains("const UI_KIT_VERSION = "))
+        assertFalse(
+            "the UI Kit must be a classic script: no export keyword",
+            Regex("\\bexport\\b").containsMatchIn(js)
+        )
         for (fn in listOf(
             "toast", "openSheet", "confirmDialog", "mountTabs",
             "mountBottomNav", "mountSegmented", "stagger"
         )) {
-            assertTrue("the UI Kit module does not export $fn", js.contains("export function $fn("))
+            assertTrue("the UI Kit does not define $fn", js.contains("function $fn("))
         }
         assertFalse(
             "the UI Kit module must not depend on other modules",
