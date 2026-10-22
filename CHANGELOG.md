@@ -10,6 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.9.4] - 2026-10-21
+
+### Changed
+- **Generated code is no longer shown to users.** The result screen is now only
+  the live Preview with one action bar. The Code tab is hidden unless developer
+  mode is enabled (`showDeveloperCode`). The manual "Paste the AI response" box
+  stays collapsed after a successful generation.
+- **Real generation stages instead of a bare timer.** The overlay shows the
+  pipeline stage ("Kreiranje strukture...", "Stilizovanje i interakcije...",
+  "Spremanje i provjera...") while the app is generated in the background.
+- **System prompt forbids demo apps.** Placeholders, "coming soon" text, dead
+  controls, and non-computed results are prohibited. Search, filter, sort,
+  export/import, and restore-after-restart are required where the domain needs
+  them. `SPEC.md` is kept identical to the prompt.
+
 ## [0.9.3] - 2026-10-21
 
 ### Fixed

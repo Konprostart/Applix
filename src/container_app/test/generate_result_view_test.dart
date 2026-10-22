@@ -6,6 +6,8 @@ Widget _app({
   VoidCallback? onBuild,
   VoidCallback? onPreview,
   VoidCallback? onRegenerate,
+  bool developer = false,
+  String stage = '',
 }) =>
     MaterialApp(
       theme: ThemeData.dark(),
@@ -19,23 +21,51 @@ Widget _app({
           onBuild: onBuild ?? () {},
           onRegenerate: onRegenerate ?? () {},
           onEditDetails: () {},
+          showDeveloperCode: developer,
+          generatingStage: stage,
         ),
       ),
     );
 
 void main() {
-  testWidgets('Preview is the first tab and is visible by default', (tester) async {
+  testWidgets('end users see only the live preview, never generated code',
+      (tester) async {
     await tester.pumpWidget(_app());
-    expect(find.byKey(GenerateResultView.previewTabKey), findsOneWidget);
-    expect(find.byKey(GenerateResultView.codeTabKey), findsOneWidget);
     expect(find.byKey(GenerateResultView.previewPaneKey), findsOneWidget);
     expect(find.text('LIVE PREVIEW'), findsOneWidget);
+    expect(find.byKey(GenerateResultView.codeTabKey), findsNothing);
     expect(find.byKey(GenerateResultView.codePaneKey), findsNothing);
     expect(find.textContaining('<html>'), findsNothing);
   });
 
-  testWidgets('Code is hidden until its tab is chosen', (tester) async {
-    await tester.pumpWidget(_app());
+  testWidgets('shows the real pipeline stage over the preview while generating',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      theme: ThemeData.dark(),
+      home: Scaffold(
+        body: GenerateResultView(
+          appName: 'Budget',
+          preview: const Center(child: Text('LIVE PREVIEW')),
+          code: '<html></html>',
+          onBack: () {},
+          onOpenPreview: () {},
+          onBuild: () {},
+          onRegenerate: () {},
+          onEditDetails: () {},
+          generating: true,
+          generatingStage: 'Stilizovanje i interakcije...',
+        ),
+      ),
+    ));
+    expect(find.byKey(GenerateResultView.stageKey), findsOneWidget);
+    expect(find.text('Stilizovanje i interakcije...'), findsOneWidget);
+    expect(find.textContaining('<html>'), findsNothing);
+  });
+
+  testWidgets('Code is hidden until its tab is chosen (developer mode)',
+      (tester) async {
+    await tester.pumpWidget(_app(developer: true));
+    expect(find.byKey(GenerateResultView.codeTabKey), findsOneWidget);
     await tester.tap(find.byKey(GenerateResultView.codeTabKey));
     await tester.pumpAndSettle();
     expect(find.byKey(GenerateResultView.codePaneKey), findsOneWidget);
@@ -44,7 +74,7 @@ void main() {
   });
 
   testWidgets('actions stay visible and outside the code pane', (tester) async {
-    await tester.pumpWidget(_app());
+    await tester.pumpWidget(_app(developer: true));
     final actions = find.byKey(GenerateResultView.actionsKey);
     expect(actions, findsOneWidget);
     final screen = tester.getSize(find.byType(Scaffold));
@@ -130,7 +160,7 @@ void main() {
 
   testWidgets('the live preview stays mounted on the Code tab',
       (tester) async {
-    await tester.pumpWidget(_app());
+    await tester.pumpWidget(_app(developer: true));
     await tester.tap(find.byKey(GenerateResultView.codeTabKey));
     await tester.pumpAndSettle();
     // IndexedStack keeps the preview widget in the tree so its WebView state

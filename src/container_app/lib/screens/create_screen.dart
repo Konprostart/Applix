@@ -130,6 +130,8 @@ class CreateScreenState extends State<CreateScreen> {
   List<BridgeIssue> _bridgeIssues = [];
   bool _backgroundBusy = false;
   String _backgroundStage = '';
+  /// Real pipeline stage shown on the generating overlay (no raw code).
+  String _genStage = '';
   String? _pendingImprovedHtml;
   String? _pendingImprovementNote;
 
@@ -406,6 +408,7 @@ class CreateScreenState extends State<CreateScreen> {
     setState(() {
       _genMethod = 'api';
       _aiGenerating = true; _genStartTime = DateTime.now();
+      _genStage = 'Kreiranje strukture...';
       _conversation = [];
       _bridgeIssues = [];
       _generationError = null;
@@ -454,11 +457,17 @@ class CreateScreenState extends State<CreateScreen> {
       });
 
       final systemPrompt = await PromptBuilder.getSystemPrompt();
+      if (mounted && thisGenId == _genId) {
+        setState(() => _genStage = 'Stilizovanje i interakcije...');
+      }
       var response = await AiService.generate(
         provider: provider,
         systemPrompt: systemPrompt,
         messages: _conversation,
       );
+      if (mounted && thisGenId == _genId) {
+        setState(() => _genStage = 'Spremanje i provjera...');
+      }
       if (!mounted || thisGenId != _genId) return;
       var project = AppProject.parseModelOutput(response);
 
@@ -1631,7 +1640,7 @@ class CreateScreenState extends State<CreateScreen> {
       _descController.text = 'Showcase app: $name';
       _selectedHtml = html;
       _genMethod = 'manual';
-      _htmlExpanded = true;
+      _htmlExpanded = false;
       _descExpanded = false;
       setState(() => _mode = 'ai');
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1660,6 +1669,7 @@ class CreateScreenState extends State<CreateScreen> {
       code: html,
       generating: _aiGenerating,
       generatingSince: _genStartTime,
+      generatingStage: _genStage,
       onCancel: _cancelGeneration,
       onBack: () => _confirmExit(
           _editingId != null ? () => widget.onViewMyApps?.call() : _reset),

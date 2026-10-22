@@ -20,8 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-/// The post-generation screen: a live Preview tab (first), a hidden Code tab,
-/// and one fixed action bar that never scrolls away with the code.
+/// The post-generation screen: a live Preview as the only primary view, one
+/// fixed action bar, and - only when [showDeveloperCode] is on - a developer
+/// Code tab. Generated source is never shown to end users by default.
 library;
 
 import 'package:flutter/material.dart';
@@ -36,6 +37,7 @@ class GenerateResultView extends StatefulWidget {
   static const buildActionKey = Key('result-action-build');
   static const regenerateActionKey = Key('result-action-regenerate');
   static const cancelGenerationKey = Key('result-action-cancel');
+  static const stageKey = Key('result-generation-stage');
 
   final String appName;
   final Widget preview;
@@ -49,6 +51,12 @@ class GenerateResultView extends StatefulWidget {
   final VoidCallback onRegenerate;
   final VoidCallback onEditDetails;
   final Widget? aboveActions;
+
+  /// Shows the read-only Code tab. Off for end users; developer builds only.
+  final bool showDeveloperCode;
+
+  /// Real pipeline stage shown while generating (e.g. "Stilizovanje...").
+  final String generatingStage;
 
   const GenerateResultView({
     super.key,
@@ -64,6 +72,8 @@ class GenerateResultView extends StatefulWidget {
     this.generatingSince,
     this.onCancel,
     this.aboveActions,
+    this.showDeveloperCode = false,
+    this.generatingStage = '',
   });
 
   @override
@@ -78,7 +88,7 @@ class _GenerateResultViewState extends State<GenerateResultView> {
   Widget build(BuildContext context) {
     return Column(children: [
       _header(),
-      _tabs(),
+      if (widget.showDeveloperCode) _tabs(),
       Expanded(
         // IndexedStack keeps the live WebView mounted while the Code tab is
         // open. Rebuilding it on every tab switch reset forms and scroll.
@@ -98,7 +108,10 @@ class _GenerateResultViewState extends State<GenerateResultView> {
                 if (widget.generating) _generatingOverlay(),
               ]),
             ),
-            if (_codeBuilt) _codePane() else const SizedBox.shrink(),
+            if (widget.showDeveloperCode && _codeBuilt)
+              _codePane()
+            else
+              const SizedBox.shrink(),
           ],
         ),
       ),
@@ -124,6 +137,16 @@ class _GenerateResultViewState extends State<GenerateResultView> {
                   strokeWidth: 3, color: Color(0xFF6C8CFF)),
             ),
             const SizedBox(height: 12),
+            if (widget.generatingStage.isNotEmpty) ...[
+              Text(widget.generatingStage,
+                  key: GenerateResultView.stageKey,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white)),
+              const SizedBox(height: 4),
+            ],
             StreamBuilder<int>(
               stream: since == null
                   ? null
@@ -169,7 +192,7 @@ class _GenerateResultViewState extends State<GenerateResultView> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-            const Text('Preview first · code stays out of the way',
+            const Text('Preview first',
                 style: TextStyle(fontSize: 11, color: Colors.white38)),
           ]),
         ),
@@ -199,12 +222,13 @@ class _GenerateResultViewState extends State<GenerateResultView> {
           icon: Icons.phone_android,
           label: 'Preview',
         ),
-        _tabButton(
-          key: GenerateResultView.codeTabKey,
-          index: 1,
-          icon: Icons.code,
-          label: 'Code',
-        ),
+        if (widget.showDeveloperCode)
+          _tabButton(
+            key: GenerateResultView.codeTabKey,
+            index: 1,
+            icon: Icons.code,
+            label: 'Code',
+          ),
       ]),
     );
   }

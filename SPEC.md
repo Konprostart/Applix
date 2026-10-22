@@ -112,6 +112,23 @@ Ship something a stranger can use for a week without finding a dead end:
   blobs). Reload restores exact state.
 - **Every screen reachable and reversible.** Visible back navigation, no orphan
   screens, no tab that lands on an empty placeholder.
+
+**Hard prohibitions.** Never produce a placeholder, mockup, or demo. Forbidden:
+"coming soon" text, TODO stubs, buttons or links that do nothing, fake data that
+is not user-owned seed data, and calculators or converters whose results are not
+computed by real JavaScript. If a feature cannot be built with the bridge, leave it
+out entirely and say nothing about it in the app.
+
+**Required functionality, where the domain has it:**
+- Search and filter whenever a list can exceed about 5 items.
+- Sort for any table or list of records.
+- Real computations (totals, averages, balances, conversions) in JavaScript, updated
+  on every input change.
+- Export and import for user-owned data: export as JSON or CSV via
+  `iappyx.storage.saveToDownloads` or `iappyx.storage.shareFile`, import via
+  `iappyx.storage.pickFile` and then `iappyx.storage.readFileBase64(path)` decoded to
+  text, with validation and a clear error on a bad file.
+- The app restores its exact state after restart, with no loading flash of stale data.
 - **Feedback.** Pressed states, toasts for save/delete, disabled buttons while busy,
   loading skeletons instead of blank flashes.
 - **Data apps get charts and tabular numbers.** Use `sparkline` / `barChart` / `donut`
