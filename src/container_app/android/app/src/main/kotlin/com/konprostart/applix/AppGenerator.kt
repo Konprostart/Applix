@@ -41,25 +41,84 @@ class AppGenerator(private val context: Context) {
         private const val TEMPLATE_ASSET_WEB = "flutter_assets/assets/shell_template_web.apk"
 
         /**
+         * Guard injected first into every built app. It reports boot failures to
+         * the console and renders a visible error card instead of leaving the
+         * WebView on a blank "home screen" when a script fails.
+         */
+        internal val BOOT_GUARD = """
+<script id="applix-boot-guard">
+(function(){try{
+  function note(t){try{console.error('[Boot] '+t);}catch(_){}}
+  function fail(msg){try{
+    if(document.getElementById('applix-boot-error'))return;
+    var d=document.createElement('div');
+    d.id='applix-boot-error';
+    d.setAttribute('style','position:fixed;top:0;right:0;bottom:0;left:0;z-index:2147483647;'+
+      'display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;'+
+      'padding:24px;background:#0d0d1a;color:#fff;font:14px/1.5 system-ui,sans-serif;text-align:center');
+    var h=document.createElement('div');
+    h.textContent='The app failed to start';
+    h.style.cssText='font-weight:600;font-size:16px';
+    var p=document.createElement('div');
+    p.textContent=String(msg||'Unknown error');
+    p.style.cssText='opacity:.65;font-size:12px;max-width:32em';
+    var b=document.createElement('button');
+    b.textContent='Reload';
+    b.style.cssText='margin-top:8px;padding:10px 18px;border-radius:10px;border:0;'+
+      'background:#4f8cff;color:#fff;font:inherit';
+    b.addEventListener('click',function(){try{location.reload();}catch(_){}});
+    d.appendChild(h);d.appendChild(p);d.appendChild(b);
+    (document.body||document.documentElement).appendChild(d);
+  }catch(_){}}
+  window.addEventListener('error',function(e){note((e&&e.message)||'Script error');});
+  window.addEventListener('unhandledrejection',function(e){
+    note('Unhandled promise: '+((e&&e.reason&&e.reason.message)||(e&&e.reason)||'unknown'));
+  });
+  window.addEventListener('load',function(){setTimeout(function(){try{
+    var b=document.body;
+    if(!b)return;
+    var text=(b.innerText||'').replace(/\s+/g,'');
+    var media=b.querySelector('img,canvas,svg,video,table,input,button,select,textarea');
+    if(!text&&!media)fail('The app rendered an empty screen.');
+  }catch(_){}},1500);});
+}catch(_){}})();
+</script>
+""".trimIndent()
+
+        internal fun injectBootGuard(html: String): String {
+            if (html.contains("id=\"applix-boot-guard\"")) return html
+            return when {
+                html.contains("<head>") -> html.replaceFirst("<head>", "<head>\n$BOOT_GUARD")
+                html.contains("<head ") -> {
+                    val idx = html.indexOf(">")
+                    html.substring(0, idx + 1) + "\n" + BOOT_GUARD + html.substring(idx + 1)
+                }
+                html.contains("<html>") -> html.replaceFirst("<html>", "<html>\n<head>\n$BOOT_GUARD\n</head>")
+                else -> "$BOOT_GUARD\n$html"
+            }
+        }
+
+        /**
          * Injects the design system into an HTML document. Pure function, so it
          * can be covered by unit tests - the CSS comes from the caller.
          */
         internal fun applyUiKit(html: String, css: String): String {
-            val lower = html.lowercase()
+            val guarded = injectBootGuard(html)
+            val lower = guarded.lowercase()
             if (lower.contains("applix-ui") && (lower.contains("content=\"off\"") || lower.contains("content='off'"))) {
-                return html
+                return guarded
             }
-            if (css.isEmpty()) return html
-            if (html.contains("id=\"applix-ui-kit\"")) return html
+            if (css.isEmpty()) return guarded
+            if (guarded.contains("id=\"applix-ui-kit\"")) return guarded
             val block = "<style id=\"applix-ui-kit\">\n$css\n</style>"
             return when {
-                html.contains("<head>") -> html.replaceFirst("<head>", "<head>\n$block")
-                html.contains("<head ") -> {
-                    val idx = html.indexOf(">")
-                    html.substring(0, idx + 1) + "\n" + block + html.substring(idx + 1)
+                guarded.contains("<head>") -> guarded.replaceFirst("<head>", "<head>\n$block")
+                guarded.contains("<head ") -> {
+                    val idx = guarded.indexOf(">")
+                    guarded.substring(0, idx + 1) + "\n" + block + guarded.substring(idx + 1)
                 }
-                html.contains("<html>") -> html.replaceFirst("<html>", "<html>\n<head>\n$block\n</head>")
-                else -> "$block\n$html"
+                guarded.contains("<html>") -> guarded.replaceFirst("<html>", "<html>\n<head>\n$block\n</head>")
+                else -> "$block\n$guarded"
             }
         }
     }

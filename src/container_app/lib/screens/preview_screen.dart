@@ -105,6 +105,49 @@ class _PreviewScreenState extends State<PreviewScreen> {
 </script>
 ''';
 
+  // ── Boot guard (injected before everything; never leaves a blank screen) ──
+  static const _bootGuard = r'''
+<script id="applix-boot-guard">
+(function(){try{
+  function note(t){try{console.error('[Boot] '+t);}catch(_){}}
+  function fail(msg){try{
+    if(document.getElementById('applix-boot-error'))return;
+    var d=document.createElement('div');
+    d.id='applix-boot-error';
+    d.setAttribute('style','position:fixed;top:0;right:0;bottom:0;left:0;z-index:2147483647;'+
+      'display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;'+
+      'padding:24px;background:#0d0d1a;color:#fff;font:14px/1.5 system-ui,sans-serif;text-align:center');
+    var h=document.createElement('div');
+    h.textContent='The app failed to start';
+    h.style.cssText='font-weight:600;font-size:16px';
+    var p=document.createElement('div');
+    p.textContent=String(msg||'Unknown error');
+    p.style.cssText='opacity:.65;font-size:12px;max-width:32em';
+    var b=document.createElement('button');
+    b.textContent='Reload';
+    b.style.cssText='margin-top:8px;padding:10px 18px;border-radius:10px;border:0;'+
+      'background:#4f8cff;color:#fff;font:inherit';
+    b.addEventListener('click',function(){try{location.reload();}catch(_){}});
+    d.appendChild(h);d.appendChild(p);d.appendChild(b);
+    (document.body||document.documentElement).appendChild(d);
+  }catch(_){}}
+  window.addEventListener('error',function(e){
+    note((e&&e.message)||'Script error');
+  });
+  window.addEventListener('unhandledrejection',function(e){
+    note('Unhandled promise: '+((e&&e.reason&&e.reason.message)||(e&&e.reason)||'unknown'));
+  });
+  window.addEventListener('load',function(){setTimeout(function(){try{
+    var b=document.body;
+    if(!b)return;
+    var text=(b.innerText||'').replace(/\s+/g,'');
+    var media=b.querySelector('img,canvas,svg,video,table,input,button,select,textarea');
+    if(!text&&!media)fail('The app rendered an empty screen.');
+  }catch(_){}},1500);});
+}catch(_){}})();
+</script>
+''';
+
   // ── Bridge shim (creates window.iappyx with working subset) ──
   static const _bridgeShim = r'''
 <script>
@@ -761,11 +804,17 @@ class _PreviewScreenState extends State<PreviewScreen> {
       });
     }
     final injected = _injectScripts(html);
+    final kitFiles = <String, String>{
+      if (!widget.projectFiles.containsKey(UiKit.jsFileName))
+        UiKit.jsFileName: await UiKit.loadJs(),
+      if (!widget.projectFiles.containsKey(UiKit.cssFileName))
+        UiKit.cssFileName: await UiKit.loadCss(),
+    };
     try {
       var server = _server;
       server ??= await PreviewServer.start();
       _server = server;
-      server.update(injected, widget.projectFiles);
+      server.update(injected, {...kitFiles, ...widget.projectFiles});
       if (!mounted) return;
       _readyTimer?.cancel();
       _readyTimer = Timer(const Duration(seconds: 8), () {
@@ -826,8 +875,14 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   /// The first JavaScript error in the console (a syntax error breaks the app).
   String? get _jsError {
+    const fatal = [
+      'SyntaxError', 'ReferenceError', 'TypeError', 'RangeError',
+      'is not defined', 'Cannot read', 'Failed to load module',
+      'Importing a module script failed', 'Script error', '[Boot]',
+    ];
     for (final line in _console) {
-      if (line.type == 'error' && line.message.contains('SyntaxError')) return line.message;
+      if (line.type != 'error') continue;
+      if (fatal.any(line.message.contains)) return line.message;
     }
     return null;
   }
@@ -1036,7 +1091,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   String _injectScripts(String html) {
     // Insert console capture + bridge shim right after <head> or at the very start
-    var scripts = _consoleCapture + _bridgeShim;
+    var scripts = _bootGuard + _consoleCapture + _bridgeShim;
     if (widget.verifyOnly) scripts += RuntimeProbe.bootstrap;
     final headIdx = html.toLowerCase().indexOf('<head');
     if (headIdx != -1) {

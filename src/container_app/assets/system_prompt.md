@@ -52,6 +52,25 @@ Project rules:
 - Multi-file is deliberate, not automatic: use it when it makes the code clearer.
   Never ship a 2000-line index.html for a small one-screen utility.
 
+### Boot contract (mandatory)
+
+Every app must show real content on the first paint, without waiting for anything:
+- Put the app's markup in the document. The first paint already has the top bar, the
+  main list/grid/table and the primary action. Never ship a `<body>` that contains only
+  a heading and an empty container ("Home Screen" + `<div id="app"></div>`) that
+  JavaScript is supposed to fill later.
+- Put the app script at the end of `<body>` and render synchronously. A calendar, for
+  example, renders a real month grid in that first paint: 7 weekday headers, a cell for
+  every day of the month, today highlighted, and the events list - not just a title.
+- Wrap startup in `try { ... } catch (err) { ... }` and, on failure, render a visible
+  error card in the DOM with the message. Never swallow an error and never leave the
+  screen empty.
+- If a helper or module is missing, degrade to plain DOM/HTML that still works. Use
+  `import` for the kit, but nothing may depend on it having loaded: render first,
+  enhance after the module resolves.
+- The platform installs a boot guard that replaces a blank screen with "The app failed
+  to start" plus the error. It is the last resort, not a substitute for the above.
+
 This also applies when updating or polishing an existing app. The user is never
 in a conversation with you - the answer IS the app. Never write a "Summary of
 changes made", a numbered list of what you changed, notes about the CSS or the
@@ -864,7 +883,7 @@ Note: User must manually add the widget to their home screen via long-press → 
 `new WebSocket(url)` — full WebSocket support for real-time communication (IoT, live dashboards, chat, multiplayer).
 
 ## What does NOT work
-`navigator.share({files})` (use sharePhoto/shareText), `navigator.vibrate()` (use vibration bridge), Service Workers, Web Workers, WebRTC, ES module `import`.
+`navigator.share({files})` (use sharePhoto/shareText), `navigator.vibrate()` (use vibration bridge), Service Workers, Web Workers, WebRTC, ES module imports from remote origins (local `./applix-ui.js` and project files are fine).
 
 ## Variable naming
 Never shadow window globals: `history`, `location`, `name`, `status`, `event`, `screen`, `navigator`, `top`, `parent`, `self`, `length`, `origin`. Use app-prefixed names (appHistory, currentLocation, itemStatus).

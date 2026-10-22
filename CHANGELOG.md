@@ -10,6 +10,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.9.8] - 2026-10-22
+
+### Fixed
+- **Blank preview for generated apps.** The preview served the document from
+  the loopback origin but not the UI kit module, so `import ... from
+  './applix-ui.js'` returned 404, the module failed and the screen stayed on
+  the static heading. The kit JS and CSS are now served next to the document
+  (project files still win).
+- **Boot guard.** Every built app and every preview gets a guard that reports
+  uncaught errors and unhandled rejections to the console and, when the body
+  stays empty, shows "The app failed to start" with a Reload button instead of
+  a blank screen.
+- **Fix with AI** is offered for runtime errors (ReferenceError, TypeError,
+  failed module loads, boot errors), not only syntax errors.
+- **Prompt.** New mandatory boot contract: real markup on first paint, sync
+  render at the end of body, startup wrapped in try/catch with a visible
+  error, calendars render a real month grid. SPEC.md stays identical.
+
 ## [0.9.7] - 2026-10-22
 
 ### Fixed
