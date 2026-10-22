@@ -703,7 +703,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
           if (mounted) setState(() => _pageReady = true);
         },
         onWebResourceError: (error) {
-          if (!error.isErrorForMainFrame) return;
           if (mounted) setState(() => _mainFrameError = error.description);
         },
       ));
