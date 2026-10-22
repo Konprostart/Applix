@@ -45,8 +45,9 @@ Project rules:
 - Paths are relative (`src/app.js`), never absolute and never contain `..`.
 - Only text files: html, js, mjs, css, json, svg, txt, md, webmanifest; no
   binary assets and no CDN libraries.
-- JavaScript may use ES modules (`<script type="module" src="src/app.js">`)
-  with relative imports; the installed app serves files from a real origin.
+- Use classic scripts only: no `export`, no `import`, no `type="module"` in the
+  code you write. The platform normalizes module syntax away, but code that ships
+  without it is the only kind that is guaranteed to run.
 - Do NOT add `app.json`; the platform generates it.
 - The same "no commentary" rule applies: no prose outside the JSON block.
 - Multi-file is deliberate, not automatic: use it when it makes the code clearer.
@@ -70,10 +71,12 @@ Every app must show real content on the first paint, without waiting for anythin
   enhance after the module resolves.
 - The platform installs a boot guard that replaces a blank screen with "The app failed
   to start" plus the error. It is the last resort, not a substitute for the above.
-- A plain `<script>` is classic JavaScript: never write `export` or `import` in it
-  (`Uncaught SyntaxError: Unexpected token 'export'` kills every button). Declare the
-  app's functions and state at top level or inside an IIFE, and wire controls with
-  `addEventListener` once the DOM exists. Use `type="module"` only for the kit import.
+- **Zero tolerance for module syntax in your output.** Never write the words `export`
+  or `import` anywhere (`Uncaught SyntaxError: Unexpected token 'export'` kills every
+  button). Declare functions and state at top level or inside an IIFE, attach what
+  must be reachable to `window`, and wire controls with `addEventListener` once the
+  DOM exists. This is not a style preference: a single `export` in a classic script
+  breaks the whole app.
 
 This also applies when updating or polishing an existing app. The user is never
 in a conversation with you - the answer IS the app. Never write a "Summary of
@@ -309,17 +312,15 @@ Build the app from these classes instead of inventing your own CSS.
   `.ax-sparkline` · `.ax-donut`
 - Motion: `.ax-anim-in` (staggered entrance) · `.ax-press` (scale on press)
 
-### UI Kit ES module — `applix-ui.js`
+### UI Kit — `applix-ui.js`
 
-Every built app ships a dependency-free ES module next to the entry, so do **not**
-hand-write toasts, sheets, tabs, bottom navigation or segmented controls. Import it:
+Every built app ships a dependency-free kit next to the entry, so do **not**
+hand-write toasts, sheets, tabs, bottom navigation or segmented controls. Load it
+once with a classic script tag; the platform exposes its helpers as globals:
 
 ```html
-<script type="module">
-  import { toast, showError, openSheet, confirmDialog, mountTabs, mountBottomNav,
-           mountSegmented, stagger, icon, mountIcons, sparkline, barChart,
-           donut } from './applix-ui.js';
-
+<script src="applix-ui.js"></script>
+<script>
   toast('Saved');
   const ok = await confirmDialog({ title: 'Delete?', message: 'This cannot be undone',
                                    confirmLabel: 'Delete', danger: true });
@@ -346,10 +347,13 @@ hand-write toasts, sheets, tabs, bottom navigation or segmented controls. Import
 - `mountIcons(root)` → replaces `<span data-ax-icon="home"></span>` placeholders.
 - `sparkline([...numbers])`, `barChart([...numbers], { labels })`, `donut(percent, { label })`
   → ready chart elements. Every data app needs at least one real chart.
-- In a multi-file project import it from the app root: `import { toast } from './applix-ui.js'`
-  (or `'../applix-ui.js'` from `src/`). The `app.json` manifest lists it as
-  `"uiKit": {"version": 2, "css": "applix-ui.css", "js": "applix-ui.js"}`.
-- The module has no dependencies and no bridge calls, so it is safe before `iappyx` is ready.
+- In a multi-file project load it from the app root with `<script src="applix-ui.js"></script>`
+  (or `<script src="../applix-ui.js"></script>` from a nested page). The `app.json`
+  manifest lists it as `"uiKit": {"version": 2, "css": "applix-ui.css", "js": "applix-ui.js"}`.
+- The kit has no dependencies and no bridge calls. Its helpers (`toast`, `showError`,
+  `openSheet`, `confirmDialog`, `mountTabs`, `mountBottomNav`, `mountSegmented`,
+  `stagger`, `icon`, `mountIcons`, `sparkline`, `barChart`, `donut`) become globals
+  after that tag, so call them directly; do not import them.
 
 **Rules**
 - Use these classes for the whole layout. Add custom CSS only for what they do not cover.

@@ -10,6 +10,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.9.10] - 2026-10-22
+
+### Fixed
+- **`Unexpected token 'export'` still reached the preview.** The kit
+  `applix-ui.js` is a module, and a classic `<script src="applix-ui.js">`
+  parsed it and failed on its first `export`. The kit was added after the
+  sanitizer ran, so it was never seen. The sanitizer now runs on the exact
+  HTML served to the WebView (kit included) and on every build before
+  packaging (kit included).
+- **Scanner instead of regex.** `export` is removed by a literal-aware scanner
+  (strings, template literals and comments are skipped), in any position.
+  `export default`, `export { ... }`, `export * from` and declarations are all
+  handled. A classic `src` that points at a module becomes `type="module"` and
+  gets a glue module that exposes its exports on `window`.
+- **Prompt, zero tolerance.** The model must not write `export` or `import`
+  anywhere. The kit is loaded with `<script src="applix-ui.js"></script>` and
+  its helpers are globals. SPEC.md stays identical.
+- **Test.** A "Notes" fixture with `export` helpers, `export default` and
+  `export { ... }` is normalized and checked: no `export` word remains in any
+  classic script, handlers stay global.
+
 ## [0.9.9] - 2026-10-22
 
 ### Fixed

@@ -54,6 +54,8 @@ import 'showcase_screen.dart';
 import '../services/dev_text_sanitizer.dart';
 import '../services/ai_response.dart';
 import '../services/app_project.dart';
+import '../services/script_sanitizer.dart';
+import '../services/ui_kit.dart';
 import '../services/app_plan.dart';
 import '../services/app_patch.dart';
 import '../services/runtime_probe.dart';
@@ -1276,9 +1278,24 @@ class CreateScreenState extends State<CreateScreen> {
       // work in the installed app.
       // Multi-file project: validate before touching the build, then persist
       // every module next to the entry so the existing pipeline ships them.
+      // Nothing reaches the packager before module syntax is made safe: a
+      // classic script with `export` (or a module loaded as classic) would
+      // crash the installed app with "Unexpected token 'export'".
+      // The kit is added by the packager after this point, so it is passed in
+      // here: a classic <script src="applix-ui.js"> must become a module too.
+      final kitForCheck = <String, String>{
+        if (!_extraFiles.containsKey(UiKit.jsFileName))
+          UiKit.jsFileName: await UiKit.loadJs(),
+        if (!_extraFiles.containsKey(UiKit.cssFileName))
+          UiKit.cssFileName: await UiKit.loadCss(),
+      };
+      final normalized = ScriptSanitizer.normalize(html, {...kitForCheck, ..._extraFiles});
+      final buildHtml = normalized.html;
+      final buildFiles = Map<String, String>.from(normalized.files)
+        ..removeWhere((k, _) => kitForCheck.containsKey(k));
       final project = AppProject(
         entry: 'index.html',
-        files: {'index.html': html, ..._extraFiles},
+        files: {'index.html': buildHtml, ...buildFiles},
         name: label,
       );
       if (_extraFiles.isNotEmpty) {
@@ -1292,11 +1309,11 @@ class CreateScreenState extends State<CreateScreen> {
       await ProjectStore.writeProject(
         appId: appId,
         packageName: _existingPackageName,
-        indexHtml: html,
-        files: {..._extraFiles, 'app.json': project.manifestJson()},
+        indexHtml: buildHtml,
+        files: {...buildFiles, 'app.json': project.manifestJson()},
       );
       final projectPaths = await ProjectStore.paths(appId: appId, packageName: _existingPackageName);
-      final result = await Generator.injectHtml(label: label, htmlContent: html, packageName: _existingPackageName, iconConfig: ic.toJsonString(), appTheme: _appTheme.toJsonString(), firebaseConfig: _firebaseConfig.isNotEmpty ? _firebaseConfig : null, onProgress: _addLog, webOnly: appType == 'web', bundleFiles: bundlePaths, projectFiles: projectPaths);
+      final result = await Generator.injectHtml(label: label, htmlContent: buildHtml, packageName: _existingPackageName, iconConfig: ic.toJsonString(), appTheme: _appTheme.toJsonString(), firebaseConfig: _firebaseConfig.isNotEmpty ? _firebaseConfig : null, onProgress: _addLog, webOnly: appType == 'web', bundleFiles: bundlePaths, projectFiles: projectPaths);
       // Now that the package name is known, move the project to its final place.
       await ProjectStore.migrateToPackage(appId: appId, packageName: result.packageName);
       await ProjectStore.writeConfig(

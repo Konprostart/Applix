@@ -804,18 +804,24 @@ class _PreviewScreenState extends State<PreviewScreen> {
         _mainFrameError = null;
       });
     }
-    final injected = _injectScripts(html);
     final kitFiles = <String, String>{
       if (!widget.projectFiles.containsKey(UiKit.jsFileName))
         UiKit.jsFileName: await UiKit.loadJs(),
       if (!widget.projectFiles.containsKey(UiKit.cssFileName))
         UiKit.cssFileName: await UiKit.loadCss(),
     };
+    // Final pass on the exact bytes the WebView gets: the kit above is a module
+    // and a classic <script src> pointing at it would die on its `export`.
+    final served = ScriptSanitizer.normalize(
+      _injectScripts(html),
+      {...kitFiles, ...widget.projectFiles},
+    );
+    final injected = served.html;
     try {
       var server = _server;
       server ??= await PreviewServer.start();
       _server = server;
-      server.update(injected, {...kitFiles, ...widget.projectFiles});
+      server.update(injected, served.files);
       if (!mounted) return;
       _readyTimer?.cancel();
       _readyTimer = Timer(const Duration(seconds: 8), () {

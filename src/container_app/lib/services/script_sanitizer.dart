@@ -1,14 +1,17 @@
 /// Keeps generated scripts valid for the classic `<script>` they run in.
 ///
-/// Models sometimes write ES module syntax (`export function ...`) into a file
-/// that the HTML loads as a plain script. The browser then fails with
-/// `Uncaught SyntaxError: Unexpected token 'export'` and the buttons never
-/// get wired up. This normalizer runs on every model answer and on every
-/// preview load:
-///   * a classic script with `export` statements loses the `export` keywords
-///     (declarations stay global, so inline handlers keep working);
-///   * a script that uses `import` is switched to `type="module"`, because
-///     only modules may import.
+/// Models sometimes write ES module syntax (`export function ...`, or load
+/// `applix-ui.js` - which is a module - with a plain `<script src>`). The
+/// browser then fails with `Uncaught SyntaxError: Unexpected token 'export'`
+/// and no button gets wired up.
+///
+/// Rules applied to every model answer, every preview load and every build:
+///   * a classic script that still contains `export` loses the keyword - the
+///     declarations stay global, so inline handlers keep working;
+///   * a classic script that needs `import`, or a classic `<script src>` that
+///     points at a module, is switched to `type="module"` and followed by a
+///     small glue module that exposes its exports on `window`, so classic code
+///     can still call them.
 library;
 
 class ScriptNormalization {
@@ -29,62 +32,265 @@ class ScriptSanitizer {
   static final RegExp _typeAttr = RegExp(
       r'''\s+type\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)''',
       caseSensitive: false);
-  static final RegExp _exportAny = RegExp(r'^[ \t]*export\s', multiLine: true);
-  static final RegExp _importStmt =
-      RegExp(r'''^[ \t]*import\s[^;\n]*?["']''', multiLine: true);
-  static final RegExp _exportDefaultDecl = RegExp(
-      r'^(\s*)export\s+default\s+(?=(?:async\s+)?(?:function|class)\b)',
+  static final RegExp _identImport =
+      RegExp(r'''(^|[;{}()\s])import\s*["']''', multiLine: true);
+  static final RegExp _identImportFrom = RegExp(
+      r'''(^|[;{}()\s])import\s+[^;\n]*\bfrom\s*["']''',
       multiLine: true);
-  static final RegExp _exportDefaultExpr =
-      RegExp(r'^(\s*)export\s+default\s+', multiLine: true);
-  static final RegExp _exportDecl = RegExp(
-      r'^(\s*)export\s+(?=(?:async\s+)?(?:function\*?|const|let|var|class)\b)',
-      multiLine: true);
-  static final RegExp _exportList = RegExp(
-      r'''^[ \t]*export\s*\{[^}]*\}\s*(?:from\s*(?:"[^"\n]*"|'[^'\n]*'))?[ \t]*;?[ \t]*$''',
-      multiLine: true);
+  static final RegExp _exportToken =
+      RegExp(r'''(^|[^\w$])export\b''', caseSensitive: false);
 
-  /// True when [code] has an `export` statement at the start of a line.
-  static bool hasExports(String code) => _exportAny.hasMatch(code);
+  static bool hasImports(String code) =>
+      _identImport.hasMatch(code) || _identImportFrom.hasMatch(code);
 
-  /// True when [code] has an `import` statement (`import x from '...'`).
-  static bool hasImports(String code) => _importStmt.hasMatch(code);
+  static bool hasExports(String code) => _exportToken.hasMatch(code);
 
   /// Removes module export syntax, keeping the declarations themselves.
+  ///
+  /// The scan is literal-aware: `export` inside strings, template literals or
+  /// comments is left alone.
   static String stripExports(String code) {
-    var out = code.replaceAllMapped(_exportDefaultDecl, (m) => m.group(1)!);
-    out = out.replaceAllMapped(
-        _exportDefaultExpr, (m) => '${m.group(1)}var defaultExport = ');
-    out = out.replaceAllMapped(_exportDecl, (m) => m.group(1)!);
-    out = out.replaceAll(_exportList, '');
-    return out;
+    if (!code.contains('export')) return code;
+    final out = StringBuffer();
+    var i = 0;
+    final n = code.length;
+
+    while (i < n) {
+      final c = code[i];
+      if (c == '/' && i + 1 < n && code[i + 1] == '/') {
+        final end = code.indexOf('\n', i);
+        final stop = end == -1 ? n : end;
+        out.write(code.substring(i, stop));
+        i = stop;
+        continue;
+      }
+      if (c == '/' && i + 1 < n && code[i + 1] == '*') {
+        final end = code.indexOf('*/', i + 2);
+        final stop = end == -1 ? n : end + 2;
+        out.write(code.substring(i, stop));
+        i = stop;
+        continue;
+      }
+      if (c == '"' || c == '\'') {
+        final pad = _stringStart(code, i, quoted: true);
+        out.write(code.substring(i, pad));
+        i = pad;
+        continue;
+      }
+      if (c == '`') {
+        final end = _templateEnd(code, i);
+        out.write(code.substring(i, end));
+        i = end;
+        continue;
+      }
+      if ((c == 'e' || c == 'E') &&
+          code.startsWith('export', i) &&
+          (i == 0 || !_isIdent(code.codeUnitAt(i - 1))) &&
+          (i + 6 >= n || !_isIdent(code.codeUnitAt(i + 6)))) {
+        final after = _skipBlank(code, i + 6);
+        final word = _word(code, after);
+        if (word == 'default') {
+          final exprStart = _skipBlank(code, after + 7);
+          final next = _word(code, exprStart);
+          if (next == 'function' ||
+              next == 'class' ||
+              next == 'async' ||
+              next.startsWith('function*')) {
+            i = after + 7;
+          } else {
+            out.write('var defaultExport = ');
+            i = exprStart;
+          }
+        } else if (word.startsWith('{')) {
+          i = _afterBalanced(code, after, '{', '}');
+          i = _skipStatementEnd(code, i);
+        } else if (word.startsWith('*')) {
+          i = _skipStatementEnd(code, after);
+        } else {
+          i = after;
+        }
+        continue;
+      }
+      out.write(c);
+      i++;
+    }
+    return out.toString();
   }
 
   /// Normalizes every classic script of [html] and of the project [files]
   /// (paths relative to the entry, e.g. `src/app.js`).
   static ScriptNormalization normalize(String html, Map<String, String> files) {
     final updated = Map<String, String>.from(files);
-    final out = html.replaceAllMapped(_scriptTag, (m) {
+    final out = StringBuffer();
+    var last = 0;
+    for (final m in _scriptTag.allMatches(html)) {
+      out.write(html.substring(last, m.start));
+      last = m.end;
       final whole = m.group(0)!;
       final attrs = m.group(1) ?? '';
       final body = m.group(2) ?? '';
-      if (_moduleAttr.hasMatch(attrs)) return whole;
-
-      final src = _srcOf(attrs);
-      if (src != null) {
-        final key = _fileKey(src, updated);
-        if (key == null) return whole;
-        final code = updated[key]!;
-        if (hasImports(code)) return _asModule(whole);
-        if (hasExports(code)) updated[key] = stripExports(code);
-        return whole;
+      if (_moduleAttr.hasMatch(attrs)) {
+        out.write(whole);
+        continue;
       }
 
-      if (hasImports(body)) return _asModule(whole);
-      if (hasExports(body)) return whole.replaceFirst(body, stripExports(body));
-      return whole;
-    });
-    return ScriptNormalization(out, updated);
+      final src = _srcOf(attrs)?.trim();
+      if (src != null && src.isNotEmpty) {
+        final key = _fileKey(src, updated);
+        if (key != null) {
+          final code = updated[key]!;
+          if (hasImports(code) || hasExports(code)) {
+            out.write(_asModule(whole));
+            out.write(_glue(src));
+            continue;
+          }
+        }
+        out.write(whole);
+        continue;
+      }
+
+      if (hasImports(body)) {
+        out.write(_asModule(whole));
+        continue;
+      }
+      if (hasExports(body)) {
+        out.write(whole.replaceFirst(body, stripExports(body)));
+        continue;
+      }
+      out.write(whole);
+    }
+    out.write(html.substring(last));
+    return ScriptNormalization(out.toString(), updated);
+  }
+
+  /// Sanitizes a document without knowing its project files. Used as a final
+  /// pass right before the HTML is served or packaged.
+  static String normalizeDocument(String html) => normalize(html, const {}).html;
+
+  static String _glue(String specifier) {
+    final safe = specifier.replaceAll('"', '%22');
+    return '<script type="module">\n'
+        'import * as __applixModule from "$safe";\n'
+        'try{\n'
+        '  window.__applixModules=window.__applixModules||{};\n'
+        '  window.__applixModules["$safe"]=__applixModule;\n'
+        '  Object.keys(__applixModule).forEach(function(k){\n'
+        '    try{if(!(k in window))window[k]=__applixModule[k];}catch(e){}\n'
+        '  });\n'
+        '}catch(e){}\n'
+        '</script>';
+  }
+
+  static bool _isIdent(int c) =>
+      (c >= 0x30 && c <= 0x39) ||
+      (c >= 0x41 && c <= 0x5A) ||
+      (c >= 0x61 && c <= 0x7A) ||
+      c == 0x24 ||
+      c == 0x5F;
+
+  /// Index just past the string literal that starts at [i].
+  static int _stringStart(String code, int i, {required bool quoted}) {
+    final quote = code[i];
+    var j = i + 1;
+    while (j < code.length) {
+      final c = code[j];
+      if (c == '\\') {
+        j += 2;
+        continue;
+      }
+      if (c == quote) return j + 1;
+      if (c == '\n') return j;
+      j++;
+    }
+    return code.length;
+  }
+
+  /// Index just past the template literal that starts at [i].
+  static int _templateEnd(String code, int i) {
+    var j = i + 1;
+    while (j < code.length) {
+      final c = code[j];
+      if (c == '\\') {
+        j += 2;
+        continue;
+      }
+      if (c == '`') return j + 1;
+      if (c == r'$' && j + 1 < code.length && code[j + 1] == '{') {
+        j = _afterBalanced(code, j + 2, '{', '}');
+        continue;
+      }
+      j++;
+    }
+    return code.length;
+  }
+
+  static int _skipBlank(String code, int i) {
+    var j = i;
+    while (j < code.length) {
+      final c = code[j];
+      if (c == ' ' || c == '\t' || c == '\r' || c == '\n') {
+        j++;
+        continue;
+      }
+      break;
+    }
+    return j;
+  }
+
+  static String _word(String code, int i) {
+    if (i >= code.length) return '';
+    final c = code[i];
+    if (c == '{' || c == '*') return c;
+    var j = i;
+    while (j < code.length && (_isIdent(code.codeUnitAt(j)) || code[j] == '*')) {
+      j++;
+    }
+    return code.substring(i, j);
+  }
+
+  static int _afterBalanced(String code, int i, String open, String close) {
+    var depth = 0;
+    var j = i;
+    while (j < code.length) {
+      final c = code[j];
+      if (c == '"' || c == '\'') {
+        j = _stringStart(code, j, quoted: true);
+        continue;
+      }
+      if (c == '`') {
+        j = _templateEnd(code, j);
+        continue;
+      }
+      if (c == open) depth++;
+      if (c == close) {
+        depth--;
+        if (depth == 0) return j + 1;
+      }
+      j++;
+    }
+    return code.length;
+  }
+
+  static int _skipStatementEnd(String code, int i) {
+    var j = i;
+    var depth = 0;
+    while (j < code.length) {
+      final c = code[j];
+      if (c == '"' || c == '\'') {
+        j = _stringStart(code, j, quoted: true);
+        continue;
+      }
+      if (c == '`') {
+        j = _templateEnd(code, j);
+        continue;
+      }
+      if (c == '{') depth++;
+      if (c == '}') depth--;
+      if (c == ';' && depth <= 0) return j + 1;
+      if (c == '\n' && depth <= 0) return j;
+      j++;
+    }
+    return code.length;
   }
 
   static String? _srcOf(String attrs) {
@@ -103,6 +309,8 @@ class ScriptSanitizer {
         lower.startsWith('//')) {
       return null;
     }
+    final cut = path.indexOf('?');
+    if (cut != -1) path = path.substring(0, cut);
     while (path.startsWith('./')) {
       path = path.substring(2);
     }
