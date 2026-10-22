@@ -27,9 +27,9 @@ const button = (className, label) => {
   return b;
 };
 
-/** Transient message at the bottom of the screen. */
-export function toast(message, { duration = 2200, action } = {}) {
-  const node = el('div', 'ax-toast ax-toast--js');
+/** Transient message at the bottom of the screen. `tone`: 'error' | 'success'. */
+export function toast(message, { duration = 2200, action, tone } = {}) {
+  const node = el('div', 'ax-toast ax-toast--js' + (tone ? ' ax-toast--' + tone : ''));
   node.setAttribute('role', 'status');
   node.appendChild(el('span', 'ax-toast__msg', message));
   if (action && action.label) {
@@ -53,6 +53,11 @@ export function toast(message, { duration = 2200, action } = {}) {
     setTimeout(() => node.remove(), 240);
   }
   return { close };
+}
+
+/** Error message for failed actions. Never leave a failure silent. */
+export function showError(message, { duration = 3800, action } = {}) {
+  return toast(String(message || 'Something went wrong.'), { duration, action, tone: 'error' });
 }
 
 /**
@@ -413,6 +418,7 @@ export function donut(value, { size = 96, strokeWidth = 10, label = '', tone = '
 export default {
   version: UI_KIT_VERSION,
   toast,
+  showError,
   openSheet,
   confirmDialog,
   mountTabs,

@@ -57,6 +57,7 @@ void main() {
       expect(js, contains('export const UI_KIT_VERSION = 2;'));
       for (final fn in [
         'toast',
+        'showError',
         'openSheet',
         'confirmDialog',
         'mountTabs',

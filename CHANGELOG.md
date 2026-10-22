@@ -10,6 +10,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.9.5] - 2026-10-22
+
+### Changed
+- **UI Kit gained `showError`.** Generated apps can show failed actions as a
+  red-toned toast; `toast` accepts an optional `tone` ('error' | 'success').
+  The prompt now documents `showError` in the import list, so generated code
+  stops calling a helper that does not exist.
+- **System prompt: offline first.** External CDN libraries are the exception,
+  not the default: the kit, the bridge and plain JavaScript cover charts,
+  icons, dialogs, forms and storage. CDN use requires a pinned version and a
+  clear "requires internet on first launch" failure path.
+- **System prompt: micro-interactions.** `stagger()` for appearing lists,
+  haptic + toast for success and failure, and an explicit rule that only
+  helpers present in the import list may be called.
+- **Hidden developer mode.** Three taps on the version row in Settings > About
+  toggle the read-only Code tab on the result screen. Off by default.
+
 ## [0.9.4] - 2026-10-21
 
 ### Changed

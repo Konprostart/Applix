@@ -55,6 +55,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Map<String, dynamic> _keyInfo = {};
   String _stylePreset = 'default';
   bool _loaded = false;
+  bool _developerMode = false;
+  int _versionTaps = 0;
+  DateTime _firstVersionTap = DateTime.now();
 
   @override
   void initState() {
@@ -70,6 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _load() async {
     final activeProvider = await Settings.getActiveProvider();
+    final developerMode = await Settings.isDeveloperMode();
     final hasCustom = await Settings.hasCustomPrompt();
     final promptOutdated = await PromptBuilder.isPromptOutdated();
     if (!hasCustom) await PromptBuilder.markPromptAsSeen(); // track hash on first launch / after reset
@@ -88,6 +92,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _appCount = apps.length;
         _keyInfo = keyInfo;
         _stylePreset = style;
+        _developerMode = developerMode;
         _loaded = true;
       });
     }
@@ -486,7 +491,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // About
               _sectionTitle('About'),
               _card(children: [
-                _row('Version', '$kAppVersion (code $kAppVersionCode)'),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _onVersionTap,
+                  child: _row('Version', _developerMode
+                      ? '$kAppVersion (developer mode)'
+                      : '$kAppVersion (code $kAppVersionCode)'),
+                ),
                 const Divider(height: 1, color: Color(0xFF0D0D1A)),
                 _row('Demo Templates', '${helpers.demoTemplates.where((t) => t.$1.isNotEmpty).length}'),
                 const Divider(height: 1, color: Color(0xFF0D0D1A)),
@@ -586,6 +597,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
   );
 
   // ── Actions ──
+
+  /// Hidden developer mode: three taps within two seconds on the version row
+  /// toggle the read-only Code tab in the result screen.
+  Future<void> _onVersionTap() async {
+    final now = DateTime.now();
+    if (now.difference(_firstVersionTap) > const Duration(seconds: 2)) {
+      _versionTaps = 0;
+    }
+    if (_versionTaps == 0) _firstVersionTap = now;
+    _versionTaps++;
+    if (_versionTaps < 3) return;
+    _versionTaps = 0;
+    final newMode = !_developerMode;
+    await Settings.setDeveloperMode(newMode);
+    if (!mounted) return;
+    setState(() => _developerMode = newMode);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(newMode
+            ? 'Developer mode on: Code tab is now visible on results.'
+            : 'Developer mode off.'),
+        backgroundColor: const Color(0xFF1A1A2E),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
 
   Future<void> _savePrefix() async {
     final val = _prefixController.text.trim();

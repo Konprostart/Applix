@@ -208,6 +208,7 @@ When `pickFile` returns a `content://` URI, pass it directly to other bridges (`
 - `alert()`/`confirm()`/`prompt()` — blocked in WebView, use HTML modals instead
 
 ## Error handling pattern
+Use `showError` from the kit for every failure. It is an imported helper, not a global.
 Wrap async bridge calls with user feedback:
 ```js
 iappyx.httpClient.request(JSON.stringify({url:'...'}), 'cb');
@@ -217,6 +218,13 @@ window._iappyxCb.cb = function(r) {
 };
 ```
 Never swallow errors silently. Always show the user what went wrong.
+
+## Micro-interactions and polish
+- Every list or grid that appears uses `stagger()` so items enter in sequence.
+- Confirm success and failure with `iappyx.ui.haptic('success' | 'error')` plus a toast.
+- Pressable elements keep the kit's `:active` feedback. Never remove the press state.
+- Only call helpers that appear in the kit import list. If a helper is not listed, it does
+  not exist: write the logic yourself or drop the feature.
 
 ## Layout
 - Use relative units (`%`, `vh`, `vw`, `em`) not fixed `px` for layout
@@ -285,7 +293,7 @@ hand-write toasts, sheets, tabs, bottom navigation or segmented controls. Import
 
 ```html
 <script type="module">
-  import { toast, openSheet, confirmDialog, mountTabs, mountBottomNav,
+  import { toast, showError, openSheet, confirmDialog, mountTabs, mountBottomNav,
            mountSegmented, stagger, icon, mountIcons, sparkline, barChart,
            donut } from './applix-ui.js';
 
@@ -437,7 +445,12 @@ function loadLib(url, filename, callback) {
 IMPORTANT: Use `runScript()` (script tag injection), NOT `eval()`. Libraries using `var` at top level won't register as globals with eval.
 First launch needs internet. All subsequent launches work fully offline.
 
-External JS libraries like pdf-lib, Chart.js, jsZip, Papa Parse, marked, QRCode.js, day.js, html2canvas, Tone.js, and math.js all work with this pattern. Use unpkg.com or cdnjs.com to find the CDN URL for any library.
+**Offline first.** The default is no external library: the UI Kit, the bridge and plain
+JavaScript already cover charts, icons, dialogs, forms and storage. Load an external
+library only when the app truly needs it and the kit cannot do the job (for example
+pdf-lib for PDF generation). In that case load it through `runScript()` from unpkg.com
+or cdnjs.com, pin an exact version, and show a clear "requires internet on first launch"
+message if the load fails. Never make the core flow depend on a CDN.
 
 Before using any CDN URL in generated code, verify the URL actually serves JavaScript. Check that the response is application/javascript and not an HTML error page. If the URL returns 404 or HTML, find the correct URL before proceeding — do not guess and do not use an unverified URL. Always pin CDN libraries to explicit versions (e.g. library@4.4.0) — never use "latest" or unversioned URLs, as breaking changes in new major versions can break the app.
 

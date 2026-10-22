@@ -220,6 +220,17 @@ class Settings {
     await prefs.setBool('onboarding_done', true);
   }
 
+  /// Developer mode: shows the read-only Code tab in the result screen.
+  static Future<bool> isDeveloperMode() async {
+    final prefs = await getPrefs();
+    return prefs.getBool('developer_mode') ?? false;
+  }
+
+  static Future<void> setDeveloperMode(bool value) async {
+    final prefs = await getPrefs();
+    await prefs.setBool('developer_mode', value);
+  }
+
   static Future<bool> hasCustomPrompt() async {
     final prefs = await getPrefs();
     return prefs.containsKey('custom_prompt');

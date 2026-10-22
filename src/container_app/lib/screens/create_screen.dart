@@ -132,6 +132,8 @@ class CreateScreenState extends State<CreateScreen> {
   String _backgroundStage = '';
   /// Real pipeline stage shown on the generating overlay (no raw code).
   String _genStage = '';
+  /// Shows the read-only Code tab on results (toggled in Settings > About).
+  bool _developerMode = false;
   String? _pendingImprovedHtml;
   String? _pendingImprovementNote;
 
@@ -362,6 +364,11 @@ class CreateScreenState extends State<CreateScreen> {
       _activeProvider = await Settings.getActiveProvider();
     } catch (_) {
       _activeProvider = null;
+    }
+    try {
+      _developerMode = await Settings.isDeveloperMode();
+    } catch (_) {
+      _developerMode = false;
     }
     _loadingProvider = false;
     if (mounted) setState(() {});
@@ -1670,6 +1677,7 @@ class CreateScreenState extends State<CreateScreen> {
       generating: _aiGenerating,
       generatingSince: _genStartTime,
       generatingStage: _genStage,
+      showDeveloperCode: _developerMode,
       onCancel: _cancelGeneration,
       onBack: () => _confirmExit(
           _editingId != null ? () => widget.onViewMyApps?.call() : _reset),

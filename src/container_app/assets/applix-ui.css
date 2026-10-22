@@ -897,6 +897,9 @@ html body blockquote {
   transform: translateX(-50%);
 }
 
+.ax-toast--error .ax-toast__msg { color: var(--ax-danger); }
+.ax-toast--success .ax-toast__msg { color: var(--ax-success, var(--ax-primary)); }
+
 .ax-toast__msg {
   margin-right: var(--ax-2);
 }

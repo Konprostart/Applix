@@ -12,6 +12,16 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
+  group('developer mode', () {
+    test('defaults to off and round trips', () async {
+      expect(await Settings.isDeveloperMode(), isFalse);
+      await Settings.setDeveloperMode(true);
+      expect(await Settings.isDeveloperMode(), isTrue);
+      await Settings.setDeveloperMode(false);
+      expect(await Settings.isDeveloperMode(), isFalse);
+    });
+  });
+
   group('prompt draft', () {
     test('round trips the manual prompt', () async {
       await Settings.savePromptDraft(
