@@ -174,7 +174,7 @@ class ScriptSanitizer {
   static final RegExp _bodyBlock =
       RegExp(r'<body\b[^>]*>([\s\S]*?)</body>', caseSensitive: false);
   static final RegExp _hiddenRoot = RegExp(
-      r'((?:^|[},\s])(?:html|body|main|#app|#root)\s*\{[^}]*?)display\s*:\s*none',
+      r'((?:^|[>},\s])(?:html|body|main|#app|#root)\s*\{[^}]*?)display\s*:\s*none',
       caseSensitive: false,
       multiLine: true);
   static final RegExp _controlTag = RegExp(
