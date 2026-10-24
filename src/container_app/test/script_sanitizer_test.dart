@@ -77,7 +77,7 @@ void main() {
       final result = ScriptSanitizer.normalize(html, const {
         'app.js': 'export const a = 1;',
       });
-      expect(result.html, html);
+      expect(result.html, contains('<script type="module" src="app.js"></script>'));
       expect(result.files['app.js'], 'export const a = 1;');
     });
 

@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet.
 
+## [0.9.14] - 2026-10-22
+
+### Changed
+- **Visible content check (Option C).** Every generated document is checked on
+  preview and build. A root container (`html`, `body`, `main`, `#app`, `#root`)
+  styled with `display: none` becomes `display: block`. A `<body>` with no
+  visible text and no controls gets a visible card that says the screen came
+  back empty, instead of a black screen. Fragments without a body are only
+  checked for the hidden-root rule.
+- **Review of web-to-app (Option B).** Its WebView setup (dark mode, cosmetic
+  filters, scroll memory, image repair) does not solve empty generated screens.
+  Its local-vs-file load decision matches the loopback server already used here,
+  so nothing was copied from it.
+
 ## [0.9.13] - 2026-10-22
 
 ### Changed

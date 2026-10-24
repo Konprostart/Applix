@@ -166,7 +166,56 @@ class ScriptSanitizer {
     }
     out.write(html.substring(last));
     return ScriptNormalization(
-        bindInlineHandlers(ensureVisibilityGuard(out.toString())), updated);
+        bindInlineHandlers(
+            ensureVisibleContent(ensureVisibilityGuard(out.toString()))),
+        updated);
+  }
+
+  static final RegExp _bodyBlock =
+      RegExp(r'<body\b[^>]*>([\s\S]*?)</body>', caseSensitive: false);
+  static final RegExp _hiddenRoot = RegExp(
+      r'((?:^|[},\s])(?:html|body|main|#app|#root)\s*\{[^}]*?)display\s*:\s*none',
+      caseSensitive: false,
+      multiLine: true);
+  static final RegExp _controlTag = RegExp(
+      r'<(button|input|select|textarea|img|canvas|svg|table|ul|ol|form|a|video|iframe)\b',
+      caseSensitive: false);
+
+  /// Option C: a document must show something on the first frame.
+  ///
+  /// * A root container (`html`, `body`, `main`, `#app`, `#root`) styled with
+  ///   `display: none` is switched to `display: block`.
+  /// * A `<body>` with no visible text and no controls gets a visible card that
+  ///   says the screen came back empty. The user sees the problem instead of a
+  ///   black screen.
+  /// Fragments without a body are only checked for the hidden-root rule.
+  static String ensureVisibleContent(String html) {
+    if (html.contains('id="applix-visible-fallback"')) return html;
+    final unhidden = html.replaceAllMapped(
+        _hiddenRoot, (m) => '${m.group(1)}display: block');
+    final body = _bodyBlock.firstMatch(unhidden);
+    if (body == null) return unhidden;
+
+    final inner = body.group(1) ?? '';
+    final visibleText = inner
+        .replaceAll(RegExp(r'<(script|style)\b[\s\S]*?</\1\s*>', caseSensitive: false), '')
+        .replaceAll(RegExp(r'<!--[\s\S]*?-->'), '')
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .replaceAll(RegExp(r'\s+'), '');
+    if (visibleText.isNotEmpty || _controlTag.hasMatch(inner)) return unhidden;
+
+    const fallback = '<div id="applix-visible-fallback" style="'
+        'margin:24px;padding:20px;border-radius:14px;'
+        'background:#1A1A2E;color:#FFFFFF;'
+        'font:15px/1.5 system-ui,Roboto,sans-serif;text-align:center">'
+        '<div style="font-weight:600;font-size:17px;margin-bottom:8px">'
+        'This screen came back empty</div>'
+        '<div style="opacity:.75;font-size:13px">'
+        'Generate the app again, or ask for the main screen to be built.'
+        '</div></div>';
+    final close = unhidden.toLowerCase().lastIndexOf('</body>');
+    if (close == -1) return unhidden;
+    return unhidden.substring(0, close) + fallback + unhidden.substring(close);
   }
 
   /// Keeps generated content from being invisible by default.

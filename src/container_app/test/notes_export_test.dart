@@ -102,6 +102,37 @@ void main() {
       expect(twice, once);
     });
 
+    test('an empty body gets a visible card instead of a black screen', () {
+      const html = '<html><head></head><body></body></html>';
+      final out = ScriptSanitizer.normalize(html, const {}).html;
+      expect(out, contains('id="applix-visible-fallback"'));
+      expect(out, contains('This screen came back empty'));
+      final twice = ScriptSanitizer.normalize(out, const {}).html;
+      expect(twice, out);
+    });
+
+    test('a body with a heading and a button is left without a fallback', () {
+      const html = '<html><head></head><body><h1>Notes</h1>'
+          '<button onclick="go()">Add</button></body></html>';
+      final out = ScriptSanitizer.normalize(html, const {}).html;
+      expect(out, isNot(contains('applix-visible-fallback')));
+    });
+
+    test('a root container hidden with display none is made visible', () {
+      const html = '<html><head><style>#app { display: none; color: #fff; }</style>'
+          '</head><body><div id="app">Hi</div></body></html>';
+      final out = ScriptSanitizer.normalize(html, const {}).html;
+      expect(out, contains('#app { display: block; color: #fff; }'));
+      expect(out, isNot(contains('display: none')));
+    });
+
+    test('a display none on an ordinary class is not touched', () {
+      const html = '<html><head><style>.modal { display: none; }</style>'
+          '</head><body><div class="modal">x</div></body></html>';
+      final out = ScriptSanitizer.normalize(html, const {}).html;
+      expect(out, contains('.modal { display: none; }'));
+    });
+
     test('binding is added once even when normalized twice', () {
       const html = '<html><body><button onclick="save()">x</button></body></html>';
       final once = ScriptSanitizer.normalize(html, const {}).html;
